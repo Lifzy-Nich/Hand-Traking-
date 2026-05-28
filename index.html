@@ -2,456 +2,304 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8" />
-<title>Sistem Partikel 3D Interaktif</title>
+<title>Fruit Ninja 3D - Kontrol Gestur</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: #05070d;
-    color: #fff;
-    font-family: 'Segoe UI', sans-serif;
-    overflow: hidden;
+  body { margin:0; overflow:hidden; background:#080812; font-family:'Segoe UI',sans-serif; color:#fff; }
+  #canvas { position:fixed; inset:0; }
+  #video {
+    position:fixed; top:15px; right:15px; width:200px; height:150px;
+    transform:scaleX(-1); border:2px solid #0ff; border-radius:10px;
+    z-index:10; background:#000; box-shadow:0 0 20px rgba(0,255,255,0.4);
   }
-  #canvas-container {
-    position: fixed;
-    inset: 0;
-    z-index: 1;
+  #ui {
+    position:fixed; top:15px; left:15px; z-index:10;
+    background:rgba(10,10,25,0.7); padding:12px 18px;
+    border-radius:10px; border:1px solid rgba(0,255,255,0.3);
+    backdrop-filter:blur(8px);
   }
-  #video-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    width: 260px;
-    height: 195px;
-    border: 2px solid #4a9eff;
-    border-radius: 12px;
-    overflow: hidden;
-    z-index: 10;
-    background: #000;
-    box-shadow: 0 0 20px rgba(74, 158, 255, 0.4);
+  #score { font-size:36px; color:#0ff; font-weight:bold; text-shadow:0 0 15px #0ff; }
+  #combo { color:#ff00ff; font-size:18px; text-shadow:0 0 10px #ff00ff; }
+  #miss { color:#ff4466; font-size:14px; margin-top:4px; }
+  #flash {
+    position:fixed; inset:0; pointer-events:none; z-index:5;
+    background:#fff; opacity:0; transition:opacity 0.3s;
   }
-  #webcam {
-    width: 100%;
-    height: 100%;
-    transform: scaleX(-1);
-    object-fit: cover;
-  }
-  #overlay {
-    position: fixed;
-    top: 225px;
-    right: 20px;
-    width: 260px;
-    background: rgba(10, 15, 30, 0.85);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(74, 158, 255, 0.3);
-    border-radius: 10px;
-    padding: 14px;
-    font-size: 13px;
-    z-index: 10;
-    line-height: 1.7;  }
-  #overlay h3 {
-    color: #4a9eff;
-    margin-bottom: 6px;
-    font-size: 14px;
-  }
-  .state {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-weight: bold;
-  }
-  .open { background: #22c55e; color: #fff; }
-  .closed { background: #ef4444; color: #fff; }
-  .gesture { background: #a855f7; color: #fff; }
   #instructions {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    background: rgba(10, 15, 30, 0.85);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(74, 158, 255, 0.3);
-    border-radius: 10px;
-    padding: 16px 20px;
-    z-index: 10;
-    max-width: 420px;
-    font-size: 13px;
-    line-height: 1.6;
+    position:fixed; bottom:15px; left:15px; z-index:10;
+    background:rgba(10,10,25,0.7); padding:10px 15px;
+    border-radius:10px; font-size:13px; line-height:1.6;
+    border:1px solid rgba(0,255,255,0.3); backdrop-filter:blur(8px);
   }
-  #instructions h3 {
-    color: #4a9eff;
-    margin-bottom: 8px;
+  #instructions b { color:#0ff; }
+  #status {
+    position:fixed; bottom:15px; right:15px; font-size:12px;
+    color:#888; z-index:10;
   }
-  #instructions ul { padding-left: 18px; }
-  #instructions li { margin-bottom: 3px; }
 </style>
 </head>
 <body>
+<div id="canvas"></div>
+<video id="video" autoplay playsinline muted></video>
+<div id="flash"></div>
 
-<div id="canvas-container"></div>
-
-<div id="video-container">
-  <video id="webcam" autoplay playsinline muted></video>
+<div id="ui">
+  <div style="font-size:11px;opacity:0.6;">SKOR</div>
+  <div id="score">0</div>
+  <div id="combo">Kombo: x0</div>
+  <div id="miss">Terlewat: 0</div>
 </div>
-
-<div id="overlay">
-  <h3>Status Deteksi</h3>
-  <div>Tangan: <span id="hand-state" class="state closed">Mengepal</span></div>
-  <div>Jari Terbuka: <span id="finger-count">0</span></div>
-  <div>Mode: <span id="mode" class="state gesture">Bola (Default)</span></div></div>
-
 <div id="instructions">
-  <h3>🖐️ Kontrol Gestur</h3>
-  <ul>
-    <li><b>Tangan Terbuka:</b> partikel mengembang ke luar</li>
-    <li><b>Tangan Tertutup:</b> partikel menyusut menjadi bola</li>
-    <li><b>1 Jari (☝️):</b> membentuk teks "hello, world"</li>
-    <li><b>2 Jari (✌️):</b> membentuk teks "I'm Qwen"</li>
-  </ul>
+  <b>☝️ Jari Telunjuk:</b> Gerakan pedang<br>
+  <b>⚡ Tebas Cepat:</b> Potong buah<br>
+  <b>💥 Kombo:</b> Tebah berturut-turut = skor lebih tinggi
 </div>
 
-<!-- Three.js -->
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<div id="status">Memuat kamera...</div>
 
-<!-- MediaPipe Hands -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js"></script>
 
 <script>
-/* ============================================================
-   BAGIAN 1: PERSIAPAN SCENE THREE.JS
-============================================================ */
-const container = document.getElementById('canvas-container');
+/* ====== SCENE SETUP ====== */
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x05070d, 0.02);
+scene.background = new THREE.Color(0x080812);
+scene.fog = new THREE.Fog(0x080812, 12, 28);
 
-const camera = new THREE.PerspectiveCamera(
-  60, window.innerWidth / window.innerHeight, 0.1, 1000
-);
-camera.position.set(0, 0, 30);
+const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.1, 100);
+camera.position.set(0, 0, 14);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-container.appendChild(renderer.domElement);
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+document.getElementById('canvas').appendChild(renderer.domElement);
 
-/* ============================================================
-   BAGIAN 2: SAMPLING TEKS DARI CANVAS 2D
-   Menghasilkan titik target partikel agar membentuk huruf
-============================================================ */
-function sampleTextToPoints(text, fontSize = 100, maxPoints = 3000) {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  canvas.width = 1024;
-  canvas.height = 256;
+scene.add(new THREE.AmbientLight(0x6666aa, 0.5));
+const keyLight = new THREE.PointLight(0xff88cc, 1.4, 40);
+keyLight.position.set(5, 8, 10);
+scene.add(keyLight);
+const rimLight = new THREE.PointLight(0x00ffff, 0.8, 40);
+rimLight.position.set(-8, -5, 5);
+scene.add(rimLight);
 
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#fff';  ctx.font = `bold ${fontSize}px Arial, sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-
-  const img = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-  const points = [];
-  const step = 3; // sampling setiap 3 pixel untuk kepadatan
-
-  for (let y = 0; y < canvas.height; y += step) {
-    for (let x = 0; x < canvas.width; x += step) {
-      const idx = (y * canvas.width + x) * 4;
-      if (img[idx] > 128) {
-        points.push(new THREE.Vector3(
-          (x - canvas.width / 2) * 0.03,
-          -(y - canvas.height / 2) * 0.03,
-          (Math.random() - 0.5) * 0.5
-        ));
-      }
-    }
-  }
-  // Batasi jumlah titik jika terlalu banyak
-  while (points.length > maxPoints) {
-    points.splice(Math.floor(Math.random() * points.length), 1);
-  }
-  return points;
-}
-
-/* Pre-generate target shapes */
-const TEXT_HELLO = sampleTextToPoints("hello, world");
-const TEXT_QWEN = sampleTextToPoints("I'm Qwen");
-
-/* ============================================================
-   BAGIAN 3: SISTEM PARTIKEL
-============================================================ */
-const PARTICLE_COUNT = 3000;
-
-// Buffer geometri
-const geometry = new THREE.BufferGeometry();
-const positions = new Float32Array(PARTICLE_COUNT * 3);
-const targets   = new Float32Array(PARTICLE_COUNT * 3);
-const colors    = new Float32Array(PARTICLE_COUNT * 3);
-
-// Inisialisasi posisi awal acak dalam ruang
-for (let i = 0; i < PARTICLE_COUNT; i++) {
-  const i3 = i * 3;
-  positions[i3]     = (Math.random() - 0.5) * 40;
-  positions[i3 + 1] = (Math.random() - 0.5) * 40;
-  positions[i3 + 2] = (Math.random() - 0.5) * 40;
-  targets[i3] = positions[i3];  targets[i3 + 1] = positions[i3 + 1];
-  targets[i3 + 2] = positions[i3 + 2];
-
-  // Gradient warna biru -> ungu
-  const t = i / PARTICLE_COUNT;
-  colors[i3]     = 0.29 + t * 0.4;   // R
-  colors[i3 + 1] = 0.62 - t * 0.2;   // G
-  colors[i3 + 2] = 1.0;              // B
-}
-
-geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-geometry.setAttribute('color',    new THREE.BufferAttribute(colors, 3));
-
-// Texture partikel (lingkaran lembut)
-const texCanvas = document.createElement('canvas');
-texCanvas.width = texCanvas.height = 64;
-const tctx = texCanvas.getContext('2d');
-const grad = tctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-grad.addColorStop(0, 'rgba(255,255,255,1)');
-grad.addColorStop(0.3, 'rgba(120,180,255,0.8)');
-grad.addColorStop(1, 'rgba(0,0,0,0)');
-tctx.fillStyle = grad;
-tctx.fillRect(0, 0, 64, 64);
-const particleTex = new THREE.CanvasTexture(texCanvas);
-
-const material = new THREE.PointsMaterial({
-  size: 0.25,
-  map: particleTex,
-  transparent: true,
-  depthWrite: false,
-  blending: THREE.AdditiveBlending,
-  vertexColors: true
+/* ====== MOTION TRAIL ====== */
+const TRAIL_LEN = 30;
+const trailPos = new Float32Array(TRAIL_LEN * 3);
+const trailGeo = new THREE.BufferGeometry();
+trailGeo.setAttribute('position', new THREE.Float32BufferAttribute(trailPos, 3));
+const trailMat = new THREE.LineBasicMaterial({
+  color:0x00ffff, transparent:true, opacity:0,
+  blending:THREE.AdditiveBlending
 });
+const trail = new THREE.Line(trailGeo, trailMat);
+scene.add(trail);
 
-const particles = new THREE.Points(geometry, material);
-scene.add(particles);
-
-/* ============================================================
-   BAGIAN 4: STATE & LOGIKA MODE PARTIKEL
-============================================================ */
-const state = {
-  handDetected: false,
-  handOpen: false,
-  fingerCount: 0,
-  currentMode: 'sphere',  // 'sphere' | 'expanded' | 'text_hello' | 'text_qwen'
-  textRotation: 0
+/* ====== FINGER STATE ====== */
+const finger = {
+  active:false, pos:new THREE.Vector3(), prev:new THREE.Vector3(),  vel:new THREE.Vector3(), lastMove:0, slashing:false
 };
 
-/* Mode bola (posisi default pada permukaan bola) */
-function getSpherePositions() {  const out = [];
-  const radius = 6;
-  for (let i = 0; i < PARTICLE_COUNT; i++) {
-    const phi = Math.acos(1 - 2 * (i + 0.5) / PARTICLE_COUNT);
-    const theta = Math.PI * (1 + Math.sqrt(5)) * i;
-    out.push(
-      radius * Math.sin(phi) * Math.cos(theta),
-      radius * Math.sin(phi) * Math.sin(theta),
-      radius * Math.cos(phi)
-    );
-  }
-  return out;
-}
-const SPHERE_TARGETS = getSpherePositions();
+/* ====== FRUIT SYSTEM ====== */
+const fruits = [], halves = [], splashes = [];
+const COLORS = [0xff3355, 0xff9922, 0xffdd22, 0x33cc55, 0x22bbff, 0xbb33ff];
+const fruitGeo = new THREE.SphereGeometry(0.6, 24, 24);
+const halfGeo  = new THREE.SphereGeometry(0.6, 20, 20, 0, Math.PI);
 
-/* Mode ekspansi (partikel menyebar ke luar) */
-function getExpandedPositions() {
-  const out = [];
-  for (let i = 0; i < PARTICLE_COUNT; i++) {
-    const i3 = i * 3;
-    const baseX = SPHERE_TARGETS[i3];
-    const baseY = SPHERE_TARGETS[i3 + 1];
-    const baseZ = SPHERE_TARGETS[i3 + 2];
-    const dir = new THREE.Vector3(baseX, baseY, baseZ).normalize();
-    out.push(
-      dir.x * 18 + (Math.random() - 0.5) * 4,
-      dir.y * 18 + (Math.random() - 0.5) * 4,
-      dir.z * 18 + (Math.random() - 0.5) * 4
-    );
+class Fruit {
+  constructor() {
+    const c = COLORS[Math.floor(Math.random()*COLORS.length)];
+    const mat = new THREE.MeshPhongMaterial({
+      color:c, shininess:120, specular:0xffffff, emissive:c, emissiveIntensity:0.15
+    });
+    this.mesh = new THREE.Mesh(fruitGeo, mat);
+    this.mesh.position.set((Math.random()-0.5)*14, -9, (Math.random()-0.5)*3);
+    this.vel = new THREE.Vector3((Math.random()-0.5)*4, 10+Math.random()*4, 0);
+    this.rot = new THREE.Vector3((Math.random()-0.5)*3, (Math.random()-0.5)*3, (Math.random()-0.5)*3);
+    this.alive = true; this.sliced = false;
+    scene.add(this.mesh);
   }
-  return out;
-}
-const EXPANDED_TARGETS = getExpandedPositions();
-
-/* Mengisi target dengan posisi dari array teks (looping jika kurang) */
-function setTextTargets(textPoints) {
-  for (let i = 0; i < PARTICLE_COUNT; i++) {
-    const p = textPoints[i % textPoints.length];
-    const i3 = i * 3;
-    targets[i3]     = p.x;
-    targets[i3 + 1] = p.y;
-    targets[i3 + 2] = p.z;
+  update(dt) {
+    this.vel.y -= 14 * dt;
+    this.mesh.position.addScaledVector(this.vel, dt);
+    this.mesh.rotation.x += this.rot.x * dt;
+    this.mesh.rotation.y += this.rot.y * dt;
+    this.mesh.rotation.z += this.rot.z * dt;
+    if (this.mesh.position.y < -9 && !this.sliced) {
+      this.alive = false; scene.remove(this.mesh); return 'missed';
+    }
+    return 'alive';
   }
-}
-
-function setTargetsFromArray(arr) {
-  for (let i = 0; i < PARTICLE_COUNT; i++) {
-    const i3 = i * 3;
-    targets[i3]     = arr[i3];
-    targets[i3 + 1] = arr[i3 + 1];    targets[i3 + 2] = arr[i3 + 2];
+  slice(dir) {
+    this.sliced = true; this.alive = false;
+    const p = this.mesh.position.clone();
+    const c = this.mesh.material.color.getHex();
+    for (let i=0; i<2; i++) {
+      const mat = new THREE.MeshPhongMaterial({ color:c, shininess:100, emissive:c, emissiveIntensity:0.2 });
+      const h = new THREE.Mesh(halfGeo, mat);
+      h.position.copy(p);
+      h.rotation.copy(this.mesh.rotation);
+      h.rotation.y += i*Math.PI;
+      h.userData = {
+        vel: new THREE.Vector3(dir.x*4 + (i?3:-3), dir.y*2 + 3, (i?1:-1)*2),
+        rot: new THREE.Vector3((Math.random()-0.5)*8,(Math.random()-0.5)*8,(Math.random()-0.5)*8),
+        life: 2.0
+      };
+      scene.add(h); halves.push(h);
+    }    spawnSplash(p, c);
+    scene.remove(this.mesh);
   }
 }
 
-/* ============================================================
-   BAGIAN 5: ANIMASI REAL-TIME
-============================================================ */
+function spawnSplash(pos, color) {
+  const N = 15;
+  const pArr = new Float32Array(N*3);
+  const vArr = [];
+  for (let i=0; i<N; i++) {
+    pArr[i*3]=pos.x; pArr[i*3+1]=pos.y; pArr[i*3+2]=pos.z;
+    vArr.push(new THREE.Vector3((Math.random()-0.5)*8, (Math.random()-0.5)*8, (Math.random()-0.5)*4));
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pArr, 3));
+  const m = new THREE.PointsMaterial({
+    color, size:0.2, transparent:true, opacity:1,
+    blending:THREE.AdditiveBlending
+  });
+  const pts = new THREE.Points(g, m);
+  pts.userData = { v:vArr, life:0.8 };
+  scene.add(pts); splashes.push(pts);
+}
+
+function updateHalves(dt) {
+  for (let i=halves.length-1; i>=0; i--) {
+    const h = halves[i];
+    h.userData.vel.y -= 14*dt;
+    h.position.addScaledVector(h.userData.vel, dt);
+    h.rotation.x += h.userData.rot.x * dt;
+    h.rotation.y += h.userData.rot.y * dt;
+    h.rotation.z += h.userData.rot.z * dt;
+    h.userData.life -= dt;
+    if (h.userData.life<=0 || h.position.y<-12) { scene.remove(h); halves.splice(i,1); }
+  }
+}
+function updateSplashes(dt) {
+  for (let i=splashes.length-1; i>=0; i--) {
+    const s = splashes[i];
+    const p = s.geometry.attributes.position.array;
+    for (let j=0; j<s.userData.v.length; j++) {
+      s.userData.v[j].y -= 10*dt;
+      p[j*3]   += s.userData.v[j].x * dt;
+      p[j*3+1] += s.userData.v[j].y * dt;
+      p[j*3+2] += s.userData.v[j].z * dt;
+    }
+    s.geometry.attributes.position.needsUpdate = true;
+    s.userData.life -= dt;
+    s.material.opacity = Math.max(0, s.userData.life/0.8);
+    if (s.userData.life<=0) { scene.remove(s); splashes.splice(i,1); }  }
+}
+
+/* ====== GAME STATE ====== */
+let score=0, combo=0, missed=0, spawnTimer=0;
+const flash = document.getElementById('flash');
+function triggerFlash() {
+  flash.style.opacity = '0.3';
+  setTimeout(()=>{ flash.style.opacity='0'; }, 80);
+}
+function updateUI() {
+  document.getElementById('score').textContent = score;
+  document.getElementById('combo').textContent = 'Kombo: x' + combo;
+  document.getElementById('miss').textContent = 'Terlewat: ' + missed;
+}
+
+/* ====== HAND DETECTION ====== */
+const video = document.getElementById('video');
+function onResults(res) {
+  if (res.multiHandLandmarks && res.multiHandLandmarks.length>0) {
+    const tip = res.multiHandLandmarks[0][8];
+    const x = (tip.x - 0.5) * 22;
+    const y = (0.5 - tip.y) * 16;
+    finger.prev.copy(finger.pos);
+    finger.pos.set(x, y, 0);
+    finger.active = true;
+    finger.lastMove = performance.now();
+  } else finger.active = false;
+}
+const hands = new Hands({
+  locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${f}`
+});
+hands.setOptions({ maxNumHands:1, modelComplexity:1, minDetectionConfidence:0.7, minTrackingConfidence:0.7 });
+hands.onResults(onResults);
+const cam = new Camera(video, {
+  onFrame: async()=>{ await hands.send({image:video}); },
+  width:640, height:480
+});
+cam.start().then(()=>{ document.getElementById('status').textContent='Kamera aktif ☝️'; });
+
+/* ====== MAIN LOOP ====== */
 const clock = new THREE.Clock();
-
 function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.05);
+  const now = performance.now();
 
-  // Update mode berdasarkan gestur
-  if (state.currentMode === 'text_hello' || state.currentMode === 'text_qwen') {
-    // Efek rotasi 3D pada teks
-    state.textRotation += dt * 0.6;
-    particles.rotation.y = Math.sin(state.textRotation) * 0.8;
-    particles.rotation.x = Math.sin(state.textRotation * 0.7) * 0.15;
-  } else {
-    particles.rotation.y *= 0.95;
-    particles.rotation.x *= 0.95;
+  spawnTimer += dt;
+  if (spawnTimer > 1.0 + Math.random()*0.5) {
+    fruits.push(new Fruit());    spawnTimer = 0;
   }
 
-  // Interpolasi posisi partikel menuju target (easing)
-  const posArr = geometry.attributes.position.array;
-  const lerpFactor = 1 - Math.pow(0.001, dt); // halus dan stabil
+  // Update velocity jari
+  if (finger.active) {
+    finger.vel.subVectors(finger.pos, finger.prev).divideScalar(Math.max(dt,0.001));
+    const speed = finger.vel.length();
+    finger.slashing = speed > 10;
 
-  for (let i = 0; i < PARTICLE_COUNT; i++) {
-    const i3 = i * 3;
-    posArr[i3]     += (targets[i3]     - posArr[i3])     * lerpFactor;
-    posArr[i3 + 1] += (targets[i3 + 1] - posArr[i3 + 1]) * lerpFactor;
-    posArr[i3 + 2] += (targets[i3 + 2] - posArr[i3 + 2]) * lerpFactor;
-
-    // Sedikit getaran organik
-    posArr[i3]     += (Math.random() - 0.5) * 0.005;
-    posArr[i3 + 1] += (Math.random() - 0.5) * 0.005;
-    posArr[i3 + 2] += (Math.random() - 0.5) * 0.005;
-  }
-  geometry.attributes.position.needsUpdate = true;
-
-  renderer.render(scene, camera);
-}
-
-/* ============================================================
-   BAGIAN 6: DETEKSI TANGAN (MEDIAPIPE HANDS)
-============================================================ */
-const video = document.getElementById('webcam');
-
-/* Menghitung jari yang terbuka (selain ibu jari) */function countFingers(landmarks) {
-  // Pasangan [ujung jari, sendi proksimal]
-  const fingerTips  = [8, 12, 16, 20];
-  const fingerPips  = [6, 10, 14, 18];
-  let count = 0;
-  for (let i = 0; i < 4; i++) {
-    const tip = landmarks[fingerTips[i]];
-    const pip = landmarks[fingerPips[i]];
-    // Jari terbuka jika ujung lebih rendah (koordinat y lebih kecil) dari sendi
-    if (tip.y < pip.y) count++;
-  }
-  // Ibu jari (menggunakan perbandingan x)
-  const thumbTip = landmarks[4];
-  const thumbIp  = landmarks[3];
-  const thumbMcp = landmarks[2];
-  const thumbOpen = Math.hypot(thumbTip.x - thumbMcp.x, thumbTip.y - thumbMcp.y)
-                  > Math.hypot(thumbIp.x  - thumbMcp.x, thumbIp.y  - thumbMcp.y);
-  if (thumbOpen) count++;
-  return count;
-}
-
-/* Cek tangan terbuka/tertutup berdasarkan rata-rata jarak ujung jari ke telapak */
-function isHandOpen(landmarks) {
-  const palm = landmarks[0];   // pergelangan
-  const tips = [4, 8, 12, 16, 20];
-  let total = 0;
-  for (const t of tips) {
-    const tip = landmarks[t];
-    total += Math.hypot(tip.x - palm.x, tip.y - palm.y);
-  }
-  const avg = total / 5;
-  return avg > 0.18; // threshold empiris
-}
-
-function updateUI() {
-  document.getElementById('hand-state').textContent =
-    state.handOpen ? 'Terbuka' : 'Mengepal';
-  document.getElementById('hand-state').className =
-    'state ' + (state.handOpen ? 'open' : 'closed');
-  document.getElementById('finger-count').textContent = state.fingerCount;
-
-  let modeText = 'Bola (Default)';
-  if (state.currentMode === 'expanded')     modeText = 'Mengembang';
-  if (state.currentMode === 'text_hello')   modeText = '"hello, world"';
-  if (state.currentMode === 'text_qwen')    modeText = '"I\'m Qwen"';
-  document.getElementById('mode').textContent = modeText;
-}
-
-function onResults(results) {
-  if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {    const hand = results.multiHandLandmarks[0];
-    state.handDetected = true;
-    state.fingerCount = countFingers(hand);
-    state.handOpen = isHandOpen(hand);
-
-    // Prioritas gestur: jumlah jari -> teks; buka/tutup -> bola/ekspansi
-    if (state.fingerCount === 1) {
-      state.currentMode = 'text_hello';
-      setTextTargets(TEXT_HELLO);
-    } else if (state.fingerCount === 2) {
-      state.currentMode = 'text_qwen';
-      setTextTargets(TEXT_QWEN);
-    } else if (state.handOpen) {
-      state.currentMode = 'expanded';
-      setTargetsFromArray(EXPANDED_TARGETS);
-    } else {
-      state.currentMode = 'sphere';
-      setTargetsFromArray(SPHERE_TARGETS);
+    for (let i=TRAIL_LEN-1; i>0; i--) {
+      trailPos[i*3]=trailPos[(i-1)*3];
+      trailPos[i*3+1]=trailPos[(i-1)*3+1];
+      trailPos[i*3+2]=trailPos[(i-1)*3+2];
     }
+    trailPos[0]=finger.pos.x; trailPos[1]=finger.pos.y; trailPos[2]=finger.pos.z;
+    trailGeo.attributes.position.needsUpdate = true;
+    trailMat.opacity = finger.slashing ? Math.min(1, speed/20) : 0.15;
+    trailMat.color.setHex(finger.slashing ? 0xff00ff : 0x00ffff);
   } else {
-    state.handDetected = false;
-    state.fingerCount = 0;
-    state.handOpen = false;
-    // Kembali ke mode default jika tidak ada tangan
-    if (state.currentMode !== 'sphere') {
-      state.currentMode = 'sphere';
-      setTargetsFromArray(SPHERE_TARGETS);
-    }
+    trailMat.opacity *= 0.85;
   }
-  updateUI();
-}
+  if (now - finger.lastMove > 150) {
+    trailMat.opacity *= 0.88;
+    finger.slashing = false;
+  }
 
-/* Inisialisasi MediaPipe */
-const hands = new Hands({
-  locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`
-});
-hands.setOptions({
-  maxNumHands: 1,
-  modelComplexity: 1,
-  minDetectionConfidence: 0.6,
-  minTrackingConfidence: 0.6
-});
-hands.onResults(onResults);
+  // Update buah & collision
+  for (let i=fruits.length-1; i>=0; i--) {
+    const f = fruits[i];
+    const st = f.update(dt);
+    if (st === 'missed') {
+      missed++; combo=0; updateUI();
+      fruits.splice(i,1); continue;
+    }
+    if (finger.active && finger.slashing && !f.sliced) {
+      const d = f.mesh.position.distanceTo(finger.pos);
+      if (d < 1.1) {
+        f.slice(finger.vel.clone().normalize());
+        score += 10 * (combo+1);
+        combo++;
+        triggerFlash();
+        updateUI();
+      }
+    }
+    if (!f.alive) fruits.splice(i,1);
+  }
 
-/* Mulai kamera */
-const cam = new Camera(video, {
-  onFrame: async () => { await hands.send({ image: video }); },
-  width: 640,
-  height: 480
-});cam.start();
-
-/* ============================================================
-   BAGIAN 7: RESPONS RESIZE
-============================================================ */
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
-/* Jalankan animasi */
+  updateHalves(dt);
+  updateSplashes(dt);
+  renderer.render(scene, camera);}
 animate();
+
+window.addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
 </script>
 </body>
 </html>
