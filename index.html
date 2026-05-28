@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8" />
-<title>Fruit Ninja 3D - Kontrol Gestur</title>
+<meta charset="UTF-8">
+<title>Fruit Ninja 3D - Blade Edition</title>
 <style>
   body { margin:0; overflow:hidden; background:#080812; font-family:'Segoe UI',sans-serif; color:#fff; }
   #canvas { position:fixed; inset:0; }
@@ -13,45 +13,52 @@
   }
   #ui {
     position:fixed; top:15px; left:15px; z-index:10;
-    background:rgba(10,10,25,0.7); padding:12px 18px;
+    background:rgba(10,10,25,0.75); padding:12px 18px;
     border-radius:10px; border:1px solid rgba(0,255,255,0.3);
     backdrop-filter:blur(8px);
   }
   #score { font-size:36px; color:#0ff; font-weight:bold; text-shadow:0 0 15px #0ff; }
   #combo { color:#ff00ff; font-size:18px; text-shadow:0 0 10px #ff00ff; }
   #miss { color:#ff4466; font-size:14px; margin-top:4px; }
-  #flash {
-    position:fixed; inset:0; pointer-events:none; z-index:5;
-    background:#fff; opacity:0; transition:opacity 0.3s;
+  #slash-indicator {
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+    background:rgba(10,10,25,0.85); padding:12px 30px;
+    border-radius:25px; border:2px solid #0ff;
+    font-size:16px; font-weight:bold; z-index:10;
+    color:#0ff; transition:all 0.15s ease;
+    box-shadow:0 0 15px rgba(0,255,255,0.3);
+  }
+  #slash-indicator.active {
+    background:rgba(255,0,255,0.3); border-color:#ff00ff;
+    color:#ff00ff; box-shadow:0 0 35px rgba(255,0,255,0.8);
+    transform:translateX(-50%) scale(1.05);
   }
   #instructions {
-    position:fixed; bottom:15px; left:15px; z-index:10;
-    background:rgba(10,10,25,0.7); padding:10px 15px;
+    position:fixed; bottom:80px; left:15px; z-index:10;
+    background:rgba(10,10,25,0.75); padding:10px 15px;
     border-radius:10px; font-size:13px; line-height:1.6;
     border:1px solid rgba(0,255,255,0.3); backdrop-filter:blur(8px);
   }
   #instructions b { color:#0ff; }
-  #status {
-    position:fixed; bottom:15px; right:15px; font-size:12px;
-    color:#888; z-index:10;
-  }
+  #status { position:fixed; bottom:15px; right:15px; font-size:12px; color:#888; z-index:10; }
 </style>
 </head>
 <body>
 <div id="canvas"></div>
 <video id="video" autoplay playsinline muted></video>
-<div id="flash"></div>
 
-<div id="ui">
-  <div style="font-size:11px;opacity:0.6;">SKOR</div>
+<div id="ui">  <div style="font-size:11px;opacity:0.6;">SKOR</div>
   <div id="score">0</div>
   <div id="combo">Kombo: x0</div>
   <div id="miss">Terlewat: 0</div>
 </div>
+
+<div id="slash-indicator">👆 DETEKSI TANGAN...</div>
+
 <div id="instructions">
   <b>☝️ Jari Telunjuk:</b> Gerakan pedang<br>
-  <b>⚡ Tebas Cepat:</b> Potong buah<br>
-  <b>💥 Kombo:</b> Tebah berturut-turut = skor lebih tinggi
+  <b>⚡ Tebas Cepat:</b> Mode sayatan aktif (magenta)<br>
+  <b>🎯 Target:</b> Potong buah saat melewati tengah layar!
 </div>
 
 <div id="status">Memuat kamera...</div>
@@ -64,7 +71,7 @@
 /* ====== SCENE SETUP ====== */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x080812);
-scene.fog = new THREE.Fog(0x080812, 12, 28);
+scene.fog = new THREE.Fog(0x080812, 15, 35);
 
 const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.1, 100);
 camera.position.set(0, 0, 14);
@@ -82,24 +89,82 @@ const rimLight = new THREE.PointLight(0x00ffff, 0.8, 40);
 rimLight.position.set(-8, -5, 5);
 scene.add(rimLight);
 
-/* ====== MOTION TRAIL ====== */
-const TRAIL_LEN = 30;
-const trailPos = new Float32Array(TRAIL_LEN * 3);
-const trailGeo = new THREE.BufferGeometry();
-trailGeo.setAttribute('position', new THREE.Float32BufferAttribute(trailPos, 3));
-const trailMat = new THREE.LineBasicMaterial({
-  color:0x00ffff, transparent:true, opacity:0,
-  blending:THREE.AdditiveBlending
+/* ====== BLADE SYSTEM (Sayatan Pedang Neon) ====== */
+const BLADE_SEGS = 25;
+const bladePos = new Float32Array(BLADE_SEGS * 2 * 3);
+const bladeCol = new Float32Array(BLADE_SEGS * 2 * 3);
+const bladeIdx = [];
+for (let i = 0; i < BLADE_SEGS - 1; i++) {
+  bladeIdx.push(i*2, i*2+1, (i+1)*2, i*2+1, (i+1)*2+1, (i+1)*2);
+}const bladeGeo = new THREE.BufferGeometry();
+bladeGeo.setAttribute('position', new THREE.BufferAttribute(bladePos, 3));
+bladeGeo.setAttribute('color', new THREE.BufferAttribute(bladeCol, 3));
+bladeGeo.setIndex(bladeIdx);
+
+const bladeMat = new THREE.MeshBasicMaterial({
+  vertexColors:true, transparent:true, opacity:0.95,
+  side:THREE.DoubleSide, blending:THREE.AdditiveBlending, depthWrite:false
 });
-const trail = new THREE.Line(trailGeo, trailMat);
-scene.add(trail);
+const blade = new THREE.Mesh(bladeGeo, bladeMat);
+scene.add(blade);
+
+const bladeTrail = [];
+
+function updateBlade(dt) {
+  if (finger.active) bladeTrail.unshift({ pos: finger.pos.clone(), age: 0 });
+  for (let i = bladeTrail.length - 1; i >= 0; i--) {
+    bladeTrail[i].age += dt * 5;
+    if (bladeTrail[i].age >= 1) bladeTrail.splice(i, 1);
+  }
+  while (bladeTrail.length > BLADE_SEGS) bladeTrail.pop();
+
+  const p = bladeGeo.attributes.position.array;
+  const c = bladeGeo.attributes.color.array;
+
+  for (let i = 0; i < BLADE_SEGS; i++) {
+    const seg = bladeTrail[i];
+    if (seg && i < bladeTrail.length - 1) {
+      const next = bladeTrail[i + 1] || seg;
+      const dir = new THREE.Vector3().subVectors(seg.pos, next.pos);
+      if (dir.lengthSq() < 0.0001) dir.set(1, 0, 0);
+      dir.normalize();
+      const perp = new THREE.Vector3(-dir.y, dir.x, 0);
+      const ageFactor = 1 - seg.age;
+      const baseW = finger.slashing ? 0.6 : 0.18;
+      const w = baseW * ageFactor;
+
+      p[i*6+0] = seg.pos.x + perp.x * w;
+      p[i*6+1] = seg.pos.y + perp.y * w;
+      p[i*6+2] = seg.pos.z + perp.z * w;
+      p[i*6+3] = seg.pos.x - perp.x * w;
+      p[i*6+4] = seg.pos.y - perp.y * w;
+      p[i*6+5] = seg.pos.z - perp.z * w;
+
+      const t = ageFactor;
+      if (finger.slashing) {
+        c[i*6+0] = 1.0; c[i*6+1] = 0.3*t; c[i*6+2] = 0.5*t;
+        c[i*6+3] = 0.9*t; c[i*6+4] = 0.15*t; c[i*6+5] = 0.3*t;
+      } else {
+        c[i*6+0] = 0.4+0.6*t; c[i*6+1] = 0.8*t; c[i*6+2] = 1.0;        c[i*6+3] = 0.2*t; c[i*6+4] = 0.6*t; c[i*6+5] = 0.9*t;
+      }
+    } else {
+      for (let j = 0; j < 6; j++) { p[i*6+j] = 0; c[i*6+j] = 0; }
+    }
+  }
+  bladeGeo.attributes.position.needsUpdate = true;
+  bladeGeo.attributes.color.needsUpdate = true;
+  blade.visible = bladeTrail.length >= 2;
+}
 
 /* ====== FINGER STATE ====== */
 const finger = {
-  active:false, pos:new THREE.Vector3(), prev:new THREE.Vector3(),  vel:new THREE.Vector3(), lastMove:0, slashing:false
+  active:false, pos:new THREE.Vector3(), prev:new THREE.Vector3(),
+  vel:new THREE.Vector3(), slashing:false
 };
+const slashInd = document.getElementById('slash-indicator');
 
 /* ====== FRUIT SYSTEM ====== */
+const GRAVITY = 6.5;
 const fruits = [], halves = [], splashes = [];
 const COLORS = [0xff3355, 0xff9922, 0xffdd22, 0x33cc55, 0x22bbff, 0xbb33ff];
 const fruitGeo = new THREE.SphereGeometry(0.6, 24, 24);
@@ -112,19 +177,26 @@ class Fruit {
       color:c, shininess:120, specular:0xffffff, emissive:c, emissiveIntensity:0.15
     });
     this.mesh = new THREE.Mesh(fruitGeo, mat);
-    this.mesh.position.set((Math.random()-0.5)*14, -9, (Math.random()-0.5)*3);
-    this.vel = new THREE.Vector3((Math.random()-0.5)*4, 10+Math.random()*4, 0);
-    this.rot = new THREE.Vector3((Math.random()-0.5)*3, (Math.random()-0.5)*3, (Math.random()-0.5)*3);
+    this.mesh.position.set((Math.random()-0.5)*12, -10, (Math.random()-0.5)*2);
+    this.vel = new THREE.Vector3(
+      (Math.random()-0.5)*3,
+      9 + Math.random()*3,
+      (Math.random()-0.5)*1
+    );
+    this.rot = new THREE.Vector3(
+      (Math.random()-0.5)*2, (Math.random()-0.5)*2, (Math.random()-0.5)*2
+    );
     this.alive = true; this.sliced = false;
+    this.peakReached = false;
     scene.add(this.mesh);
   }
   update(dt) {
-    this.vel.y -= 14 * dt;
+    this.vel.y -= GRAVITY * dt;
     this.mesh.position.addScaledVector(this.vel, dt);
     this.mesh.rotation.x += this.rot.x * dt;
-    this.mesh.rotation.y += this.rot.y * dt;
-    this.mesh.rotation.z += this.rot.z * dt;
-    if (this.mesh.position.y < -9 && !this.sliced) {
+    this.mesh.rotation.y += this.rot.y * dt;    this.mesh.rotation.z += this.rot.z * dt;
+    if (this.vel.y < 0 && !this.peakReached) this.peakReached = true;
+    if (this.mesh.position.y < -12 && this.peakReached) {
       this.alive = false; scene.remove(this.mesh); return 'missed';
     }
     return 'alive';
@@ -133,77 +205,93 @@ class Fruit {
     this.sliced = true; this.alive = false;
     const p = this.mesh.position.clone();
     const c = this.mesh.material.color.getHex();
-    for (let i=0; i<2; i++) {
-      const mat = new THREE.MeshPhongMaterial({ color:c, shininess:100, emissive:c, emissiveIntensity:0.2 });
+    for (let i = 0; i < 2; i++) {
+      const mat = new THREE.MeshPhongMaterial({
+        color:c, shininess:100, emissive:c, emissiveIntensity:0.3,
+        transparent:true, opacity:1
+      });
       const h = new THREE.Mesh(halfGeo, mat);
       h.position.copy(p);
       h.rotation.copy(this.mesh.rotation);
-      h.rotation.y += i*Math.PI;
+      h.rotation.y += i * Math.PI;
       h.userData = {
-        vel: new THREE.Vector3(dir.x*4 + (i?3:-3), dir.y*2 + 3, (i?1:-1)*2),
-        rot: new THREE.Vector3((Math.random()-0.5)*8,(Math.random()-0.5)*8,(Math.random()-0.5)*8),
-        life: 2.0
+        vel: new THREE.Vector3(
+          dir.x * 3 + (i ? 5 : -5),
+          dir.y * 2 + 4,
+          (i ? 2 : -2) + (Math.random()-0.5)*2
+        ),
+        rot: new THREE.Vector3(
+          (Math.random()-0.5)*15, (Math.random()-0.5)*15, (Math.random()-0.5)*15
+        ),
+        life: 3.0, maxLife: 3.0
       };
       scene.add(h); halves.push(h);
-    }    spawnSplash(p, c);
+    }
+    spawnSplash(p, c, 30);
     scene.remove(this.mesh);
   }
 }
 
-function spawnSplash(pos, color) {
-  const N = 15;
-  const pArr = new Float32Array(N*3);
+function spawnSplash(pos, color, count) {
+  const pArr = new Float32Array(count * 3);
   const vArr = [];
-  for (let i=0; i<N; i++) {
+  for (let i = 0; i < count; i++) {
     pArr[i*3]=pos.x; pArr[i*3+1]=pos.y; pArr[i*3+2]=pos.z;
-    vArr.push(new THREE.Vector3((Math.random()-0.5)*8, (Math.random()-0.5)*8, (Math.random()-0.5)*4));
+    vArr.push(new THREE.Vector3(
+      (Math.random()-0.5)*10, Math.random()*8 - 2, (Math.random()-0.5)*5
+    ));
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pArr, 3));
-  const m = new THREE.PointsMaterial({
-    color, size:0.2, transparent:true, opacity:1,
+  const m = new THREE.PointsMaterial({    color, size:0.3, transparent:true, opacity:1,
     blending:THREE.AdditiveBlending
   });
   const pts = new THREE.Points(g, m);
-  pts.userData = { v:vArr, life:0.8 };
+  pts.userData = { v:vArr, life:1.2, maxLife:1.2 };
   scene.add(pts); splashes.push(pts);
 }
 
 function updateHalves(dt) {
-  for (let i=halves.length-1; i>=0; i--) {
+  for (let i = halves.length - 1; i >= 0; i--) {
     const h = halves[i];
-    h.userData.vel.y -= 14*dt;
+    h.userData.vel.y -= GRAVITY * dt;
     h.position.addScaledVector(h.userData.vel, dt);
     h.rotation.x += h.userData.rot.x * dt;
     h.rotation.y += h.userData.rot.y * dt;
     h.rotation.z += h.userData.rot.z * dt;
     h.userData.life -= dt;
-    if (h.userData.life<=0 || h.position.y<-12) { scene.remove(h); halves.splice(i,1); }
+    const lifeRatio = h.userData.life / h.userData.maxLife;
+    h.scale.setScalar(0.2 + 0.8 * lifeRatio);
+    h.material.opacity = Math.max(0, lifeRatio);
+    if (h.userData.life <= 0 || h.position.y < -15) {
+      scene.remove(h); halves.splice(i, 1);
+    }
   }
 }
+
 function updateSplashes(dt) {
-  for (let i=splashes.length-1; i>=0; i--) {
+  for (let i = splashes.length - 1; i >= 0; i--) {
     const s = splashes[i];
     const p = s.geometry.attributes.position.array;
-    for (let j=0; j<s.userData.v.length; j++) {
-      s.userData.v[j].y -= 10*dt;
+    for (let j = 0; j < s.userData.v.length; j++) {
+      s.userData.v[j].y -= GRAVITY * dt;
+      s.userData.v[j].multiplyScalar(0.98);
       p[j*3]   += s.userData.v[j].x * dt;
       p[j*3+1] += s.userData.v[j].y * dt;
       p[j*3+2] += s.userData.v[j].z * dt;
     }
     s.geometry.attributes.position.needsUpdate = true;
     s.userData.life -= dt;
-    s.material.opacity = Math.max(0, s.userData.life/0.8);
-    if (s.userData.life<=0) { scene.remove(s); splashes.splice(i,1); }  }
+    const ratio = s.userData.life / s.userData.maxLife;
+    s.material.opacity = Math.max(0, ratio);
+    s.material.size = 0.3 * ratio;
+    if (s.userData.life <= 0) { scene.remove(s); splashes.splice(i, 1); }
+  }
 }
 
 /* ====== GAME STATE ====== */
-let score=0, combo=0, missed=0, spawnTimer=0;
-const flash = document.getElementById('flash');
-function triggerFlash() {
-  flash.style.opacity = '0.3';
-  setTimeout(()=>{ flash.style.opacity='0'; }, 80);
-}
+let score = 0, combo = 0, missed = 0, spawnTimer = 0;
+const SPAWN_INTERVAL = 2.0;
 function updateUI() {
   document.getElementById('score').textContent = score;
   document.getElementById('combo').textContent = 'Kombo: x' + combo;
@@ -213,89 +301,83 @@ function updateUI() {
 /* ====== HAND DETECTION ====== */
 const video = document.getElementById('video');
 function onResults(res) {
-  if (res.multiHandLandmarks && res.multiHandLandmarks.length>0) {
+  if (res.multiHandLandmarks && res.multiHandLandmarks.length > 0) {
     const tip = res.multiHandLandmarks[0][8];
     const x = (tip.x - 0.5) * 22;
     const y = (0.5 - tip.y) * 16;
     finger.prev.copy(finger.pos);
     finger.pos.set(x, y, 0);
     finger.active = true;
-    finger.lastMove = performance.now();
   } else finger.active = false;
 }
 const hands = new Hands({
-  locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${f}`
+  locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${f}`
 });
-hands.setOptions({ maxNumHands:1, modelComplexity:1, minDetectionConfidence:0.7, minTrackingConfidence:0.7 });
+hands.setOptions({
+  maxNumHands:1, modelComplexity:1,
+  minDetectionConfidence:0.7, minTrackingConfidence:0.7
+});
 hands.onResults(onResults);
 const cam = new Camera(video, {
-  onFrame: async()=>{ await hands.send({image:video}); },
+  onFrame: async () => { await hands.send({image:video}); },
   width:640, height:480
 });
-cam.start().then(()=>{ document.getElementById('status').textContent='Kamera aktif ☝️'; });
+cam.start().then(() => {
+  document.getElementById('status').textContent = 'Kamera aktif ☝️';
+});
 
 /* ====== MAIN LOOP ====== */
 const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.05);
-  const now = performance.now();
 
   spawnTimer += dt;
-  if (spawnTimer > 1.0 + Math.random()*0.5) {
-    fruits.push(new Fruit());    spawnTimer = 0;
+  if (spawnTimer > SPAWN_INTERVAL) {
+    fruits.push(new Fruit());
+    spawnTimer = 0;
   }
 
-  // Update velocity jari
   if (finger.active) {
-    finger.vel.subVectors(finger.pos, finger.prev).divideScalar(Math.max(dt,0.001));
+    finger.vel.subVectors(finger.pos, finger.prev).divideScalar(Math.max(dt, 0.001));
     const speed = finger.vel.length();
-    finger.slashing = speed > 10;
-
-    for (let i=TRAIL_LEN-1; i>0; i--) {
-      trailPos[i*3]=trailPos[(i-1)*3];
-      trailPos[i*3+1]=trailPos[(i-1)*3+1];
-      trailPos[i*3+2]=trailPos[(i-1)*3+2];
-    }
-    trailPos[0]=finger.pos.x; trailPos[1]=finger.pos.y; trailPos[2]=finger.pos.z;
-    trailGeo.attributes.position.needsUpdate = true;
-    trailMat.opacity = finger.slashing ? Math.min(1, speed/20) : 0.15;
-    trailMat.color.setHex(finger.slashing ? 0xff00ff : 0x00ffff);
+    finger.slashing = speed > 8;    slashInd.textContent = finger.slashing ? '⚡ MENEBA!' : '✋ SIAP MENEBAS';
+    slashInd.classList.toggle('active', finger.slashing);
   } else {
-    trailMat.opacity *= 0.85;
-  }
-  if (now - finger.lastMove > 150) {
-    trailMat.opacity *= 0.88;
     finger.slashing = false;
+    slashInd.textContent = '👆 DETEKSI TANGAN...';
+    slashInd.classList.remove('active');
   }
 
-  // Update buah & collision
-  for (let i=fruits.length-1; i>=0; i--) {
+  updateBlade(dt);
+
+  for (let i = fruits.length - 1; i >= 0; i--) {
     const f = fruits[i];
     const st = f.update(dt);
     if (st === 'missed') {
-      missed++; combo=0; updateUI();
-      fruits.splice(i,1); continue;
+      missed++; combo = 0; updateUI();
+      fruits.splice(i, 1); continue;
     }
     if (finger.active && finger.slashing && !f.sliced) {
       const d = f.mesh.position.distanceTo(finger.pos);
-      if (d < 1.1) {
+      if (d < 1.2) {
         f.slice(finger.vel.clone().normalize());
-        score += 10 * (combo+1);
+        score += 10 * (combo + 1);
         combo++;
-        triggerFlash();
         updateUI();
+        fruits.splice(i, 1); continue;
       }
     }
-    if (!f.alive) fruits.splice(i,1);
+    if (!f.alive) fruits.splice(i, 1);
   }
 
   updateHalves(dt);
   updateSplashes(dt);
-  renderer.render(scene, camera);}
+  renderer.render(scene, camera);
+}
 animate();
 
-window.addEventListener('resize', ()=>{
+window.addEventListener('resize', () => {
   camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
