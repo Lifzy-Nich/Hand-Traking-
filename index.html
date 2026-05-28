@@ -1,876 +1,457 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kendali Sihir Elemen — Versi Modular</title>
-    <style>
-        /* === RESET & BASE STYLES === */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            overflow: hidden;
-            background: #000;
-            font-family: 'Segoe UI', sans-serif;
-        }
-
-        #container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-        }
-
-        #three-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-        }
-
-        #webcam {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            width: 240px;
-            height: 180px;
-            border-radius: 12px;
-            border: 2px solid rgba(255, 100, 0, 0.6);
-            transform: scaleX(-1);
-            z-index: 10;
-            opacity: 0.85;
-            object-fit: cover;
-            box-shadow: 0 0 20px rgba(255, 80, 0, 0.4);
-        }
-        /* === OVERLAY & STATUS === */
-        #overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 5;
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            padding-top: 30px;
-        }
-
-        #status {
-            background: rgba(0, 0, 0, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            border-radius: 30px;
-            padding: 12px 30px;
-            color: #fff;
-            font-size: 18px;
-            letter-spacing: 1px;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-        }
-
-        #status.fire {
-            border-color: rgba(255, 100, 0, 0.8);
-            box-shadow: 0 0 20px rgba(255, 60, 0, 0.5);
-            color: #ff6b35;
-        }
-
-        #status.shield {
-            border-color: rgba(0, 150, 255, 0.8);
-            box-shadow: 0 0 20px rgba(0, 100, 255, 0.5);
-            color: #00bfff;
-        }
-
-        #instructions {
-            position: absolute;
-            top: 80px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            padding: 18px 22px;            color: #ccc;
-            font-size: 13px;
-            line-height: 1.8;
-            z-index: 10;
-            pointer-events: none;
-        }
-
-        #instructions h3 {
-            color: #fff;
-            margin-bottom: 8px;
-            font-size: 15px;
-        }
-
-        #instructions .fire-text { color: #ff6b35; }
-        #instructions .shield-text { color: #00bfff; }
-
-        #loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #fff;
-            font-size: 22px;
-            z-index: 100;
-            text-align: center;
-        }
-
-        #loading .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(255, 100, 0, 0.3);
-            border-top-color: #ff6b35;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* === AKHIR BAGIAN 1 === */
-    </style>
+<meta charset="UTF-8" />
+<title>Sistem Partikel 3D Interaktif</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #05070d;
+    color: #fff;
+    font-family: 'Segoe UI', sans-serif;
+    overflow: hidden;
+  }
+  #canvas-container {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+  }
+  #video-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 260px;
+    height: 195px;
+    border: 2px solid #4a9eff;
+    border-radius: 12px;
+    overflow: hidden;
+    z-index: 10;
+    background: #000;
+    box-shadow: 0 0 20px rgba(74, 158, 255, 0.4);
+  }
+  #webcam {
+    width: 100%;
+    height: 100%;
+    transform: scaleX(-1);
+    object-fit: cover;
+  }
+  #overlay {
+    position: fixed;
+    top: 225px;
+    right: 20px;
+    width: 260px;
+    background: rgba(10, 15, 30, 0.85);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(74, 158, 255, 0.3);
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 13px;
+    z-index: 10;
+    line-height: 1.7;  }
+  #overlay h3 {
+    color: #4a9eff;
+    margin-bottom: 6px;
+    font-size: 14px;
+  }
+  .state {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+  }
+  .open { background: #22c55e; color: #fff; }
+  .closed { background: #ef4444; color: #fff; }
+  .gesture { background: #a855f7; color: #fff; }
+  #instructions {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(10, 15, 30, 0.85);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(74, 158, 255, 0.3);
+    border-radius: 10px;
+    padding: 16px 20px;
+    z-index: 10;
+    max-width: 420px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  #instructions h3 {
+    color: #4a9eff;
+    margin-bottom: 8px;
+  }
+  #instructions ul { padding-left: 18px; }
+  #instructions li { margin-bottom: 3px; }
+</style>
 </head>
 <body>
-    <!-- AKHIR BAGIAN 1: Salin ini terlebih dahulu ke file Anda -->
-   <!-- LANJUTAN DARI BAGIAN 1 -->
-    <style>
-        /* === HAND INDICATOR STYLES === */
-        #hand-indicator {
-            position: absolute;
-            pointer-events: none;
-            z-index: 8;
-            font-size: 42px;
-            text-shadow: 0 0 15px currentColor, 0 0 30px currentColor;
-            transition: transform 0.1s linear, opacity 0.3s ease;
-            opacity: 0;
-            transform: translate(-50%, -50%);
-            animation: pulse-indicator 1.5s ease-in-out infinite;
-        }
-
-        #hand-indicator.active { opacity: 1; }
-        #hand-indicator.fire { color: #ff6b35; }
-        #hand-indicator.shield { color: #00bfff; }
-
-        /* === HAND LABEL === */
-        #hand-label {
-            position: absolute;
-            pointer-events: none;
-            z-index: 8;
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            padding: 4px 12px;
-            border-radius: 12px;
-            background: rgba(0, 0, 0, 0.7);
-            border: 1px solid currentColor;
-            transition: transform 0.1s linear, opacity 0.3s ease;
-            opacity: 0;
-            transform: translate(-50%, -50%);
-            white-space: nowrap;
-        }
-
-        #hand-label.active { opacity: 1; }
-        #hand-label.fire {
-            color: #ff6b35;
-            border-color: rgba(255, 100, 0, 0.8);
-        }
-        #hand-label.shield {
-            color: #00bfff;
-            border-color: rgba(0, 150, 255, 0.8);
-        }
-
-        /* === AURA RING === */
-        #aura-ring {            position: absolute;
-            pointer-events: none;
-            z-index: 7;
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            border: 2px solid;
-            transition: transform 0.1s linear, opacity 0.3s ease;
-            opacity: 0;
-            transform: translate(-50%, -50%);
-        }
-
-        #aura-ring.active { opacity: 0.7; }
-        #aura-ring.fire {
-            border-color: rgba(255, 100, 0, 0.6);
-            box-shadow: 0 0 30px rgba(255, 60, 0, 0.4), inset 0 0 30px rgba(255, 60, 0, 0.2);
-        }
-        #aura-ring.shield {
-            border-color: rgba(0, 150, 255, 0.6);
-            box-shadow: 0 0 30px rgba(0, 100, 255, 0.4), inset 0 0 30px rgba(0, 100, 255, 0.2);
-        }
-
-        /* === CROSSHAIR === */
-        #crosshair {
-            position: absolute;
-            pointer-events: none;
-            z-index: 7;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            transition: transform 0.1s linear, opacity 0.3s ease;
-            opacity: 0;
-            transform: translate(-50%, -50%);
-        }
-
-        #crosshair.active { opacity: 1; }
-        #crosshair.fire {
-            background: #ff6b35;
-            box-shadow: 0 0 10px #ff6b35;
-        }
-        #crosshair.shield {
-            background: #00bfff;
-            box-shadow: 0 0 10px #00bfff;
-        }
-
-        /* === KEYFRAME ANIMATIONS === */
-        @keyframes pulse-indicator {
-            0%, 100% { transform: translate(-50%, -50%) scale(1); }
-            50% { transform: translate(-50%, -50%) scale(1.15); }
-        }
-        /* === AKHIR BAGIAN 2 === */
-    </style>
-</head>
-<body>
-    <!-- AKHIR BAGIAN 2: Pastikan tag </head> tetap ada -->
-   <!-- LANJUTAN DARI BAGIAN 2 -->
-    <div id="container">
-        <canvas id="three-canvas"></canvas>
-        <video id="webcam" autoplay playsinline></video>
-
-        <!-- Indikator Visual Tangan -->
-        <div id="hand-indicator">🖐️</div>
-        <div id="aura-ring"></div>
-        <div id="crosshair"></div>
-        <div id="hand-label">Sihir Api</div>
-
-        <!-- Overlay UI -->
-        <div id="overlay">
-            <div id="status">Memuat...</div>
-        </div>
-
-        <!-- Panel Instruksi -->
-        <div id="instructions">
-            <h3>🔮 Panduan Sihir</h3>
-            <span class="fire-text">🖐️ Tangan Terbuka</span> → Sihir Api<br>
-            <span class="shield-text">✊ Tangan Mengepal</span> → Perisai<br>
-            <small style="color:#888;">Gunakan satu tangan di depan kamera</small>
-        </div>
-
-        <!-- Loading Screen -->
-        <div id="loading">
-            <div class="spinner"></div>
-            <div>Menginisialisasi Sihir...</div>
-            <small style="color:#888;">Mengaktifkan kamera & deteksi tangan</small>
-        </div>
-    </div>
-
-    <!-- Library Three.js via CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
-
-    <!-- MediaPipe Hands via CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-
-    <script>
-        // === AKHIR BAGIAN 3: Sekarang masuk ke JavaScript ===
-       // ============================================================
-        // BAGIAN 4: KONFIGURASI GLOBAL & STATE VARIABLES
-        // ============================================================
-
-        const CONFIG = {
-            fire: {
-                particleCount: 800,
-                color: new THREE.Color(0xff4500),
-                secondaryColor: new THREE.Color(0xffaa00),
-                spread: 2.5,
-                speed: 0.08,
-                size: 0.15
-            },
-            shield: {
-                radius: 2.0,
-                opacity: 0.4,
-                segments: 32,
-                rotationSpeed: 0.02,
-                color: new THREE.Color(0x00aaff)
-            },
-            transition: {
-                speed: 0.08
-            }
-        };
-
-        // === VARIABEL STATE UTAMA ===
-        let scene, camera, renderer;
-        let fireParticles = null;
-        let shieldGroup = null;
-        let currentMode = 'none';
-        let handPosition = { x: 0, y: 0, z: 0 };
-        let handScreenPosition = { x: 0, y: 0 };
-        let handDetected = false;
-        let transitionProgress = 0;
-        let clock = new THREE.Clock();
-        let shieldWireframe = null;
-        let shieldGlow = null;
-        let innerRing = null;
-
-        // === VARIABEL DOM INDICATOR ===
-        let handIndicator = null;
-        let auraRing = null;
-        let crosshair = null;
-        let handLabel = null;
-
-        // === AKHIR BAGIAN 4 ===
-       // ============================================================
-        // BAGIAN 5: FUNGSI INISIALISASI
-        // ============================================================
-
-        function initIndicators() {
-            handIndicator = document.getElementById('hand-indicator');
-            auraRing = document.getElementById('aura-ring');
-            crosshair = document.getElementById('crosshair');
-            handLabel = document.getElementById('hand-label');
-        }
-
-        function updateIndicators() {
-            if (!handDetected) {
-                handIndicator.classList.remove('active');
-                auraRing.classList.remove('active');
-                crosshair.classList.remove('active');
-                handLabel.classList.remove('active');
-                return;
-            }
-
-            const screenX = handScreenPosition.x;
-            const screenY = handScreenPosition.y;
-
-            handIndicator.style.transform = `translate(${screenX}px, ${screenY}px)`;
-            auraRing.style.transform = `translate(${screenX}px, ${screenY}px) rotate(${clock.elapsedTime * 60}deg)`;
-            crosshair.style.transform = `translate(${screenX}px, ${screenY}px)`;
-            handLabel.style.transform = `translate(${screenX}px, ${screenY + 80}px)`;
-
-            const isFire = currentMode === 'fire';
-            const isShield = currentMode === 'shield';
-
-            handIndicator.classList.add('active');
-            auraRing.classList.add('active');
-            crosshair.classList.add('active');
-            handLabel.classList.add('active');
-
-            handIndicator.classList.toggle('fire', isFire);
-            handIndicator.classList.toggle('shield', isShield);
-            auraRing.classList.toggle('fire', isFire);
-            auraRing.classList.toggle('shield', isShield);
-            crosshair.classList.toggle('fire', isFire);
-            crosshair.classList.toggle('shield', isShield);
-            handLabel.classList.toggle('fire', isFire);
-            handLabel.classList.toggle('shield', isShield);
-
-            if (isFire) {
-                handIndicator.textContent = '🖐️';
-                handLabel.textContent = 'SIHIR API';
-            } else if (isShield) {
-                handIndicator.textContent = '✊';
-                handLabel.textContent = 'PERISAI';
-            } else {
-                handIndicator.textContent = '👋';
-                handLabel.textContent = 'MELACAK TANGAN...';
-            }
-        }
-
-        function initThreeJS() {
-            const canvas = document.getElementById('three-canvas');
-
-            scene = new THREE.Scene();
-            scene.fog = new THREE.FogExp2(0x000011, 0.015);
-
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 0, 8);
-            camera.lookAt(0, 0, 0);
-
-            renderer = new THREE.WebGLRenderer({
-                canvas: canvas,
-                antialias: true,
-                alpha: true
-            });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            renderer.setClearColor(0x000511, 1);
-
-            const ambientLight = new THREE.AmbientLight(0x111122, 0.5);
-            scene.add(ambientLight);
-
-            const pointLight = new THREE.PointLight(0xff4400, 1, 20);
-            pointLight.position.set(0, 0, 5);
-            scene.add(pointLight);
-
-            createBackgroundParticles();
-            createFireSystem();
-            createShieldSystem();
-
-            window.addEventListener('resize', onWindowResize);
-        }
-
-        // === AKHIR BAGIAN 5 ===
-       // ============================================================
-        // BAGIAN 6: PARTIKEL BACKGROUND & SISTEM API
-        // ============================================================
-
-        function createBackgroundParticles() {
-            const geometry = new THREE.BufferGeometry();
-            const count = 500;
-            const positions = new Float32Array(count * 3);
-            const colors = new Float32Array(count * 3);
-
-            for (let i = 0; i < count; i++) {
-                positions[i * 3] = (Math.random() - 0.5) * 50;
-                positions[i * 3 + 1] = (Math.random() - 0.5) * 50;
-                positions[i * 3 + 2] = (Math.random() - 0.5) * 50;
-
-                colors[i * 3] = 0.2 + Math.random() * 0.3;
-                colors[i * 3 + 1] = 0.3 + Math.random() * 0.4;
-                colors[i * 3 + 2] = 0.8 + Math.random() * 0.2;
-            }
-
-            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-            const material = new THREE.PointsMaterial({
-                size: 0.05,
-                vertexColors: true,
-                transparent: true,
-                opacity: 0.6,
-                blending: THREE.AdditiveBlending
-            });
-
-            const particles = new THREE.Points(geometry, material);
-            scene.add(particles);
-        }
-
-        function createFireSystem() {
-            const count = CONFIG.fire.particleCount;
-            const geometry = new THREE.BufferGeometry();
-
-            const positions = new Float32Array(count * 3);
-            const colors = new Float32Array(count * 3);
-            const sizes = new Float32Array(count);
-            const velocities = new Float32Array(count * 3);
-            const lifetimes = new Float32Array(count);
-
-            for (let i = 0; i < count; i++) {
-                positions[i * 3] = 0;
-                positions[i * 3 + 1] = 0;
-                positions[i * 3 + 2] = 0;
-                colors[i * 3] = 1.0;
-                colors[i * 3 + 1] = 0.3 + Math.random() * 0.4;
-                colors[i * 3 + 2] = 0.0;
-
-                sizes[i] = Math.random() * CONFIG.fire.size + 0.05;
-
-                velocities[i * 3] = (Math.random() - 0.5) * CONFIG.fire.spread;
-                velocities[i * 3 + 1] = Math.random() * CONFIG.fire.spread;
-                velocities[i * 3 + 2] = (Math.random() - 0.5) * CONFIG.fire.spread;
-
-                lifetimes[i] = Math.random();
-            }
-
-            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-            geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-
-            const material = new THREE.ShaderMaterial({
-                uniforms: {
-                    uTime: { value: 0 },
-                    uOpacity: { value: 1.0 }
-                },
-                vertexShader: `
-                    attribute float size;
-                    attribute vec3 color;
-                    varying vec3 vColor;
-                    varying float vAlpha;
-                    uniform float uTime;
-                    uniform float uOpacity;
-
-                    void main() {
-                        vColor = color;
-                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-                        gl_PointSize = size * (200.0 / -mvPosition.z);
-                        gl_Position = projectionMatrix * mvPosition;
-                        vAlpha = uOpacity;
-                    }
-                `,
-                fragmentShader: `
-                    varying vec3 vColor;
-                    varying float vAlpha;
-
-                    void main() {
-                        float dist = length(gl_PointCoord - vec2(0.5));
-                        if (dist > 0.5) discard;
-
-                        float alpha = smoothstep(0.5, 0.1, dist) * vAlpha;
-                        vec3 finalColor = vColor * (1.0 + (1.0 - dist) * 0.5);
-                        gl_FragColor = vec4(finalColor, alpha);
-                    }                `,
-                transparent: true,
-                blending: THREE.AdditiveBlending,
-                depthWrite: false
-            });
-
-            fireParticles = new THREE.Points(geometry, material);
-            fireParticles.userData = { velocities, lifetimes };
-            fireParticles.visible = false;
-            scene.add(fireParticles);
-        }
-
-        // === AKHIR BAGIAN 6 ===
-       // ============================================================
-        // BAGIAN 7: SISTEM PERISAI (SHIELD SYSTEM)
-        // ============================================================
-
-        function createShieldSystem() {
-            shieldGroup = new THREE.Group();
-            shieldGroup.visible = false;
-            scene.add(shieldGroup);
-
-            // Wireframe Icosahedron (outer shell)
-            const icoGeometry = new THREE.IcosahedronGeometry(CONFIG.shield.radius, 2);
-            const icoMaterial = new THREE.MeshBasicMaterial({
-                color: CONFIG.shield.color,
-                wireframe: true,
-                transparent: true,
-                opacity: 0.6,
-                blending: THREE.AdditiveBlending
-            });
-            shieldWireframe = new THREE.Mesh(icoGeometry, icoMaterial);
-            shieldGroup.add(shieldWireframe);
-
-            // Inner glow sphere
-            const innerGeometry = new THREE.IcosahedronGeometry(CONFIG.shield.radius * 0.85, 1);
-            const innerMaterial = new THREE.MeshBasicMaterial({
-                color: 0x0066ff,
-                transparent: true,
-                opacity: 0.08,
-                side: THREE.DoubleSide,
-                blending: THREE.AdditiveBlending
-            });
-            shieldGlow = new THREE.Mesh(innerGeometry, innerMaterial);
-            shieldGroup.add(shieldGlow);
-
-            // Rotating ring 1
-            const ringGeometry = new THREE.TorusGeometry(CONFIG.shield.radius * 0.7, 0.03, 8, 64);
-            const ringMaterial = new THREE.MeshBasicMaterial({
-                color: 0x00ffff,
-                transparent: true,
-                opacity: 0.7,
-                blending: THREE.AdditiveBlending
-            });
-            innerRing = new THREE.Mesh(ringGeometry, ringMaterial);
-            shieldGroup.add(innerRing);
-
-            // Ring 2 (perpendicular X)
-            const ring2 = new THREE.Mesh(ringGeometry.clone(), ringMaterial.clone());
-            ring2.rotation.x = Math.PI / 2;
-            ring2.userData.isRing2 = true;
-            shieldGroup.add(ring2);
-
-            // Ring 3 (perpendicular Y)
-            const ring3 = new THREE.Mesh(ringGeometry.clone(), ringMaterial.clone());
-            ring3.rotation.y = Math.PI / 2;
-            ring3.userData.isRing3 = true;
-            shieldGroup.add(ring3);
-
-            // Hexagonal plates on shield surface
-            const hexGeometry = new THREE.CircleGeometry(0.3, 6);
-            const hexMaterial = new THREE.MeshBasicMaterial({
-                color: 0x0088ff,
-                transparent: true,
-                opacity: 0.15,
-                side: THREE.DoubleSide,
-                blending: THREE.AdditiveBlending
-            });
-
-            for (let i = 0; i < 20; i++) {
-                const hex = new THREE.Mesh(hexGeometry, hexMaterial.clone());
-                const phi = Math.acos(2 * Math.random() - 1);
-                const theta = Math.random() * Math.PI * 2;
-                const r = CONFIG.shield.radius * 0.92;
-                hex.position.setFromSphericalCoords(r, phi, theta);
-                hex.lookAt(0, 0, 0);
-                hex.userData.baseOpacity = 0.1 + Math.random() * 0.15;
-                shieldGroup.add(hex);
-            }
-        }
-
-        // === AKHIR BAGIAN 7 ===
-       // ============================================================
-        // BAGIAN 8: FUNGSI UPDATE (FIRE, SHIELD, TRANSITION)
-        // ============================================================
-
-        function updateFireParticles(delta) {
-            if (!fireParticles || !fireParticles.visible) return;
-
-            const positions = fireParticles.geometry.attributes.position.array;
-            const colors = fireParticles.geometry.attributes.color.array;
-            const sizes = fireParticles.geometry.attributes.size.array;
-            const { velocities, lifetimes } = fireParticles.userData;
-            const count = CONFIG.fire.particleCount;
-
-            const originX = handPosition.x;
-            const originY = handPosition.y;
-            const originZ = handPosition.z;
-
-            for (let i = 0; i < count; i++) {
-                lifetimes[i] -= delta * 1.5;
-
-                if (lifetimes[i] <= 0) {
-                    positions[i * 3] = originX + (Math.random() - 0.5) * 0.3;
-                    positions[i * 3 + 1] = originY + (Math.random() - 0.5) * 0.3;
-                    positions[i * 3 + 2] = originZ + (Math.random() - 0.5) * 0.3;
-
-                    velocities[i * 3] = (Math.random() - 0.5) * CONFIG.fire.spread;
-                    velocities[i * 3 + 1] = Math.random() * CONFIG.fire.spread * 1.5 + 0.5;
-                    velocities[i * 3 + 2] = (Math.random() - 0.5) * CONFIG.fire.spread;
-
-                    lifetimes[i] = 0.5 + Math.random() * 1.0;
-
-                    colors[i * 3] = 1.0;
-                    colors[i * 3 + 1] = 0.5 + Math.random() * 0.4;
-                    colors[i * 3 + 2] = 0.0;
-
-                    sizes[i] = Math.random() * CONFIG.fire.size + 0.08;
-                } else {
-                    positions[i * 3] += velocities[i * 3] * delta * 3;
-                    positions[i * 3 + 1] += velocities[i * 3 + 1] * delta * 3;
-                    positions[i * 3 + 2] += velocities[i * 3 + 2] * delta * 3;
-
-                    positions[i * 3] += Math.sin(clock.elapsedTime * 3 + i) * 0.01;
-                    positions[i * 3 + 2] += Math.cos(clock.elapsedTime * 2.5 + i) * 0.01;
-
-                    const life = lifetimes[i];
-                    colors[i * 3 + 1] = life * 0.6;
-                    colors[i * 3 + 2] = life * 0.1;
-
-                    sizes[i] *= 0.998;
-                }            }
-
-            fireParticles.geometry.attributes.position.needsUpdate = true;
-            fireParticles.geometry.attributes.color.needsUpdate = true;
-            fireParticles.geometry.attributes.size.needsUpdate = true;
-            fireParticles.material.uniforms.uTime.value = clock.elapsedTime;
-        }
-
-        function updateShield(delta) {
-            if (!shieldGroup || !shieldGroup.visible) return;
-
-            const time = clock.elapsedTime;
-
-            shieldGroup.position.set(handPosition.x, handPosition.y, handPosition.z);
-
-            shieldWireframe.rotation.x += CONFIG.shield.rotationSpeed;
-            shieldWireframe.rotation.y += CONFIG.shield.rotationSpeed * 0.7;
-
-            const pulse = 1.0 + Math.sin(time * 3) * 0.05;
-            shieldWireframe.scale.set(pulse, pulse, pulse);
-
-            shieldGlow.material.opacity = 0.06 + Math.sin(time * 2) * 0.03;
-            shieldGlow.rotation.y -= 0.005;
-
-            innerRing.rotation.z += 0.03;
-            innerRing.rotation.x += 0.01;
-
-            shieldGroup.children.forEach(child => {
-                if (child.userData.isRing2) {
-                    child.rotation.z += 0.02;
-                    child.rotation.y += 0.015;
-                }
-                if (child.userData.isRing3) {
-                    child.rotation.z -= 0.025;
-                    child.rotation.x += 0.01;
-                }
-                if (child.userData.baseOpacity !== undefined) {
-                    child.material.opacity = child.userData.baseOpacity + Math.sin(time * 4 + child.id) * 0.05;
-                    child.lookAt(shieldGroup.position);
-                }
-            });
-
-            shieldWireframe.material.opacity = 0.4 + Math.sin(time * 2.5) * 0.2;
-        }
-
-        function handleTransition() {
-            const targetProgress = (currentMode === 'shield') ? 1 : 0;
-            transitionProgress += (targetProgress - transitionProgress) * CONFIG.transition.speed;
-
-            if (currentMode === 'fire') {                fireParticles.visible = true;
-                fireParticles.material.uniforms.uOpacity.value = 1.0 - transitionProgress;
-                fireParticles.position.set(handPosition.x, handPosition.y, handPosition.z);
-
-                if (shieldGroup) {
-                    shieldGroup.visible = transitionProgress > 0.1;
-                    const scale = transitionProgress;
-                    shieldGroup.scale.set(scale, scale, scale);
-                }
-            } else if (currentMode === 'shield') {
-                shieldGroup.visible = true;
-                const scale = 0.5 + transitionProgress * 0.5;
-                shieldGroup.scale.set(scale, scale, scale);
-
-                if (fireParticles) {
-                    fireParticles.visible = transitionProgress < 0.9;
-                    fireParticles.material.uniforms.uOpacity.value = 1.0 - transitionProgress;
-                }
-            } else {
-                if (fireParticles) fireParticles.visible = false;
-                if (shieldGroup) shieldGroup.visible = false;
-            }
-        }
-
-        // === AKHIR BAGIAN 8 ===
-       // ============================================================
-        // BAGIAN 9: MEDIAPIPE HANDS & DETEKSI GESTUR
-        // ============================================================
-
-        async function initHandTracking() {
-            const videoElement = document.getElementById('webcam');
-
-            const hands = new Hands({
-                locateFile: (file) => {
-                    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-                }
-            });
-
-            hands.setOptions({
-                maxNumHands: 1,
-                modelComplexity: 1,
-                minDetectionConfidence: 0.7,
-                minTrackingConfidence: 0.6
-            });
-
-            hands.onResults(onHandResults);
-
-            const cameraFeed = new Camera(videoElement, {
-                onFrame: async () => {
-                    await hands.send({ image: videoElement });
-                },
-                width: 640,
-                height: 480
-            });
-
-            try {
-                await cameraFeed.start();
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('status').textContent = 'Tangan Tidak Terdeteksi';
-            } catch (err) {
-                console.error('Error accessing camera:', err);
-                document.getElementById('loading').innerHTML = '❌ Gagal mengakses kamera. Izinkan akses kamera.';
-            }
-        }
-
-        function onHandResults(results) {
-            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                const landmarks = results.multiHandLandmarks[0];
-                handDetected = true;
-
-                const palmX = landmarks[9].x;
-                const palmY = landmarks[9].y;
-
-                handPosition.x = (palmX - 0.5) * -12;
-                handPosition.y = (palmY - 0.5) * -8;
-                handPosition.z = 0;
-
-                handScreenPosition.x = (1 - palmX) * window.innerWidth;
-                handScreenPosition.y = palmY * window.innerHeight;
-
-                const gesture = detectGesture(landmarks);
-                currentMode = gesture;
-
-                const statusEl = document.getElementById('status');
-                if (gesture === 'fire') {
-                    statusEl.textContent = '🖐️ Sihir Api Aktif';
-                    statusEl.className = 'fire';
-                } else if (gesture === 'shield') {
-                    statusEl.textContent = '✊ Perisai Aktif';
-                    statusEl.className = 'shield';
-                }
-            } else {
-                handDetected = false;
-                currentMode = 'none';
-                document.getElementById('status').textContent = 'Tangan Tidak Terdeteksi';
-                document.getElementById('status').className = '';
-            }
-        }
-
-        function detectGesture(landmarks) {
-            let extendedCount = 0;
-
-            // Deteksi 4 jari (selain jempol)
-            if (landmarks[8].y < landmarks[6].y) extendedCount++;   // Telunjuk
-            if (landmarks[12].y < landmarks[10].y) extendedCount++; // Tengah
-            if (landmarks[16].y < landmarks[14].y) extendedCount++; // Manis
-            if (landmarks[20].y < landmarks[18].y) extendedCount++; // Kelingking
-
-            // Deteksi jempol
-            const thumbExtended = Math.abs(landmarks[4].x - landmarks[2].x) > 0.05;
-            if (thumbExtended) extendedCount++;
-
-            if (extendedCount >= 4) {
-                return 'fire';   // Tangan terbuka
-            } else if (extendedCount <= 1) {
-                return 'shield'; // Tangan mengepal
-            }
-
-            return currentMode;  // Pertahankan mode jika ambigu
-        }
-
-        // === AKHIR BAGIAN 9 ===
-       // ============================================================
-        // BAGIAN 10: ANIMATION LOOP & INISIALISASI FINAL
-        // ============================================================
-
-        function animate() {
-            requestAnimationFrame(animate);
-
-            const delta = clock.getDelta();
-
-            // Update semua sistem
-            updateFireParticles(delta);
-            updateShield(delta);
-            handleTransition();
-            updateIndicators();
-
-            // Render scene
-            renderer.render(scene, camera);
-        }
-
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-
-        async function init() {
-            initIndicators();
-            initThreeJS();
-            animate();
-            await initHandTracking();
-        }
-
-        // === JALANKAN APLIKASI ===
-        init();
-    </script>
+
+<div id="canvas-container"></div>
+
+<div id="video-container">
+  <video id="webcam" autoplay playsinline muted></video>
+</div>
+
+<div id="overlay">
+  <h3>Status Deteksi</h3>
+  <div>Tangan: <span id="hand-state" class="state closed">Mengepal</span></div>
+  <div>Jari Terbuka: <span id="finger-count">0</span></div>
+  <div>Mode: <span id="mode" class="state gesture">Bola (Default)</span></div></div>
+
+<div id="instructions">
+  <h3>🖐️ Kontrol Gestur</h3>
+  <ul>
+    <li><b>Tangan Terbuka:</b> partikel mengembang ke luar</li>
+    <li><b>Tangan Tertutup:</b> partikel menyusut menjadi bola</li>
+    <li><b>1 Jari (☝️):</b> membentuk teks "hello, world"</li>
+    <li><b>2 Jari (✌️):</b> membentuk teks "I'm Qwen"</li>
+  </ul>
+</div>
+
+<!-- Three.js -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+<!-- MediaPipe Hands -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js"></script>
+
+<script>
+/* ============================================================
+   BAGIAN 1: PERSIAPAN SCENE THREE.JS
+============================================================ */
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x05070d, 0.02);
+
+const camera = new THREE.PerspectiveCamera(
+  60, window.innerWidth / window.innerHeight, 0.1, 1000
+);
+camera.position.set(0, 0, 30);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+container.appendChild(renderer.domElement);
+
+/* ============================================================
+   BAGIAN 2: SAMPLING TEKS DARI CANVAS 2D
+   Menghasilkan titik target partikel agar membentuk huruf
+============================================================ */
+function sampleTextToPoints(text, fontSize = 100, maxPoints = 3000) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = 1024;
+  canvas.height = 256;
+
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#fff';  ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+  const img = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  const points = [];
+  const step = 3; // sampling setiap 3 pixel untuk kepadatan
+
+  for (let y = 0; y < canvas.height; y += step) {
+    for (let x = 0; x < canvas.width; x += step) {
+      const idx = (y * canvas.width + x) * 4;
+      if (img[idx] > 128) {
+        points.push(new THREE.Vector3(
+          (x - canvas.width / 2) * 0.03,
+          -(y - canvas.height / 2) * 0.03,
+          (Math.random() - 0.5) * 0.5
+        ));
+      }
+    }
+  }
+  // Batasi jumlah titik jika terlalu banyak
+  while (points.length > maxPoints) {
+    points.splice(Math.floor(Math.random() * points.length), 1);
+  }
+  return points;
+}
+
+/* Pre-generate target shapes */
+const TEXT_HELLO = sampleTextToPoints("hello, world");
+const TEXT_QWEN = sampleTextToPoints("I'm Qwen");
+
+/* ============================================================
+   BAGIAN 3: SISTEM PARTIKEL
+============================================================ */
+const PARTICLE_COUNT = 3000;
+
+// Buffer geometri
+const geometry = new THREE.BufferGeometry();
+const positions = new Float32Array(PARTICLE_COUNT * 3);
+const targets   = new Float32Array(PARTICLE_COUNT * 3);
+const colors    = new Float32Array(PARTICLE_COUNT * 3);
+
+// Inisialisasi posisi awal acak dalam ruang
+for (let i = 0; i < PARTICLE_COUNT; i++) {
+  const i3 = i * 3;
+  positions[i3]     = (Math.random() - 0.5) * 40;
+  positions[i3 + 1] = (Math.random() - 0.5) * 40;
+  positions[i3 + 2] = (Math.random() - 0.5) * 40;
+  targets[i3] = positions[i3];  targets[i3 + 1] = positions[i3 + 1];
+  targets[i3 + 2] = positions[i3 + 2];
+
+  // Gradient warna biru -> ungu
+  const t = i / PARTICLE_COUNT;
+  colors[i3]     = 0.29 + t * 0.4;   // R
+  colors[i3 + 1] = 0.62 - t * 0.2;   // G
+  colors[i3 + 2] = 1.0;              // B
+}
+
+geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+geometry.setAttribute('color',    new THREE.BufferAttribute(colors, 3));
+
+// Texture partikel (lingkaran lembut)
+const texCanvas = document.createElement('canvas');
+texCanvas.width = texCanvas.height = 64;
+const tctx = texCanvas.getContext('2d');
+const grad = tctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+grad.addColorStop(0, 'rgba(255,255,255,1)');
+grad.addColorStop(0.3, 'rgba(120,180,255,0.8)');
+grad.addColorStop(1, 'rgba(0,0,0,0)');
+tctx.fillStyle = grad;
+tctx.fillRect(0, 0, 64, 64);
+const particleTex = new THREE.CanvasTexture(texCanvas);
+
+const material = new THREE.PointsMaterial({
+  size: 0.25,
+  map: particleTex,
+  transparent: true,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+  vertexColors: true
+});
+
+const particles = new THREE.Points(geometry, material);
+scene.add(particles);
+
+/* ============================================================
+   BAGIAN 4: STATE & LOGIKA MODE PARTIKEL
+============================================================ */
+const state = {
+  handDetected: false,
+  handOpen: false,
+  fingerCount: 0,
+  currentMode: 'sphere',  // 'sphere' | 'expanded' | 'text_hello' | 'text_qwen'
+  textRotation: 0
+};
+
+/* Mode bola (posisi default pada permukaan bola) */
+function getSpherePositions() {  const out = [];
+  const radius = 6;
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    const phi = Math.acos(1 - 2 * (i + 0.5) / PARTICLE_COUNT);
+    const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+    out.push(
+      radius * Math.sin(phi) * Math.cos(theta),
+      radius * Math.sin(phi) * Math.sin(theta),
+      radius * Math.cos(phi)
+    );
+  }
+  return out;
+}
+const SPHERE_TARGETS = getSpherePositions();
+
+/* Mode ekspansi (partikel menyebar ke luar) */
+function getExpandedPositions() {
+  const out = [];
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    const i3 = i * 3;
+    const baseX = SPHERE_TARGETS[i3];
+    const baseY = SPHERE_TARGETS[i3 + 1];
+    const baseZ = SPHERE_TARGETS[i3 + 2];
+    const dir = new THREE.Vector3(baseX, baseY, baseZ).normalize();
+    out.push(
+      dir.x * 18 + (Math.random() - 0.5) * 4,
+      dir.y * 18 + (Math.random() - 0.5) * 4,
+      dir.z * 18 + (Math.random() - 0.5) * 4
+    );
+  }
+  return out;
+}
+const EXPANDED_TARGETS = getExpandedPositions();
+
+/* Mengisi target dengan posisi dari array teks (looping jika kurang) */
+function setTextTargets(textPoints) {
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    const p = textPoints[i % textPoints.length];
+    const i3 = i * 3;
+    targets[i3]     = p.x;
+    targets[i3 + 1] = p.y;
+    targets[i3 + 2] = p.z;
+  }
+}
+
+function setTargetsFromArray(arr) {
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    const i3 = i * 3;
+    targets[i3]     = arr[i3];
+    targets[i3 + 1] = arr[i3 + 1];    targets[i3 + 2] = arr[i3 + 2];
+  }
+}
+
+/* ============================================================
+   BAGIAN 5: ANIMASI REAL-TIME
+============================================================ */
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+
+  // Update mode berdasarkan gestur
+  if (state.currentMode === 'text_hello' || state.currentMode === 'text_qwen') {
+    // Efek rotasi 3D pada teks
+    state.textRotation += dt * 0.6;
+    particles.rotation.y = Math.sin(state.textRotation) * 0.8;
+    particles.rotation.x = Math.sin(state.textRotation * 0.7) * 0.15;
+  } else {
+    particles.rotation.y *= 0.95;
+    particles.rotation.x *= 0.95;
+  }
+
+  // Interpolasi posisi partikel menuju target (easing)
+  const posArr = geometry.attributes.position.array;
+  const lerpFactor = 1 - Math.pow(0.001, dt); // halus dan stabil
+
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    const i3 = i * 3;
+    posArr[i3]     += (targets[i3]     - posArr[i3])     * lerpFactor;
+    posArr[i3 + 1] += (targets[i3 + 1] - posArr[i3 + 1]) * lerpFactor;
+    posArr[i3 + 2] += (targets[i3 + 2] - posArr[i3 + 2]) * lerpFactor;
+
+    // Sedikit getaran organik
+    posArr[i3]     += (Math.random() - 0.5) * 0.005;
+    posArr[i3 + 1] += (Math.random() - 0.5) * 0.005;
+    posArr[i3 + 2] += (Math.random() - 0.5) * 0.005;
+  }
+  geometry.attributes.position.needsUpdate = true;
+
+  renderer.render(scene, camera);
+}
+
+/* ============================================================
+   BAGIAN 6: DETEKSI TANGAN (MEDIAPIPE HANDS)
+============================================================ */
+const video = document.getElementById('webcam');
+
+/* Menghitung jari yang terbuka (selain ibu jari) */function countFingers(landmarks) {
+  // Pasangan [ujung jari, sendi proksimal]
+  const fingerTips  = [8, 12, 16, 20];
+  const fingerPips  = [6, 10, 14, 18];
+  let count = 0;
+  for (let i = 0; i < 4; i++) {
+    const tip = landmarks[fingerTips[i]];
+    const pip = landmarks[fingerPips[i]];
+    // Jari terbuka jika ujung lebih rendah (koordinat y lebih kecil) dari sendi
+    if (tip.y < pip.y) count++;
+  }
+  // Ibu jari (menggunakan perbandingan x)
+  const thumbTip = landmarks[4];
+  const thumbIp  = landmarks[3];
+  const thumbMcp = landmarks[2];
+  const thumbOpen = Math.hypot(thumbTip.x - thumbMcp.x, thumbTip.y - thumbMcp.y)
+                  > Math.hypot(thumbIp.x  - thumbMcp.x, thumbIp.y  - thumbMcp.y);
+  if (thumbOpen) count++;
+  return count;
+}
+
+/* Cek tangan terbuka/tertutup berdasarkan rata-rata jarak ujung jari ke telapak */
+function isHandOpen(landmarks) {
+  const palm = landmarks[0];   // pergelangan
+  const tips = [4, 8, 12, 16, 20];
+  let total = 0;
+  for (const t of tips) {
+    const tip = landmarks[t];
+    total += Math.hypot(tip.x - palm.x, tip.y - palm.y);
+  }
+  const avg = total / 5;
+  return avg > 0.18; // threshold empiris
+}
+
+function updateUI() {
+  document.getElementById('hand-state').textContent =
+    state.handOpen ? 'Terbuka' : 'Mengepal';
+  document.getElementById('hand-state').className =
+    'state ' + (state.handOpen ? 'open' : 'closed');
+  document.getElementById('finger-count').textContent = state.fingerCount;
+
+  let modeText = 'Bola (Default)';
+  if (state.currentMode === 'expanded')     modeText = 'Mengembang';
+  if (state.currentMode === 'text_hello')   modeText = '"hello, world"';
+  if (state.currentMode === 'text_qwen')    modeText = '"I\'m Qwen"';
+  document.getElementById('mode').textContent = modeText;
+}
+
+function onResults(results) {
+  if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {    const hand = results.multiHandLandmarks[0];
+    state.handDetected = true;
+    state.fingerCount = countFingers(hand);
+    state.handOpen = isHandOpen(hand);
+
+    // Prioritas gestur: jumlah jari -> teks; buka/tutup -> bola/ekspansi
+    if (state.fingerCount === 1) {
+      state.currentMode = 'text_hello';
+      setTextTargets(TEXT_HELLO);
+    } else if (state.fingerCount === 2) {
+      state.currentMode = 'text_qwen';
+      setTextTargets(TEXT_QWEN);
+    } else if (state.handOpen) {
+      state.currentMode = 'expanded';
+      setTargetsFromArray(EXPANDED_TARGETS);
+    } else {
+      state.currentMode = 'sphere';
+      setTargetsFromArray(SPHERE_TARGETS);
+    }
+  } else {
+    state.handDetected = false;
+    state.fingerCount = 0;
+    state.handOpen = false;
+    // Kembali ke mode default jika tidak ada tangan
+    if (state.currentMode !== 'sphere') {
+      state.currentMode = 'sphere';
+      setTargetsFromArray(SPHERE_TARGETS);
+    }
+  }
+  updateUI();
+}
+
+/* Inisialisasi MediaPipe */
+const hands = new Hands({
+  locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`
+});
+hands.setOptions({
+  maxNumHands: 1,
+  modelComplexity: 1,
+  minDetectionConfidence: 0.6,
+  minTrackingConfidence: 0.6
+});
+hands.onResults(onResults);
+
+/* Mulai kamera */
+const cam = new Camera(video, {
+  onFrame: async () => { await hands.send({ image: video }); },
+  width: 640,
+  height: 480
+});cam.start();
+
+/* ============================================================
+   BAGIAN 7: RESPONS RESIZE
+============================================================ */
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+/* Jalankan animasi */
+animate();
+</script>
 </body>
 </html>
-<!-- === AKHIR DARI SEMUA KODE === -->
-
-               
