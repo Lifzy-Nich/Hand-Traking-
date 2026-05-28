@@ -1,785 +1,876 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kendali Sihir Elemen — Versi Stabil</title>
-<style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    
-    body {
-        overflow: hidden;
-        background: radial-gradient(ellipse at center, #0a0a1f 0%, #000000 100%);
-        font-family: 'Segoe UI', system-ui, sans-serif;
-        color: #fff;
-    }
-    
-    #canvas-container {
-        position: fixed;
-        inset: 0;
-        z-index: 1;
-    }
-    
-    #webcam {
-        position: fixed;
-        bottom: 20px;
-        left: 20px;
-        width: 200px;
-        height: 150px;
-        border-radius: 10px;
-        border: 2px solid rgba(255,255,255,0.2);
-        transform: scaleX(-1);
-        z-index: 10;
-        object-fit: cover;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-        display: none;
-    }
-    
-    #webcam.active { display: block; }
-    
-    #ui-overlay {
-        position: fixed;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 10;
-        pointer-events: none;
-    }
-    
-    /* === AKHIR BAGIAN 1 === */
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kendali Sihir Elemen — Versi Modular</title>
+    <style>
+        /* === RESET & BASE STYLES === */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            background: #000;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #three-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #webcam {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 240px;
+            height: 180px;
+            border-radius: 12px;
+            border: 2px solid rgba(255, 100, 0, 0.6);
+            transform: scaleX(-1);
+            z-index: 10;
+            opacity: 0.85;
+            object-fit: cover;
+            box-shadow: 0 0 20px rgba(255, 80, 0, 0.4);
+        }
+        /* === OVERLAY & STATUS === */
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 30px;
+        }
+
+        #status {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 12px 30px;
+            color: #fff;
+            font-size: 18px;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        #status.fire {
+            border-color: rgba(255, 100, 0, 0.8);
+            box-shadow: 0 0 20px rgba(255, 60, 0, 0.5);
+            color: #ff6b35;
+        }
+
+        #status.shield {
+            border-color: rgba(0, 150, 255, 0.8);
+            box-shadow: 0 0 20px rgba(0, 100, 255, 0.5);
+            color: #00bfff;
+        }
+
+        #instructions {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 18px 22px;            color: #ccc;
+            font-size: 13px;
+            line-height: 1.8;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        #instructions h3 {
+            color: #fff;
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+
+        #instructions .fire-text { color: #ff6b35; }
+        #instructions .shield-text { color: #00bfff; }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 22px;
+            z-index: 100;
+            text-align: center;
+        }
+
+        #loading .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 100, 0, 0.3);
+            border-top-color: #ff6b35;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* === AKHIR BAGIAN 1 === */
+    </style>
 </head>
 <body>
-   <!-- LANJUTAN CSS -->
-<style>
-    #gesture-status {
-        background: rgba(0,0,0,0.6);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255,255,255,0.15);
-        padding: 12px 28px;
-        border-radius: 30px;
-        font-size: 16px;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    #gesture-status.fire {
-        border-color: #ff6b35;
-        box-shadow: 0 0 25px rgba(255,100,0,0.5);
-        color: #ff8c42;
-    }
-    
-    #gesture-status.shield {
-        border-color: #00bfff;
-        box-shadow: 0 0 25px rgba(0,150,255,0.5);
-        color: #4fc3f7;
-    }
-    
-    #instructions {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: rgba(0,0,0,0.6);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 12px;
-        padding: 16px 20px;
-        font-size: 13px;
-        line-height: 1.8;
-        z-index: 10;
-        max-width: 280px;
-    }
-    
-    #instructions h4 { margin-bottom: 8px; font-size: 14px; }
-    .fire-text { color: #ff8c42; }
-    .shield-text { color: #4fc3f7; }
-    .mouse-text { color: #b388ff; }
-    
-    /* === AKHIR BAGIAN 2 === */
-</style>
-<!-- LANJUTAN CSS -->
-<style>
-    #loading {
-        position: fixed;
-        inset: 0;
-        background: radial-gradient(ellipse at center, #0a0a2e 0%, #000000 100%);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        z-index: 100;
-        transition: opacity 0.8s ease, visibility 0.8s;
-    }
-    
-    #loading.hidden {
-        opacity: 0;
-        visibility: hidden;
-    }
-    
-    #loading h1 {
-        font-size: 32px;
-        margin-bottom: 8px;
-        background: linear-gradient(90deg, #ff6b35, #00bfff);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-    }
-    
-    #loading p {
-        color: #888;
-        margin-bottom: 30px;
-        font-size: 14px;
-    }
-    
-    .spinner {
-        width: 50px;
-        height: 50px;
-        border: 3px solid rgba(255,100,0,0.2);
-        border-top-color: #ff6b35;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-bottom: 25px;
-    }
-    
-    @keyframes spin { to { transform: rotate(360deg); } }
-    
-    #start-button {
-        background: linear-gradient(135deg, #ff6b35, #ff4500);
-        color: white;
-        border: none;        padding: 16px 40px;
-        font-size: 16px;
-        font-weight: bold;
-        border-radius: 50px;
-        cursor: pointer;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        box-shadow: 0 4px 25px rgba(255,100,0,0.4);
-        transition: transform 0.2s, box-shadow 0.2s;
-        margin-top: 20px;
-    }
-    
-    #start-button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 30px rgba(255,100,0,0.6);
-    }
-    
-    #start-button:active {
-        transform: translateY(0);
-    }
-    
-    #loading-status {
-        margin-top: 20px;
-        font-size: 13px;
-        color: #666;
-        min-height: 20px;
-    }
-    
-    #loading-status.error {
-        color: #ff6b6b;
-    }
-    
-    #loading-status.success {
-        color: #4fc3f7;
-    }
-    
-    #fallback-notice {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background: rgba(179, 136, 255, 0.15);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(179, 136, 255, 0.4);
-        padding: 10px 18px;
-        border-radius: 10px;
-        font-size: 12px;
-        color: #b388ff;
-        z-index: 10;
-        display: none;
-    }    
-    #fallback-notice.active { display: block; }
-</style>
+    <!-- AKHIR BAGIAN 1: Salin ini terlebih dahulu ke file Anda -->
+   <!-- LANJUTAN DARI BAGIAN 1 -->
+    <style>
+        /* === HAND INDICATOR STYLES === */
+        #hand-indicator {
+            position: absolute;
+            pointer-events: none;
+            z-index: 8;
+            font-size: 42px;
+            text-shadow: 0 0 15px currentColor, 0 0 30px currentColor;
+            transition: transform 0.1s linear, opacity 0.3s ease;
+            opacity: 0;
+            transform: translate(-50%, -50%);
+            animation: pulse-indicator 1.5s ease-in-out infinite;
+        }
+
+        #hand-indicator.active { opacity: 1; }
+        #hand-indicator.fire { color: #ff6b35; }
+        #hand-indicator.shield { color: #00bfff; }
+
+        /* === HAND LABEL === */
+        #hand-label {
+            position: absolute;
+            pointer-events: none;
+            z-index: 8;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid currentColor;
+            transition: transform 0.1s linear, opacity 0.3s ease;
+            opacity: 0;
+            transform: translate(-50%, -50%);
+            white-space: nowrap;
+        }
+
+        #hand-label.active { opacity: 1; }
+        #hand-label.fire {
+            color: #ff6b35;
+            border-color: rgba(255, 100, 0, 0.8);
+        }
+        #hand-label.shield {
+            color: #00bfff;
+            border-color: rgba(0, 150, 255, 0.8);
+        }
+
+        /* === AURA RING === */
+        #aura-ring {            position: absolute;
+            pointer-events: none;
+            z-index: 7;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 2px solid;
+            transition: transform 0.1s linear, opacity 0.3s ease;
+            opacity: 0;
+            transform: translate(-50%, -50%);
+        }
+
+        #aura-ring.active { opacity: 0.7; }
+        #aura-ring.fire {
+            border-color: rgba(255, 100, 0, 0.6);
+            box-shadow: 0 0 30px rgba(255, 60, 0, 0.4), inset 0 0 30px rgba(255, 60, 0, 0.2);
+        }
+        #aura-ring.shield {
+            border-color: rgba(0, 150, 255, 0.6);
+            box-shadow: 0 0 30px rgba(0, 100, 255, 0.4), inset 0 0 30px rgba(0, 100, 255, 0.2);
+        }
+
+        /* === CROSSHAIR === */
+        #crosshair {
+            position: absolute;
+            pointer-events: none;
+            z-index: 7;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            transition: transform 0.1s linear, opacity 0.3s ease;
+            opacity: 0;
+            transform: translate(-50%, -50%);
+        }
+
+        #crosshair.active { opacity: 1; }
+        #crosshair.fire {
+            background: #ff6b35;
+            box-shadow: 0 0 10px #ff6b35;
+        }
+        #crosshair.shield {
+            background: #00bfff;
+            box-shadow: 0 0 10px #00bfff;
+        }
+
+        /* === KEYFRAME ANIMATIONS === */
+        @keyframes pulse-indicator {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.15); }
+        }
+        /* === AKHIR BAGIAN 2 === */
+    </style>
 </head>
 <body>
-<!-- === AKHIR BAGIAN 3 === -->
-   <div id="canvas-container"></div>
-<video id="webcam" autoplay playsinline muted></video>
+    <!-- AKHIR BAGIAN 2: Pastikan tag </head> tetap ada -->
+   <!-- LANJUTAN DARI BAGIAN 2 -->
+    <div id="container">
+        <canvas id="three-canvas"></canvas>
+        <video id="webcam" autoplay playsinline></video>
 
-<div id="ui-overlay">
-    <div id="gesture-status">⏳ Memulai...</div>
-</div>
+        <!-- Indikator Visual Tangan -->
+        <div id="hand-indicator">🖐️</div>
+        <div id="aura-ring"></div>
+        <div id="crosshair"></div>
+        <div id="hand-label">Sihir Api</div>
 
-<div id="instructions">
-    <h4>🔮 Panduan Sihir</h4>
-    <span class="fire-text">🖐️ Tangan Terbuka</span> → Semburan Api<br>
-    <span class="shield-text">✊ Tangan Mengepal</span> → Perisai Jaring<br>
-    <br>
-    <small><span class="mouse-text">🖱️ Mode Mouse:</span><br>
-    Gerak = Posisi | Klik Kiri = Api | Klik Kanan = Perisai</small>
-</div>
+        <!-- Overlay UI -->
+        <div id="overlay">
+            <div id="status">Memuat...</div>
+        </div>
 
-<div id="fallback-notice">
-    🖱️ Mode Mouse Aktif (Kamera tidak tersedia)
-</div>
+        <!-- Panel Instruksi -->
+        <div id="instructions">
+            <h3>🔮 Panduan Sihir</h3>
+            <span class="fire-text">🖐️ Tangan Terbuka</span> → Sihir Api<br>
+            <span class="shield-text">✊ Tangan Mengepal</span> → Perisai<br>
+            <small style="color:#888;">Gunakan satu tangan di depan kamera</small>
+        </div>
 
-<div id="loading">
-    <h1>Kendali Sihir Elemen</h1>
-    <p>Game 3D Interaktif Real-Time</p>
-    <div class="spinner"></div>
-    <div id="loading-status">Menyiapkan environment...</div>
-    <button id="start-button">🔮 Aktifkan Sihir</button>
-</div>
+        <!-- Loading Screen -->
+        <div id="loading">
+            <div class="spinner"></div>
+            <div>Menginisialisasi Sihir...</div>
+            <small style="color:#888;">Mengaktifkan kamera & deteksi tangan</small>
+        </div>
+    </div>
 
-<!-- Library Three.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
+    <!-- Library Three.js via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
 
-<script>
-// === AKHIR BAGIAN 4 ===
-   // ============================================================
-// KONFIGURASI UTAMA
-// ============================================================
-const CONFIG = {
-    particleCount: 1500,
-    fire: {
-        spread: 3.5,
-        color: new THREE.Color(0xff4500),
-        secondaryColor: new THREE.Color(0xffaa00),
-        size: 0.08
-    },
-    shield: {
-        radius: 2.2,
-        detail: 2,
-        color: new THREE.Color(0x00aaff),
-        rotationSpeed: 0.4
-    },
-    morph: {
-        lerpFactor: 0.08,
-        colorLerp: 0.05
-    }
-};
+    <!-- MediaPipe Hands via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
-// ============================================================
-// STATE GLOBAL
-// ============================================================
-let scene, camera, renderer;
-let particleSystem;
-let particleData = [];
-let currentMode = 'idle';
-let handPos3D = new THREE.Vector3(0, 0, 0);
-let handDetected = false;
-let clock = new THREE.Clock();
-let shieldTargets = [];
-let fireTargets = [];
-let mediapipeReady = false;
-let cameraMode = 'none';
+    <script>
+        // === AKHIR BAGIAN 3: Sekarang masuk ke JavaScript ===
+       // ============================================================
+        // BAGIAN 4: KONFIGURASI GLOBAL & STATE VARIABLES
+        // ============================================================
 
-// === AKHIR BAGIAN 5 ===
-   // ============================================================
-// INISIALISASI THREE.JS
-// ============================================================
-function initThreeJS() {
-    scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x000008, 0.02);
-    
-    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 0, 10);
-    
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    document.getElementById('canvas-container').appendChild(renderer.domElement);
-    
-    scene.add(new THREE.AmbientLight(0x111122, 0.5));
-    const pointLight = new THREE.PointLight(0xff4400, 1.5, 30);
-    pointLight.position.set(0, 0, 5);
-    scene.add(pointLight);
-    
-    createStarField();
-    createParticleSystem();
-    generateShieldTargets();
-    generateFireTargets();
-    
-    window.addEventListener('resize', onResize);
-    
-    console.log('✅ Three.js berhasil diinisialisasi');
-}
-
-function createStarField() {
-    const geo = new THREE.BufferGeometry();
-    const count = 800;
-    const pos = new Float32Array(count * 3);
-    
-    for (let i = 0; i < count; i++) {
-        pos[i * 3] = (Math.random() - 0.5) * 100;
-        pos[i * 3 + 1] = (Math.random() - 0.5) * 100;
-        pos[i * 3 + 2] = (Math.random() - 0.5) * 100;
-    }
-    
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    
-    const mat = new THREE.PointsMaterial({
-        size: 0.1,
-        color: 0x8888ff,
-        transparent: true,
-        opacity: 0.6,
-        blending: THREE.AdditiveBlending
-    });    
-    scene.add(new THREE.Points(geo, mat));
-}
-
-function createParticleSystem() {
-    const count = CONFIG.particleCount;
-    const geo = new THREE.BufferGeometry();
-    
-    const positions = new Float32Array(count * 3);
-    const colors = new Float32Array(count * 3);
-    const sizes = new Float32Array(count);
-    
-    for (let i = 0; i < count; i++) {
-        positions[i * 3] = 0;
-        positions[i * 3 + 1] = 0;
-        positions[i * 3 + 2] = 0;
-        
-        colors[i * 3] = 0.3;
-        colors[i * 3 + 1] = 0.3;
-        colors[i * 3 + 2] = 0.4;
-        
-        sizes[i] = CONFIG.fire.size * (0.5 + Math.random() * 0.5);
-        
-        particleData.push({
-            velocity: new THREE.Vector3(
-                (Math.random() - 0.5) * 0.5,
-                (Math.random() - 0.5) * 0.5,
-                (Math.random() - 0.5) * 0.5
-            ),
-            life: Math.random(),
-            offset: Math.random() * Math.PI * 2
-        });
-    }
-    
-    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-    
-    const mat = new THREE.ShaderMaterial({
-        uniforms: { uTime: { value: 0 } },
-        vertexShader: `
-            attribute float size;
-            attribute vec3 color;
-            varying vec3 vColor;
-            uniform float uTime;
-            void main() {
-                vColor = color;
-                vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-                gl_PointSize = size * (250.0 / -mvPosition.z);
-                gl_PointSize *= (1.0 + sin(uTime * 3.0 + position.x * 2.0) * 0.1);                gl_Position = projectionMatrix * mvPosition;
-            }
-        `,
-        fragmentShader: `
-            varying vec3 vColor;
-            void main() {
-                float dist = length(gl_PointCoord - vec2(0.5));
-                if (dist > 0.5) discard;
-                float glow = smoothstep(0.5, 0.0, dist);
-                float core = smoothstep(0.2, 0.0, dist);
-                vec3 finalColor = vColor * (1.0 + core * 1.5);
-                gl_FragColor = vec4(finalColor, glow * 0.85);
-            }
-        `,
-        transparent: true,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false
-    });
-    
-    particleSystem = new THREE.Points(geo, mat);
-    scene.add(particleSystem);
-}
-
-// === AKHIR BAGIAN 6 ===
-   function generateShieldTargets() {
-    const ico = new THREE.IcosahedronGeometry(CONFIG.shield.radius, CONFIG.shield.detail);
-    const pos = ico.attributes.position.array;
-    const idx = ico.index ? ico.index.array : null;
-    
-    const edges = new Set();
-    const addEdge = (a, b) => {
-        const key = a < b ? `${a}-${b}` : `${b}-${a}`;
-        edges.add(key);
-    };
-    
-    if (idx) {
-        for (let i = 0; i < idx.length; i += 3) {
-            addEdge(idx[i], idx[i+1]);
-            addEdge(idx[i+1], idx[i+2]);
-            addEdge(idx[i+2], idx[i]);
-        }
-    }
-    
-    const edgePoints = [];
-    edges.forEach(key => {
-        const [a, b] = key.split('-').map(Number);
-        const vA = new THREE.Vector3(pos[a*3], pos[a*3+1], pos[a*3+2]);
-        const vB = new THREE.Vector3(pos[b*3], pos[b*3+1], pos[b*3+2]);
-        for (let t = 0; t < 5; t++) {
-            edgePoints.push(vA.clone().lerp(vB, t / 5));
-        }
-    });
-    
-    for (let i = 0; i < CONFIG.particleCount; i++) {
-        shieldTargets.push(edgePoints[i % edgePoints.length].clone());
-    }
-}
-
-function generateFireTargets() {
-    for (let i = 0; i < CONFIG.particleCount; i++) {
-        const r = CONFIG.fire.spread * Math.cbrt(Math.random());
-        const phi = Math.random() * Math.PI * 2;
-        const theta = Math.acos(2 * Math.random() - 1);
-        fireTargets.push(new THREE.Vector3(
-            r * Math.sin(theta) * Math.cos(phi),
-            r * Math.sin(theta) * Math.sin(phi),
-            r * Math.cos(theta)
-        ));
-    }
-}
-
-// === AKHIR BAGIAN 7 ===
-   // ============================================================
-// UPDATE PARTIKEL
-// ============================================================
-function updateParticles(delta) {
-    if (!particleSystem) return;
-    
-    const positions = particleSystem.geometry.attributes.position.array;
-    const colors = particleSystem.geometry.attributes.color.array;
-    const time = clock.getElapsedTime();
-    
-    let targetColor, secondaryColor;
-    
-    if (currentMode === 'fire') {
-        targetColor = CONFIG.fire.color;
-        secondaryColor = CONFIG.fire.secondaryColor;
-    } else if (currentMode === 'shield') {
-        targetColor = CONFIG.shield.color;
-        secondaryColor = new THREE.Color(0x88ddff);
-    } else {
-        targetColor = new THREE.Color(0x444466);
-        secondaryColor = new THREE.Color(0x222244);
-    }
-    
-    for (let i = 0; i < CONFIG.particleCount; i++) {
-        const idx = i * 3;
-        const data = particleData[i];
-        
-        let target;
-        if (currentMode === 'shield') {
-            target = shieldTargets[i].clone().add(handPos3D);
-        } else if (currentMode === 'fire') {
-            target = fireTargets[i].clone().add(handPos3D);
-            target.x += Math.sin(time * 2 + data.offset) * 0.3;
-            target.y += Math.cos(time * 2.5 + data.offset) * 0.3;
-            target.z += Math.sin(time * 1.8 + data.offset * 2) * 0.3;
-        } else {
-            target = handPos3D.clone();
-        }
-        
-        positions[idx] += (target.x - positions[idx]) * CONFIG.morph.lerpFactor;
-        positions[idx+1] += (target.y - positions[idx+1]) * CONFIG.morph.lerpFactor;
-        positions[idx+2] += (target.z - positions[idx+2]) * CONFIG.morph.lerpFactor;
-        
-        const colorMix = (Math.sin(data.offset + time) + 1) * 0.5;
-        const mixedColor = targetColor.clone().lerp(secondaryColor, colorMix);
-        
-        colors[idx] += (mixedColor.r - colors[idx]) * CONFIG.morph.colorLerp;
-        colors[idx+1] += (mixedColor.g - colors[idx+1]) * CONFIG.morph.colorLerp;
-        colors[idx+2] += (mixedColor.b - colors[idx+2]) * CONFIG.morph.colorLerp;
-    }
-    
-    particleSystem.geometry.attributes.position.needsUpdate = true;
-    particleSystem.geometry.attributes.color.needsUpdate = true;
-    particleSystem.material.uniforms.uTime.value = time;
-    
-    if (currentMode === 'shield') {
-        particleSystem.rotation.y += CONFIG.shield.rotationSpeed * delta;
-        particleSystem.rotation.x = Math.sin(time * 0.3) * 0.2;
-    } else {
-        particleSystem.rotation.y *= 0.95;
-        particleSystem.rotation.x *= 0.95;
-    }
-}
-
-// === AKHIR BAGIAN 8 ===
-   // ============================================================
-// LOAD MEDIAPIPE SECARA DINAMIS DENGAN TIMEOUT
-// ============================================================
-function loadScript(url) {
-    return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = url;
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error(`Gagal memuat: ${url}`));
-        document.head.appendChild(script);
-    });
-}
-
-async function loadMediaPipe() {
-    const status = document.getElementById('loading-status');
-    status.textContent = 'Memuat library MediaPipe...';
-    status.className = '';
-    
-    try {
-        const timeout = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout loading MediaPipe')), 15000)
-        );
-        
-        const load = Promise.all([
-            loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js'),
-            loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js')
-        ]);
-        
-        await Promise.race([load, timeout]);
-        
-        if (typeof Hands === 'undefined' || typeof Camera === 'undefined') {
-            throw new Error('MediaPipe tidak terdefinisi setelah load');
-        }
-        
-        mediapipeReady = true;
-        console.log('✅ MediaPipe berhasil dimuat');
-        return true;
-    } catch (err) {
-        console.warn('⚠️ MediaPipe gagal dimuat:', err.message);
-        status.textContent = 'MediaPipe gagal dimuat - gunakan mode mouse';
-        status.className = 'error';
-        return false;
-    }
-}
-
-// === AKHIR BAGIAN 9 ===
-   // ============================================================
-// INISIALISASI KAMERA DENGAN FALLBACK
-// ============================================================
-async function initHandTracking() {
-    if (!mediapipeReady) {
-        enableMouseMode();
-        return;
-    }
-    
-    const status = document.getElementById('loading-status');
-    status.textContent = 'Meminta izin kamera...';
-    status.className = '';
-    
-    try {
-        const testStream = await navigator.mediaDevices.getUserMedia({ 
-            video: { width: 640, height: 480 } 
-        });
-        testStream.getTracks().forEach(t => t.stop());
-        
-        const video = document.getElementById('webcam');
-        video.classList.add('active');
-        
-        const hands = new Hands({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-        });
-        
-        hands.setOptions({
-            maxNumHands: 1,
-            modelComplexity: 1,
-            minDetectionConfidence: 0.7,
-            minTrackingConfidence: 0.6
-        });
-        
-        hands.onResults(onHandResults);
-        
-        const cam = new Camera(video, {
-            onFrame: async () => {
-                try {
-                    await hands.send({ image: video });
-                } catch (e) {
-                    console.warn('Hand tracking error:', e);
-                }
+        const CONFIG = {
+            fire: {
+                particleCount: 800,
+                color: new THREE.Color(0xff4500),
+                secondaryColor: new THREE.Color(0xffaa00),
+                spread: 2.5,
+                speed: 0.08,
+                size: 0.15
             },
-            width: 640,
-            height: 480
-        });
-        
-        await cam.start();
-        cameraMode = 'camera';
-        status.textContent = 'Kamera aktif! Siap mendeteksi.';
-        status.className = 'success';
-        console.log('✅ Kamera berhasil diaktifkan');
-        
-    } catch (err) {
-        console.warn('⚠️ Gagal akses kamera:', err.message);
-        status.textContent = 'Kamera ditolak - gunakan mode mouse';
-        status.className = 'error';
-        enableMouseMode();
-    }
-}
+            shield: {
+                radius: 2.0,
+                opacity: 0.4,
+                segments: 32,
+                rotationSpeed: 0.02,
+                color: new THREE.Color(0x00aaff)
+            },
+            transition: {
+                speed: 0.08
+            }
+        };
 
-function enableMouseMode() {
-    cameraMode = 'mouse';
-    handDetected = true;
-    document.getElementById('fallback-notice').classList.add('active');
-    
-    window.addEventListener('mousemove', (e) => {
-        const x = (e.clientX / window.innerWidth - 0.5) * 15;
-        const y = -(e.clientY / window.innerHeight - 0.5) * 10;
-        handPos3D.set(x, y, 0);
-    });
-    
-    window.addEventListener('mousedown', (e) => {
-        if (e.button === 0) {
-            currentMode = 'fire';
-            updateGestureUI();
-        } else if (e.button === 2) {
-            currentMode = 'shield';
-            updateGestureUI();
+        // === VARIABEL STATE UTAMA ===
+        let scene, camera, renderer;
+        let fireParticles = null;
+        let shieldGroup = null;
+        let currentMode = 'none';
+        let handPosition = { x: 0, y: 0, z: 0 };
+        let handScreenPosition = { x: 0, y: 0 };
+        let handDetected = false;
+        let transitionProgress = 0;
+        let clock = new THREE.Clock();
+        let shieldWireframe = null;
+        let shieldGlow = null;
+        let innerRing = null;
+
+        // === VARIABEL DOM INDICATOR ===
+        let handIndicator = null;
+        let auraRing = null;
+        let crosshair = null;
+        let handLabel = null;
+
+        // === AKHIR BAGIAN 4 ===
+       // ============================================================
+        // BAGIAN 5: FUNGSI INISIALISASI
+        // ============================================================
+
+        function initIndicators() {
+            handIndicator = document.getElementById('hand-indicator');
+            auraRing = document.getElementById('aura-ring');
+            crosshair = document.getElementById('crosshair');
+            handLabel = document.getElementById('hand-label');
         }
-    });
-    
-    window.addEventListener('mouseup', () => {
-        currentMode = 'idle';
-        updateGestureUI();
-    });
-    
-    window.addEventListener('contextmenu', (e) => e.preventDefault());
-    
-    console.log('✅ Mode mouse diaktifkan sebagai fallback');
-}
 
-// === AKHIR BAGIAN 10 ===
-   // ============================================================
-// HANDLER HASIL MEDIAPIPE
-// ============================================================
-function onHandResults(results) {
-    if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
-        handDetected = false;
-        currentMode = 'idle';
-        updateGestureUI();
-        return;
-    }
-    
-    const landmarks = results.multiHandLandmarks[0];
-    handDetected = true;
-    
-    const palm = landmarks[9];
-    handPos3D.set(
-        (palm.x - 0.5) * -15,
-        (palm.y - 0.5) * -10,
-        0
-    );
-    
-    currentMode = detectGesture(landmarks);
-    updateGestureUI();
-}
+        function updateIndicators() {
+            if (!handDetected) {
+                handIndicator.classList.remove('active');
+                auraRing.classList.remove('active');
+                crosshair.classList.remove('active');
+                handLabel.classList.remove('active');
+                return;
+            }
 
-function detectGesture(landmarks) {
-    let extended = 0;
-    
-    if (landmarks[8].y < landmarks[6].y) extended++;
-    if (landmarks[12].y < landmarks[10].y) extended++;
-    if (landmarks[16].y < landmarks[14].y) extended++;
-    if (landmarks[20].y < landmarks[18].y) extended++;
-    if (Math.abs(landmarks[4].x - landmarks[2].x) > 0.05) extended++;
-    
-    if (extended >= 4) return 'fire';
-    if (extended <= 1) return 'shield';
-    return currentMode;
-}
+            const screenX = handScreenPosition.x;
+            const screenY = handScreenPosition.y;
 
-function updateGestureUI() {
-    const status = document.getElementById('gesture-status');
-    
-    if (!handDetected && cameraMode === 'camera') {
-        status.textContent = '👋 Tangan Tidak Terdeteksi';
-        status.className = '';
-    } else if (currentMode === 'fire') {
-        status.textContent = '🔥 Semburan Api Aktif';
-        status.className = 'fire';
-    } else if (currentMode === 'shield') {
-        status.textContent = '🛡️ Perisai Jaring Aktif';        status.className = 'shield';
-    } else {
-        status.textContent = cameraMode === 'mouse' 
-            ? '🖱️ Klik untuk Mengaktifkan Sihir' 
-            : '✋ Menunggu Gestur...';
-        status.className = '';
-    }
-}
+            handIndicator.style.transform = `translate(${screenX}px, ${screenY}px)`;
+            auraRing.style.transform = `translate(${screenX}px, ${screenY}px) rotate(${clock.elapsedTime * 60}deg)`;
+            crosshair.style.transform = `translate(${screenX}px, ${screenY}px)`;
+            handLabel.style.transform = `translate(${screenX}px, ${screenY + 80}px)`;
 
-// ============================================================
-// ANIMATION LOOP
-// ============================================================
-function animate() {
-    requestAnimationFrame(animate);
-    const delta = Math.min(clock.getDelta(), 0.1);
-    updateParticles(delta);
-    renderer.render(scene, camera);
-}
+            const isFire = currentMode === 'fire';
+            const isShield = currentMode === 'shield';
 
-function onResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}
+            handIndicator.classList.add('active');
+            auraRing.classList.add('active');
+            crosshair.classList.add('active');
+            handLabel.classList.add('active');
 
-// ============================================================
-// PROSES START UTAMA
-// ============================================================
-async function startApplication() {
-    const button = document.getElementById('start-button');
-    const status = document.getElementById('loading-status');
-    
-    button.disabled = true;
-    button.textContent = '⏳ Memproses...';
-    button.style.opacity = '0.6';
-    button.style.cursor = 'wait';
-    
-    try {
-        const mpLoaded = await loadMediaPipe();
-        await initHandTracking();
-        await new Promise(r => setTimeout(r, 500));
-        document.getElementById('loading').classList.add('hidden');
-        
-    } catch (err) {
-        console.error('Fatal error:', err);
-        status.textContent = 'Error: ' + err.message;
-        status.className = 'error';
-        
-        enableMouseMode();
-        setTimeout(() => {            document.getElementById('loading').classList.add('hidden');
-        }, 1500);
-    }
-}
+            handIndicator.classList.toggle('fire', isFire);
+            handIndicator.classList.toggle('shield', isShield);
+            auraRing.classList.toggle('fire', isFire);
+            auraRing.classList.toggle('shield', isShield);
+            crosshair.classList.toggle('fire', isFire);
+            crosshair.classList.toggle('shield', isShield);
+            handLabel.classList.toggle('fire', isFire);
+            handLabel.classList.toggle('shield', isShield);
 
-// ============================================================
-// ENTRY POINT
-// ============================================================
-async function init() {
-    initThreeJS();
-    animate();
-    
-    const button = document.getElementById('start-button');
-    button.addEventListener('click', startApplication);
-    
-    const status = document.getElementById('loading-status');
-    status.textContent = 'Klik tombol di bawah untuk mulai';
-    status.className = 'success';
-    
-    setTimeout(() => {
-        if (!document.getElementById('loading').classList.contains('hidden')) {
-            status.textContent = '💡 Silakan klik tombol untuk melanjutkan';
-            status.className = '';
+            if (isFire) {
+                handIndicator.textContent = '🖐️';
+                handLabel.textContent = 'SIHIR API';
+            } else if (isShield) {
+                handIndicator.textContent = '✊';
+                handLabel.textContent = 'PERISAI';
+            } else {
+                handIndicator.textContent = '👋';
+                handLabel.textContent = 'MELACAK TANGAN...';
+            }
         }
-    }, 5000);
-}
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
-</script>
+        function initThreeJS() {
+            const canvas = document.getElementById('three-canvas');
 
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x000011, 0.015);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 8);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({
+                canvas: canvas,
+                antialias: true,
+                alpha: true
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setClearColor(0x000511, 1);
+
+            const ambientLight = new THREE.AmbientLight(0x111122, 0.5);
+            scene.add(ambientLight);
+
+            const pointLight = new THREE.PointLight(0xff4400, 1, 20);
+            pointLight.position.set(0, 0, 5);
+            scene.add(pointLight);
+
+            createBackgroundParticles();
+            createFireSystem();
+            createShieldSystem();
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        // === AKHIR BAGIAN 5 ===
+       // ============================================================
+        // BAGIAN 6: PARTIKEL BACKGROUND & SISTEM API
+        // ============================================================
+
+        function createBackgroundParticles() {
+            const geometry = new THREE.BufferGeometry();
+            const count = 500;
+            const positions = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+
+            for (let i = 0; i < count; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 50;
+                positions[i * 3 + 1] = (Math.random() - 0.5) * 50;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 50;
+
+                colors[i * 3] = 0.2 + Math.random() * 0.3;
+                colors[i * 3 + 1] = 0.3 + Math.random() * 0.4;
+                colors[i * 3 + 2] = 0.8 + Math.random() * 0.2;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 0.05,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.6,
+                blending: THREE.AdditiveBlending
+            });
+
+            const particles = new THREE.Points(geometry, material);
+            scene.add(particles);
+        }
+
+        function createFireSystem() {
+            const count = CONFIG.fire.particleCount;
+            const geometry = new THREE.BufferGeometry();
+
+            const positions = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+            const sizes = new Float32Array(count);
+            const velocities = new Float32Array(count * 3);
+            const lifetimes = new Float32Array(count);
+
+            for (let i = 0; i < count; i++) {
+                positions[i * 3] = 0;
+                positions[i * 3 + 1] = 0;
+                positions[i * 3 + 2] = 0;
+                colors[i * 3] = 1.0;
+                colors[i * 3 + 1] = 0.3 + Math.random() * 0.4;
+                colors[i * 3 + 2] = 0.0;
+
+                sizes[i] = Math.random() * CONFIG.fire.size + 0.05;
+
+                velocities[i * 3] = (Math.random() - 0.5) * CONFIG.fire.spread;
+                velocities[i * 3 + 1] = Math.random() * CONFIG.fire.spread;
+                velocities[i * 3 + 2] = (Math.random() - 0.5) * CONFIG.fire.spread;
+
+                lifetimes[i] = Math.random();
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+            const material = new THREE.ShaderMaterial({
+                uniforms: {
+                    uTime: { value: 0 },
+                    uOpacity: { value: 1.0 }
+                },
+                vertexShader: `
+                    attribute float size;
+                    attribute vec3 color;
+                    varying vec3 vColor;
+                    varying float vAlpha;
+                    uniform float uTime;
+                    uniform float uOpacity;
+
+                    void main() {
+                        vColor = color;
+                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                        gl_PointSize = size * (200.0 / -mvPosition.z);
+                        gl_Position = projectionMatrix * mvPosition;
+                        vAlpha = uOpacity;
+                    }
+                `,
+                fragmentShader: `
+                    varying vec3 vColor;
+                    varying float vAlpha;
+
+                    void main() {
+                        float dist = length(gl_PointCoord - vec2(0.5));
+                        if (dist > 0.5) discard;
+
+                        float alpha = smoothstep(0.5, 0.1, dist) * vAlpha;
+                        vec3 finalColor = vColor * (1.0 + (1.0 - dist) * 0.5);
+                        gl_FragColor = vec4(finalColor, alpha);
+                    }                `,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            fireParticles = new THREE.Points(geometry, material);
+            fireParticles.userData = { velocities, lifetimes };
+            fireParticles.visible = false;
+            scene.add(fireParticles);
+        }
+
+        // === AKHIR BAGIAN 6 ===
+       // ============================================================
+        // BAGIAN 7: SISTEM PERISAI (SHIELD SYSTEM)
+        // ============================================================
+
+        function createShieldSystem() {
+            shieldGroup = new THREE.Group();
+            shieldGroup.visible = false;
+            scene.add(shieldGroup);
+
+            // Wireframe Icosahedron (outer shell)
+            const icoGeometry = new THREE.IcosahedronGeometry(CONFIG.shield.radius, 2);
+            const icoMaterial = new THREE.MeshBasicMaterial({
+                color: CONFIG.shield.color,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.6,
+                blending: THREE.AdditiveBlending
+            });
+            shieldWireframe = new THREE.Mesh(icoGeometry, icoMaterial);
+            shieldGroup.add(shieldWireframe);
+
+            // Inner glow sphere
+            const innerGeometry = new THREE.IcosahedronGeometry(CONFIG.shield.radius * 0.85, 1);
+            const innerMaterial = new THREE.MeshBasicMaterial({
+                color: 0x0066ff,
+                transparent: true,
+                opacity: 0.08,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending
+            });
+            shieldGlow = new THREE.Mesh(innerGeometry, innerMaterial);
+            shieldGroup.add(shieldGlow);
+
+            // Rotating ring 1
+            const ringGeometry = new THREE.TorusGeometry(CONFIG.shield.radius * 0.7, 0.03, 8, 64);
+            const ringMaterial = new THREE.MeshBasicMaterial({
+                color: 0x00ffff,
+                transparent: true,
+                opacity: 0.7,
+                blending: THREE.AdditiveBlending
+            });
+            innerRing = new THREE.Mesh(ringGeometry, ringMaterial);
+            shieldGroup.add(innerRing);
+
+            // Ring 2 (perpendicular X)
+            const ring2 = new THREE.Mesh(ringGeometry.clone(), ringMaterial.clone());
+            ring2.rotation.x = Math.PI / 2;
+            ring2.userData.isRing2 = true;
+            shieldGroup.add(ring2);
+
+            // Ring 3 (perpendicular Y)
+            const ring3 = new THREE.Mesh(ringGeometry.clone(), ringMaterial.clone());
+            ring3.rotation.y = Math.PI / 2;
+            ring3.userData.isRing3 = true;
+            shieldGroup.add(ring3);
+
+            // Hexagonal plates on shield surface
+            const hexGeometry = new THREE.CircleGeometry(0.3, 6);
+            const hexMaterial = new THREE.MeshBasicMaterial({
+                color: 0x0088ff,
+                transparent: true,
+                opacity: 0.15,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending
+            });
+
+            for (let i = 0; i < 20; i++) {
+                const hex = new THREE.Mesh(hexGeometry, hexMaterial.clone());
+                const phi = Math.acos(2 * Math.random() - 1);
+                const theta = Math.random() * Math.PI * 2;
+                const r = CONFIG.shield.radius * 0.92;
+                hex.position.setFromSphericalCoords(r, phi, theta);
+                hex.lookAt(0, 0, 0);
+                hex.userData.baseOpacity = 0.1 + Math.random() * 0.15;
+                shieldGroup.add(hex);
+            }
+        }
+
+        // === AKHIR BAGIAN 7 ===
+       // ============================================================
+        // BAGIAN 8: FUNGSI UPDATE (FIRE, SHIELD, TRANSITION)
+        // ============================================================
+
+        function updateFireParticles(delta) {
+            if (!fireParticles || !fireParticles.visible) return;
+
+            const positions = fireParticles.geometry.attributes.position.array;
+            const colors = fireParticles.geometry.attributes.color.array;
+            const sizes = fireParticles.geometry.attributes.size.array;
+            const { velocities, lifetimes } = fireParticles.userData;
+            const count = CONFIG.fire.particleCount;
+
+            const originX = handPosition.x;
+            const originY = handPosition.y;
+            const originZ = handPosition.z;
+
+            for (let i = 0; i < count; i++) {
+                lifetimes[i] -= delta * 1.5;
+
+                if (lifetimes[i] <= 0) {
+                    positions[i * 3] = originX + (Math.random() - 0.5) * 0.3;
+                    positions[i * 3 + 1] = originY + (Math.random() - 0.5) * 0.3;
+                    positions[i * 3 + 2] = originZ + (Math.random() - 0.5) * 0.3;
+
+                    velocities[i * 3] = (Math.random() - 0.5) * CONFIG.fire.spread;
+                    velocities[i * 3 + 1] = Math.random() * CONFIG.fire.spread * 1.5 + 0.5;
+                    velocities[i * 3 + 2] = (Math.random() - 0.5) * CONFIG.fire.spread;
+
+                    lifetimes[i] = 0.5 + Math.random() * 1.0;
+
+                    colors[i * 3] = 1.0;
+                    colors[i * 3 + 1] = 0.5 + Math.random() * 0.4;
+                    colors[i * 3 + 2] = 0.0;
+
+                    sizes[i] = Math.random() * CONFIG.fire.size + 0.08;
+                } else {
+                    positions[i * 3] += velocities[i * 3] * delta * 3;
+                    positions[i * 3 + 1] += velocities[i * 3 + 1] * delta * 3;
+                    positions[i * 3 + 2] += velocities[i * 3 + 2] * delta * 3;
+
+                    positions[i * 3] += Math.sin(clock.elapsedTime * 3 + i) * 0.01;
+                    positions[i * 3 + 2] += Math.cos(clock.elapsedTime * 2.5 + i) * 0.01;
+
+                    const life = lifetimes[i];
+                    colors[i * 3 + 1] = life * 0.6;
+                    colors[i * 3 + 2] = life * 0.1;
+
+                    sizes[i] *= 0.998;
+                }            }
+
+            fireParticles.geometry.attributes.position.needsUpdate = true;
+            fireParticles.geometry.attributes.color.needsUpdate = true;
+            fireParticles.geometry.attributes.size.needsUpdate = true;
+            fireParticles.material.uniforms.uTime.value = clock.elapsedTime;
+        }
+
+        function updateShield(delta) {
+            if (!shieldGroup || !shieldGroup.visible) return;
+
+            const time = clock.elapsedTime;
+
+            shieldGroup.position.set(handPosition.x, handPosition.y, handPosition.z);
+
+            shieldWireframe.rotation.x += CONFIG.shield.rotationSpeed;
+            shieldWireframe.rotation.y += CONFIG.shield.rotationSpeed * 0.7;
+
+            const pulse = 1.0 + Math.sin(time * 3) * 0.05;
+            shieldWireframe.scale.set(pulse, pulse, pulse);
+
+            shieldGlow.material.opacity = 0.06 + Math.sin(time * 2) * 0.03;
+            shieldGlow.rotation.y -= 0.005;
+
+            innerRing.rotation.z += 0.03;
+            innerRing.rotation.x += 0.01;
+
+            shieldGroup.children.forEach(child => {
+                if (child.userData.isRing2) {
+                    child.rotation.z += 0.02;
+                    child.rotation.y += 0.015;
+                }
+                if (child.userData.isRing3) {
+                    child.rotation.z -= 0.025;
+                    child.rotation.x += 0.01;
+                }
+                if (child.userData.baseOpacity !== undefined) {
+                    child.material.opacity = child.userData.baseOpacity + Math.sin(time * 4 + child.id) * 0.05;
+                    child.lookAt(shieldGroup.position);
+                }
+            });
+
+            shieldWireframe.material.opacity = 0.4 + Math.sin(time * 2.5) * 0.2;
+        }
+
+        function handleTransition() {
+            const targetProgress = (currentMode === 'shield') ? 1 : 0;
+            transitionProgress += (targetProgress - transitionProgress) * CONFIG.transition.speed;
+
+            if (currentMode === 'fire') {                fireParticles.visible = true;
+                fireParticles.material.uniforms.uOpacity.value = 1.0 - transitionProgress;
+                fireParticles.position.set(handPosition.x, handPosition.y, handPosition.z);
+
+                if (shieldGroup) {
+                    shieldGroup.visible = transitionProgress > 0.1;
+                    const scale = transitionProgress;
+                    shieldGroup.scale.set(scale, scale, scale);
+                }
+            } else if (currentMode === 'shield') {
+                shieldGroup.visible = true;
+                const scale = 0.5 + transitionProgress * 0.5;
+                shieldGroup.scale.set(scale, scale, scale);
+
+                if (fireParticles) {
+                    fireParticles.visible = transitionProgress < 0.9;
+                    fireParticles.material.uniforms.uOpacity.value = 1.0 - transitionProgress;
+                }
+            } else {
+                if (fireParticles) fireParticles.visible = false;
+                if (shieldGroup) shieldGroup.visible = false;
+            }
+        }
+
+        // === AKHIR BAGIAN 8 ===
+       // ============================================================
+        // BAGIAN 9: MEDIAPIPE HANDS & DETEKSI GESTUR
+        // ============================================================
+
+        async function initHandTracking() {
+            const videoElement = document.getElementById('webcam');
+
+            const hands = new Hands({
+                locateFile: (file) => {
+                    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+                }
+            });
+
+            hands.setOptions({
+                maxNumHands: 1,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.7,
+                minTrackingConfidence: 0.6
+            });
+
+            hands.onResults(onHandResults);
+
+            const cameraFeed = new Camera(videoElement, {
+                onFrame: async () => {
+                    await hands.send({ image: videoElement });
+                },
+                width: 640,
+                height: 480
+            });
+
+            try {
+                await cameraFeed.start();
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('status').textContent = 'Tangan Tidak Terdeteksi';
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                document.getElementById('loading').innerHTML = '❌ Gagal mengakses kamera. Izinkan akses kamera.';
+            }
+        }
+
+        function onHandResults(results) {
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const landmarks = results.multiHandLandmarks[0];
+                handDetected = true;
+
+                const palmX = landmarks[9].x;
+                const palmY = landmarks[9].y;
+
+                handPosition.x = (palmX - 0.5) * -12;
+                handPosition.y = (palmY - 0.5) * -8;
+                handPosition.z = 0;
+
+                handScreenPosition.x = (1 - palmX) * window.innerWidth;
+                handScreenPosition.y = palmY * window.innerHeight;
+
+                const gesture = detectGesture(landmarks);
+                currentMode = gesture;
+
+                const statusEl = document.getElementById('status');
+                if (gesture === 'fire') {
+                    statusEl.textContent = '🖐️ Sihir Api Aktif';
+                    statusEl.className = 'fire';
+                } else if (gesture === 'shield') {
+                    statusEl.textContent = '✊ Perisai Aktif';
+                    statusEl.className = 'shield';
+                }
+            } else {
+                handDetected = false;
+                currentMode = 'none';
+                document.getElementById('status').textContent = 'Tangan Tidak Terdeteksi';
+                document.getElementById('status').className = '';
+            }
+        }
+
+        function detectGesture(landmarks) {
+            let extendedCount = 0;
+
+            // Deteksi 4 jari (selain jempol)
+            if (landmarks[8].y < landmarks[6].y) extendedCount++;   // Telunjuk
+            if (landmarks[12].y < landmarks[10].y) extendedCount++; // Tengah
+            if (landmarks[16].y < landmarks[14].y) extendedCount++; // Manis
+            if (landmarks[20].y < landmarks[18].y) extendedCount++; // Kelingking
+
+            // Deteksi jempol
+            const thumbExtended = Math.abs(landmarks[4].x - landmarks[2].x) > 0.05;
+            if (thumbExtended) extendedCount++;
+
+            if (extendedCount >= 4) {
+                return 'fire';   // Tangan terbuka
+            } else if (extendedCount <= 1) {
+                return 'shield'; // Tangan mengepal
+            }
+
+            return currentMode;  // Pertahankan mode jika ambigu
+        }
+
+        // === AKHIR BAGIAN 9 ===
+       // ============================================================
+        // BAGIAN 10: ANIMATION LOOP & INISIALISASI FINAL
+        // ============================================================
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+
+            // Update semua sistem
+            updateFireParticles(delta);
+            updateShield(delta);
+            handleTransition();
+            updateIndicators();
+
+            // Render scene
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        async function init() {
+            initIndicators();
+            initThreeJS();
+            animate();
+            await initHandTracking();
+        }
+
+        // === JALANKAN APLIKASI ===
+        init();
+    </script>
 </body>
 </html>
 <!-- === AKHIR DARI SEMUA KODE === -->
+
+               
