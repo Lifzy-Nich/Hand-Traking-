@@ -3,11 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Particle System - Fixed Hand Tracking</title>
+    <title>3D Particle + Writing System</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { overflow: hidden; background: #000; font-family: 'Arial', sans-serif; color: #fff; }
+        
         #canvas3d { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        
+        /* Canvas Menulis - di atas 3D, di bawah webcam */
+        #writing-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 50; display: none; cursor: crosshair;
+            background: rgba(0, 0, 0, 0.3);
+        }
         
         #webcam { 
             position: fixed; bottom: 20px; right: 20px; width: 280px; height: 210px; 
@@ -25,11 +33,9 @@
         #start-btn {
             margin-top: 30px; padding: 18px 50px; font-size: 20px; font-weight: bold;
             background: linear-gradient(135deg, #0ff, #f0f); border: none; border-radius: 50px;
-            color: #000; cursor: pointer; transition: all 0.3s; box-shadow: 0 0 30px rgba(0,255,255,0.5);
+            color: #000; cursor: pointer; transition: all 0.3s;
         }
         #start-btn:hover { transform: scale(1.05); }
-        #start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        
         .warning-box {
             background: rgba(255,100,100,0.1); border: 1px solid #f66;
             padding: 15px 20px; border-radius: 10px; margin-top: 20px;
@@ -45,7 +51,65 @@
         #info-panel h3 { margin-bottom: 8px; color: #0ff; }
         #info-panel p { margin: 4px 0; color: #aaa; }
         
-        /* Debug Panel - Tampilan state jari */
+        /* Writing Mode Toolbar */
+        #writing-toolbar {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 200; background: rgba(0,0,0,0.9); padding: 10px 20px;
+            border-radius: 30px; border: 2px solid #0ff;
+            display: none; align-items: center; gap: 15px;
+            box-shadow: 0 0 30px rgba(0,255,255,0.5);
+        }
+        #writing-toolbar.active { display: flex; }
+        
+        .tool-group { display: flex; gap: 8px; align-items: center; }
+        .color-btn {
+            width: 30px; height: 30px; border-radius: 50%; border: 2px solid #fff;
+            cursor: pointer; transition: transform 0.2s;
+        }
+        .color-btn:hover { transform: scale(1.2); }
+        .color-btn.active { border-color: #0ff; box-shadow: 0 0 10px #0ff; }
+        
+        .tool-btn {
+            padding: 8px 15px; background: rgba(255,255,255,0.1); border: 1px solid #555;
+            color: #fff; border-radius: 20px; cursor: pointer; font-size: 13px;
+            transition: all 0.2s;
+        }
+        .tool-btn:hover { background: rgba(0,255,255,0.2); border-color: #0ff; }
+        .tool-btn.danger { border-color: #f55; }
+        .tool-btn.danger:hover { background: rgba(255,0,0,0.3); }
+        
+        #pen-size-slider {
+            width: 100px; cursor: pointer;
+        }
+        
+        #writing-mode-indicator {
+            position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+            z-index: 200; background: rgba(0,255,0,0.2); border: 2px solid #0f0;
+            padding: 10px 25px; border-radius: 30px; display: none;
+            font-size: 16px; font-weight: bold; color: #0f0;
+        }
+        #writing-mode-indicator.active { display: block; }
+        #writing-mode-indicator.not-drawing {
+            background: rgba(255,255,255,0.1); border-color: #888; color: #888;
+        }
+        
+        #pen-cursor {
+            position: fixed; pointer-events: none; z-index: 150;
+            border-radius: 50%; transform: translate(-50%, -50%);
+            border: 2px solid #0ff; display: none;
+            box-shadow: 0 0 10px rgba(0,255,255,0.8);
+        }
+        
+        #gesture-indicator {
+            position: fixed; top: 20px; right: 320px; padding: 15px 25px;
+            border-radius: 10px; font-size: 18px; font-weight: bold;
+            z-index: 100; display: none;
+        }
+        .gesture-open { background: rgba(0,255,0,0.2); color: #0f0; border: 2px solid #0f0; }
+        .gesture-closed { background: rgba(255,0,0,0.2); color: #f00; border: 2px solid #f00; }
+        .gesture-peace { background: rgba(255,0,255,0.2); color: #f0f; border: 2px solid #f0f; }
+        .gesture-point { background: rgba(255,255,0,0.2); color: #ff0; border: 2px solid #ff0; }
+        
         #debug-panel {
             position: fixed; bottom: 20px; left: 20px; z-index: 100;
             background: rgba(0,0,0,0.9); padding: 15px; border-radius: 10px;
@@ -53,21 +117,11 @@
             font-family: monospace; min-width: 250px;
         }
         .finger-status {
-            display: flex; justify-content: space-between;
-            padding: 3px 0; border-bottom: 1px solid #222;
+            display: flex; justify-content: space-between; padding: 3px 0;
+            border-bottom: 1px solid #222;
         }
         .finger-extended { color: #0f0; }
         .finger-curled { color: #f55; }
-        
-        #gesture-indicator {
-            position: fixed; top: 20px; right: 320px; padding: 15px 25px;
-            border-radius: 10px; font-size: 18px; font-weight: bold;
-            z-index: 100; display: none; transition: all 0.3s;
-        }
-        .gesture-open { background: rgba(0,255,0,0.2); color: #0f0; border: 2px solid #0f0; }
-        .gesture-closed { background: rgba(255,0,0,0.2); color: #f00; border: 2px solid #f00; }
-        .gesture-peace { background: rgba(255,0,255,0.2); color: #f0f; border: 2px solid #f0f; }
-        .gesture-point { background: rgba(255,255,0,0.2); color: #ff0; border: 2px solid #ff0; }
         
         .loading-spinner {
             border: 4px solid rgba(0,255,255,0.2); border-top: 4px solid #0ff;
@@ -75,14 +129,24 @@
             animation: spin 1s linear infinite; margin: 20px auto;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .shortcut-hint {
+            position: fixed; bottom: 250px; right: 20px; z-index: 100;
+            background: rgba(0,0,0,0.8); padding: 10px 15px; border-radius: 8px;
+            border: 1px solid rgba(0,255,255,0.3); font-size: 12px;
+        }
+        .shortcut-hint kbd {
+            background: #333; padding: 2px 8px; border-radius: 4px;
+            border: 1px solid #555; color: #0ff; font-weight: bold;
+        }
     </style>
 </head>
 <body>
 
 <div id="start-screen">
-    <h1>🎮 3D Particle System</h1>
-    <h2 style="color:#f0f; margin-bottom:20px;">Hand Gesture Control - FIXED v2</h2>
-    <p style="color:#aaa; max-width:600px;">Tracking gestur tangan yang jauh lebih akurat dengan deteksi jarak Euclidean dan smoothing buffer.</p>
+    <h1>🎮 3D Particle + Writing System</h1>
+    <h2 style="color:#f0f; margin-bottom:20px;">Hand Gesture Control + Remote Writing</h2>
+    <p style="color:#aaa; max-width:600px;">Kendalikan partikel dengan gestur tangan dan menulis di udara dari jarak jauh.</p>
     <button id="start-btn">🚀 Mulai</button>
     <div id="loading-status" style="margin-top: 20px; display: none;">
         <div class="loading-spinner"></div>
@@ -94,9 +158,47 @@
     </div>
 </div>
 
+<!-- 3D Canvas -->
 <canvas id="canvas3d"></canvas>
+
+<!-- Writing Canvas (overlay) -->
+<canvas id="writing-canvas"></canvas>
+
+<!-- Pen Cursor Indicator -->
+<div id="pen-cursor"></div>
+
+<!-- Writing Mode Indicator -->
+<div id="writing-mode-indicator">✍️ Mode Menulis: AKTIF</div>
+
+<!-- Writing Toolbar -->
+<div id="writing-toolbar">
+    <div class="tool-group">
+        <span style="color:#0ff; font-weight:bold;">🎨 Warna:</span>
+        <div class="color-btn active" data-color="#ff0000" style="background:#ff0000"></div>
+        <div class="color-btn" data-color="#00ff00" style="background:#00ff00"></div>
+        <div class="color-btn" data-color="#0088ff" style="background:#0088ff"></div>
+        <div class="color-btn" data-color="#ffff00" style="background:#ffff00"></div>
+        <div class="color-btn" data-color="#ff00ff" style="background:#ff00ff"></div>
+        <div class="color-btn" data-color="#ffffff" style="background:#ffffff"></div>
+    </div>
+    
+    <div class="tool-group">
+        <span style="color:#0ff; font-weight:bold;">📏 Ukuran:</span>
+        <input type="range" id="pen-size-slider" min="2" max="30" value="8">
+        <span id="pen-size-value" style="min-width:30px;">8px</span>
+    </div>
+    
+    <div class="tool-group">
+        <button class="tool-btn" id="undo-btn">↶ Undo</button>
+        <button class="tool-btn danger" id="clear-btn">🗑️ Clear</button>
+        <button class="tool-btn" id="save-btn">💾 Save PNG</button>
+    </div>
+</div>
+
+<!-- Webcam -->
 <video id="webcam" autoplay playsinline></video>
 
+<!-- Info Panel -->
 <div id="info-panel" style="display:none;">
     <h3>🎮 Kontrol Gestur</h3>
     <p>🖐️ <strong>Open Palm</strong> → Mengembang</p>
@@ -104,22 +206,33 @@
     <p>☝️ <strong>Pointing</strong> → "hello, world"</p>
     <p>✌️ <strong>Peace</strong> → "I'm Qwen"</p>
     <hr style="margin: 8px 0; border-color: rgba(0,255,255,0.2);">
+    <h3>✍️ Mode Menulis</h3>
+    <p>Tekan <kbd>W</kbd> untuk toggle</p>
+    <p>☝️ Jari telunjuk = kursor</p>
+    <p>🖕 Jari tengah = pen down/up</p>
+    <hr style="margin: 8px 0; border-color: rgba(0,255,255,0.2);">
     <p>Gestur: <span id="current-gesture" style="color:#0ff; font-weight:bold;">-</span></p>
-    <p>Confidence: <span id="confidence">-</span></p>
     <p>FPS: <span id="fps-counter">0</span></p>
 </div>
 
+<!-- Debug Panel -->
 <div id="debug-panel" style="display:none;">
-    <div style="color:#0ff; margin-bottom:8px; font-weight:bold;">🔍 Debug Fingers</div>
+    <div style="color:#0ff; margin-bottom:8px; font-weight:bold;">🔍 Debug</div>
     <div class="finger-status"><span>👍 Jempol:</span><span id="f-thumb" class="finger-curled">-</span></div>
     <div class="finger-status"><span>☝️ Telunjuk:</span><span id="f-index" class="finger-curled">-</span></div>
     <div class="finger-status"><span>🖕 Tengah:</span><span id="f-middle" class="finger-curled">-</span></div>
     <div class="finger-status"><span>💍 Manis:</span><span id="f-ring" class="finger-curled">-</span></div>
     <div class="finger-status"><span>🤙 Kelingking:</span><span id="f-pinky" class="finger-curled">-</span></div>
     <div style="margin-top:8px; padding-top:8px; border-top:1px solid #333;">
-        <div>Tangan: <span id="handedness" style="color:#ff0;">-</span></div>
-        <div>Raw: <span id="raw-gesture" style="color:#888;">-</span></div>
+        <div>Pen Pos: <span id="pen-pos" style="color:#ff0;">-</span></div>
+        <div>Velocity: <span id="velocity" style="color:#f0f;">-</span></div>
+        <div>Drawing: <span id="drawing-state" style="color:#0f0;">-</span></div>
     </div>
+</div>
+
+<!-- Shortcut Hint -->
+<div class="shortcut-hint" style="display:none;">
+    <kbd>W</kbd> Mode Menulis | <kbd>C</kbd> Clear | <kbd>S</kbd> Save
 </div>
 
 <div id="gesture-indicator"></div>
@@ -161,6 +274,10 @@ const CONFIG = {
     rotationSpeed: 0.005,
     fingerExtendThreshold: 0.85,
     gestureBufferSize: 7,
+    // Writing specific
+    smoothingFactor: 0.5,  // 0-1: semakin kecil semakin smooth
+    velocitySmoothing: 0.3,
+    minVelocity: 0.5,
     colors: {
         sphere: [0.0, 1.0, 1.0],
         expanded: [1.0, 0.3, 0.8],
@@ -169,6 +286,9 @@ const CONFIG = {
     }
 };
 
+// ============================================================
+// STATE MANAGEMENT
+// ============================================================
 let scene, camera, renderer, particles;
 let targetPositions, expandedPositions, spherePositions;
 let textPositions1 = [], textPositions2 = [];
@@ -177,15 +297,22 @@ let textRotationY = 0;
 let frameCount = 0, lastTime = performance.now();
 const gestureBuffer = [];
 
+// WRITING MODE STATE
+let writingMode = false;
+let isDrawing = false;
+let currentPenColor = '#ff0000';
+let currentPenSize = 8;
+let drawingHistory = []; // Untuk undo
+let lastPenPos = null;
+let smoothedPenPos = null;
+let smoothedVelocity = 0;
+let lastPenTime = 0;
+
 // ============================================================
-// 🎯 DETEKSI JARI BERBASIS JARAK EUCLIDEAN (ROBUST!)
+// 🎯 DETEKSI JARI (SAMA SEPERTI SEBELUMNYA)
 // ============================================================
 function getDistance(a, b) {
-    return Math.sqrt(
-        (a.x - b.x) ** 2 + 
-        (a.y - b.y) ** 2 + 
-        (a.z - b.z) ** 2
-    );
+    return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2);
 }
 
 function isFingerExtended(landmarks, fingerIndex) {
@@ -198,23 +325,16 @@ function isFingerExtended(landmarks, fingerIndex) {
     const mcp = landmarks[mcps[fingerIndex]];
     
     if (fingerIndex === 0) {
-        // Jempol: hitung jarak TIP ke INDEX_MCP (pangkal telunjuk)
-        // Jempol terentang = jarak lebih jauh dari telapak
         const indexMcp = landmarks[5];
         const wrist = landmarks[0];
         const tipToIndexMcp = getDistance(tip, indexMcp);
         const wristToIndexMcp = getDistance(wrist, indexMcp);
-        // Ratio: jempol terentang jika lebih jauh dari lebar telapak
         return tipToIndexMcp > wristToIndexMcp * 0.9;
     }
     
-    // 4 jari lain: ukur "kelurusan" jari
     const tipToMcp = getDistance(tip, mcp);
     const pipToMcp = getDistance(pip, mcp);
     const tipToPip = getDistance(tip, pip);
-    
-    // Jika jari lurus: tipToMcp ≈ pipToMcp + tipToPip
-    // Jika jari tertekuk: tipToMcp jauh lebih kecil
     const straightness = tipToMcp / (pipToMcp + tipToPip);
     return straightness > CONFIG.fingerExtendThreshold;
 }
@@ -229,64 +349,43 @@ function getFingerStates(landmarks) {
     };
 }
 
-// ============================================================
-// 🎯 DETEKSI GESTUR SPESIFIK (BUKAN HANYA HITUNG JARI)
-// ============================================================
 function detectRawGesture(landmarks) {
     const f = getFingerStates(landmarks);
     
-    // PEACE (✌️): index + middle terentang, ring + pinky tertekuk
-    if (f.index && f.middle && !f.ring && !f.pinky) {
-        return 'peace';
+    // Jika dalam mode menulis, prioritize writing detection
+    if (writingMode) {
+        if (f.index && !f.middle && !f.ring && !f.pinky) return 'writing-pointing';
+        if (f.index && f.middle && !f.ring && !f.pinky) return 'writing-drawing';
+        return 'unknown';
     }
     
-    // POINTING (☝️): hanya index yang terentang
-    if (f.index && !f.middle && !f.ring && !f.pinky) {
-        return 'pointing';
-    }
+    if (f.index && f.middle && !f.ring && !f.pinky) return 'peace';
+    if (f.index && !f.middle && !f.ring && !f.pinky) return 'pointing';
+    if (!f.index && !f.middle && !f.ring && !f.pinky) return 'fist';
     
-    // FIST (✊): semua jari tertekuk (jempol boleh apa saja)
-    if (!f.index && !f.middle && !f.ring && !f.pinky) {
-        return 'fist';
-    }
-    
-    // OPEN PALM (🖐️): minimal 4 jari terentang
     const extendedCount = [f.thumb, f.index, f.middle, f.ring, f.pinky].filter(Boolean).length;
-    if (extendedCount >= 4) {
-        return 'open';
-    }
+    if (extendedCount >= 4) return 'open';
     
     return 'unknown';
 }
 
-// ============================================================
-// 🎯 SMOOTHING DENGAN VOTING BUFFER
-// ============================================================
 function smoothGesture(newGesture) {
     gestureBuffer.push(newGesture);
-    if (gestureBuffer.length > CONFIG.gestureBufferSize) {
-        gestureBuffer.shift();
-    }
+    if (gestureBuffer.length > CONFIG.gestureBufferSize) gestureBuffer.shift();
     
-    // Voting: ambil yang paling sering muncul
     const counts = {};
     gestureBuffer.forEach(g => counts[g] = (counts[g] || 0) + 1);
     
     let bestGesture = newGesture;
     let bestCount = 0;
     Object.entries(counts).forEach(([g, c]) => {
-        if (c > bestCount) {
-            bestCount = c;
-            bestGesture = g;
-        }
+        if (c > bestCount) { bestCount = c; bestGesture = g; }
     });
     
-    // Hanya kembalikan gestur jika muncul minimal 3x dari 7 frame
     const confidence = Math.round((bestCount / CONFIG.gestureBufferSize) * 100);
     if (bestCount >= 3 && bestGesture !== 'unknown') {
         return { gesture: bestGesture, confidence };
     }
-    
     return { gesture: newGesture, confidence: Math.round((1 / CONFIG.gestureBufferSize) * 100) };
 }
 
@@ -435,13 +534,13 @@ function getTextPositions(text, scale) {
 }
 
 // ============================================================
-// MEDIAPIPE HANDS
+// MEDIAPIPE
 // ============================================================
 async function initHandDetection() {
     const video = document.getElementById('webcam');
     
     if (!window.isSecureContext) {
-        throw new Error('Butuh HTTPS atau localhost untuk akses kamera!');
+        throw new Error('Butuh HTTPS atau localhost!');
     }
     
     const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -470,84 +569,251 @@ async function initHandDetection() {
 }
 
 // ============================================================
-// 🎯 HANDLING HASIL DETEKSI - VERSI FIXED
+// ✍️ WRITING SYSTEM - INTI PENAMBAHAN
+// ============================================================
+function initWritingCanvas() {
+    const canvas = document.getElementById('writing-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    function resize() {
+        // Simpan gambar yang ada
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+        tempCanvas.getContext('2d').drawImage(canvas, 0, 0);
+        
+        // Resize
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        // Gambar ulang
+        if (tempCanvas.width > 0) {
+            ctx.drawImage(tempCanvas, 0, 0);
+        }
+    }
+    
+    resize();
+    window.addEventListener('resize', resize);
+    
+    // Setup context
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    
+    return ctx;
+}
+
+let writingCtx;
+
+// Transform koordinat dari MediaPipe ke Canvas (NON-MIRROR)
+function transformCoordinates(landmark) {
+    const canvas = document.getElementById('writing-canvas');
+    
+    // Video element memiliki transform: scaleX(-1) (mirror)
+    // MediaPipe memberikan koordinat pada gambar ASLI (sebelum mirror)
+    // Untuk hasil yang pas dengan gerakan user:
+    // - User gerakkan tangan ke KANAN user
+    // - Tangan user sebenarnya di KANAN layar (karena video dimirror)
+    // - Di MediaPipe (gambar asli): tangan ada di KIRI (x rendah)
+    // - Jadi kita perlu mirror koordinat: (1 - x)
+    
+    return {
+        x: (1 - landmark.x) * canvas.width,
+        y: landmark.y * canvas.height
+    };
+}
+
+function drawStroke(from, to, velocity) {
+    if (!writingCtx) return;
+    
+    // Velocity-based stroke size (lebih cepat = lebih tipis)
+    const baseSize = currentPenSize;
+    const velocityFactor = Math.max(0.3, 1 - velocity / 50);
+    const dynamicSize = baseSize * velocityFactor;
+    
+    writingCtx.strokeStyle = currentPenColor;
+    writingCtx.lineWidth = dynamicSize;
+    writingCtx.beginPath();
+    writingCtx.moveTo(from.x, from.y);
+    
+    // Quadratic curve untuk smoothing
+    const midX = (from.x + to.x) / 2;
+    const midY = (from.y + to.y) / 2;
+    writingCtx.quadraticCurveTo(from.x, from.y, midX, midY);
+    writingCtx.lineTo(to.x, to.y);
+    writingCtx.stroke();
+}
+
+function processWritingMode(landmarks) {
+    const fingerStates = getFingerStates(landmarks);
+    const indexTip = landmarks[8];
+    const middleExtended = fingerStates.middle;
+    
+    // Transform koordinat
+    const penPos = transformCoordinates(indexTip);
+    
+    // Exponential smoothing untuk kurangi jitter
+    if (!smoothedPenPos) {
+        smoothedPenPos = { x: penPos.x, y: penPos.y };
+    } else {
+        smoothedPenPos.x = smoothedPenPos.x * CONFIG.smoothingFactor + 
+                          penPos.x * (1 - CONFIG.smoothingFactor);
+        smoothedPenPos.y = smoothedPenPos.y * CONFIG.smoothingFactor + 
+                          penPos.y * (1 - CONFIG.smoothingFactor);
+    }
+    
+    // Hitung velocity (kecepatan tangan)
+    const now = performance.now();
+    let velocity = 0;
+    if (lastPenPos && lastPenTime > 0) {
+        const dt = (now - lastPenTime) / 1000;
+        const dx = smoothedPenPos.x - lastPenPos.x;
+        const dy = smoothedPenPos.y - lastPenPos.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        velocity = distance / Math.max(dt, 0.01);
+        
+        // Smooth velocity
+        smoothedVelocity = smoothedVelocity * CONFIG.velocitySmoothing + 
+                          velocity * (1 - CONFIG.velocitySmoothing);
+    }
+    
+    // Update UI cursor
+    const penCursor = document.getElementById('pen-cursor');
+    penCursor.style.display = 'block';
+    penCursor.style.left = smoothedPenPos.x + 'px';
+    penCursor.style.top = smoothedPenPos.y + 'px';
+    penCursor.style.width = currentPenSize + 'px';
+    penCursor.style.height = currentPenSize + 'px';
+    penCursor.style.backgroundColor = currentPenColor;
+    
+    // Update debug info
+    document.getElementById('pen-pos').textContent = 
+        `${Math.round(smoothedPenPos.x)}, ${Math.round(smoothedPenPos.y)}`;
+    document.getElementById('velocity').textContent = 
+        `${Math.round(smoothedVelocity)} px/s`;
+    
+    // Deteksi drawing state (jari tengah sebagai trigger)
+    const wasDrawing = isDrawing;
+    isDrawing = middleExtended;
+    
+    const drawingStateEl = document.getElementById('drawing-state');
+    const indicatorEl = document.getElementById('writing-mode-indicator');
+    
+    if (isDrawing) {
+        drawingStateEl.textContent = '✓ DRAWING';
+        drawingStateEl.style.color = '#0f0';
+        indicatorEl.textContent = '✍️ MENULIS...';
+        indicatorEl.classList.remove('not-drawing');
+        penCursor.style.backgroundColor = currentPenColor;
+        penCursor.style.boxShadow = `0 0 20px ${currentPenColor}`;
+        
+        // Jika baru mulai menggambar, inisialisasi stroke
+        if (!wasDrawing || !lastPenPos) {
+            drawingHistory.push({
+                color: currentPenColor,
+                size: currentPenSize,
+                points: [{ x: smoothedPenPos.x, y: smoothedPenPos.y }]
+            });
+        } else {
+            // Gambar stroke
+            drawStroke(lastPenPos, smoothedPenPos, smoothedVelocity);
+            
+            // Tambah ke history untuk undo
+            if (drawingHistory.length > 0) {
+                drawingHistory[drawingHistory.length - 1].points.push({
+                    x: smoothedPenPos.x,
+                    y: smoothedPenPos.y
+                });
+            }
+        }
+    } else {
+        drawingStateEl.textContent = '✗ Pen Up';
+        drawingStateEl.style.color = '#888';
+        indicatorEl.textContent = '✍️ Mode Menulis: AKTIF (Pen Up)';
+        indicatorEl.classList.add('not-drawing');
+        penCursor.style.backgroundColor = 'transparent';
+        penCursor.style.boxShadow = '0 0 10px rgba(0,255,255,0.8)';
+    }
+    
+    // Update untuk frame berikutnya
+    lastPenPos = { x: smoothedPenPos.x, y: smoothedPenPos.y };
+    lastPenTime = now;
+}
+
+// ============================================================
+// HANDLING HASIL MEDIAPIPE
 // ============================================================
 function onHandResults(results) {
     const indicator = document.getElementById('gesture-indicator');
     const gestureEl = document.getElementById('current-gesture');
-    const confidenceEl = document.getElementById('confidence');
-    const rawEl = document.getElementById('raw-gesture');
-    const handednessEl = document.getElementById('handedness');
     
     if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
         indicator.style.display = 'none';
         gestureEl.textContent = 'Tidak terdeteksi';
         gestureEl.style.color = '#888';
-        handednessEl.textContent = '-';
         resetFingerDisplay();
         gestureBuffer.length = 0;
+        
+        // Hide pen cursor if no hand
+        document.getElementById('pen-cursor').style.display = 'none';
         return;
     }
     
     const landmarks = results.multiHandLandmarks[0];
     
-    // Ambil handedness dari MediaPipe
-    if (results.multiHandedness && results.multiHandedness.length > 0) {
-        handednessEl.textContent = results.multiHandedness[0].label;
+    // Jika dalam mode menulis, proses writing dan skip gesture partikel
+    if (writingMode) {
+        processWritingMode(landmarks);
+        
+        // Update finger display
+        const f = getFingerStates(landmarks);
+        updateFingerDisplay(f);
+        
+        // Hide gesture indicator saat menulis
+        indicator.style.display = 'none';
+        gestureEl.textContent = 'Writing Mode';
+        gestureEl.style.color = '#0ff';
+        return;
     }
     
-    // Deteksi gestur mentah
+    // MODE BIASA: Gesture partikel
     const rawGesture = detectRawGesture(landmarks);
-    rawEl.textContent = rawGesture;
-    
-    // Smoothing dengan voting
     const { gesture, confidence } = smoothGesture(rawGesture);
-    confidenceEl.textContent = `${confidence}%`;
     
-    // Update debug panel
     const f = getFingerStates(landmarks);
     updateFingerDisplay(f);
+    document.getElementById('drawing-state').textContent = '-';
     
-    // Mapping gestur ke mode
     indicator.style.display = 'block';
     
     switch(gesture) {
         case 'peace':
-            currentMode = 'text2';
-            targetPositions = textPositions2;
+            currentMode = 'text2'; targetPositions = textPositions2;
             indicator.className = 'gesture-indicator gesture-peace';
             indicator.textContent = '✌️ PEACE → "I\'m Qwen"';
             gestureEl.textContent = 'PEACE (✌️)';
             gestureEl.style.color = '#f0f';
             break;
-            
         case 'pointing':
-            currentMode = 'text1';
-            targetPositions = textPositions1;
+            currentMode = 'text1'; targetPositions = textPositions1;
             indicator.className = 'gesture-indicator gesture-point';
             indicator.textContent = '☝️ POINTING → "hello, world"';
             gestureEl.textContent = 'POINTING (☝️)';
             gestureEl.style.color = '#ff0';
             break;
-            
         case 'open':
-            currentMode = 'expanded';
-            targetPositions = expandedPositions;
+            currentMode = 'expanded'; targetPositions = expandedPositions;
             indicator.className = 'gesture-indicator gesture-open';
             indicator.textContent = '🖐️ OPEN → Mengembang';
             gestureEl.textContent = 'OPEN PALM (🖐️)';
             gestureEl.style.color = '#0f0';
             break;
-            
         case 'fist':
-            currentMode = 'sphere';
-            targetPositions = spherePositions;
+            currentMode = 'sphere'; targetPositions = spherePositions;
             indicator.className = 'gesture-indicator gesture-closed';
             indicator.textContent = '✊ FIST → Bola';
             gestureEl.textContent = 'FIST (✊)';
             gestureEl.style.color = '#f00';
             break;
-            
         default:
             indicator.style.display = 'none';
             gestureEl.textContent = 'Unknown';
@@ -577,11 +843,108 @@ function resetFingerDisplay() {
         el.textContent = '-';
         el.className = 'finger-curled';
     });
-    document.getElementById('raw-gesture').textContent = '-';
 }
 
 // ============================================================
-// ANIMATION
+// ✍️ WRITING MODE CONTROLS
+// ============================================================
+function toggleWritingMode() {
+    writingMode = !writingMode;
+    const canvas = document.getElementById('writing-canvas');
+    const toolbar = document.getElementById('writing-toolbar');
+    const indicator = document.getElementById('writing-mode-indicator');
+    const penCursor = document.getElementById('pen-cursor');
+    
+    if (writingMode) {
+        canvas.style.display = 'block';
+        toolbar.classList.add('active');
+        indicator.classList.add('active');
+        indicator.textContent = '✍️ Mode Menulis: AKTIF';
+        
+        // Reset states
+        isDrawing = false;
+        lastPenPos = null;
+        smoothedPenPos = null;
+        smoothedVelocity = 0;
+        lastPenTime = 0;
+        
+        // Dim partikel agar tulisan lebih terlihat
+        particles.material.opacity = 0.3;
+        particles.material.transparent = true;
+    } else {
+        canvas.style.display = 'none';
+        toolbar.classList.remove('active');
+        indicator.classList.remove('active');
+        penCursor.style.display = 'none';
+        
+        // Kembalikan opacity partikel
+        particles.material.opacity = 1.0;
+    }
+}
+
+function clearWriting() {
+    if (!writingCtx) return;
+    const canvas = document.getElementById('writing-canvas');
+    writingCtx.clearRect(0, 0, canvas.width, canvas.height);
+    drawingHistory = [];
+}
+
+function undoWriting() {
+    if (!writingCtx || drawingHistory.length === 0) return;
+    
+    drawingHistory.pop();
+    
+    // Redraw everything
+    const canvas = document.getElementById('writing-canvas');
+    writingCtx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    drawingHistory.forEach(stroke => {
+        if (stroke.points.length < 2) return;
+        
+        writingCtx.strokeStyle = stroke.color;
+        writingCtx.lineWidth = stroke.size;
+        writingCtx.lineCap = 'round';
+        writingCtx.lineJoin = 'round';
+        writingCtx.beginPath();
+        writingCtx.moveTo(stroke.points[0].x, stroke.points[0].y);
+        
+        for (let i = 1; i < stroke.points.length; i++) {
+            const from = stroke.points[i - 1];
+            const to = stroke.points[i];
+            const midX = (from.x + to.x) / 2;
+            const midY = (from.y + to.y) / 2;
+            writingCtx.quadraticCurveTo(from.x, from.y, midX, midY);
+        }
+        writingCtx.stroke();
+    });
+}
+
+function saveWriting() {
+    // Buat canvas gabungan (3D + writing)
+    const combined = document.createElement('canvas');
+    combined.width = window.innerWidth;
+    combined.height = window.innerHeight;
+    const ctx = combined.getContext('2d');
+    
+    // Background hitam
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, combined.width, combined.height);
+    
+    // Gambar canvas 3D
+    ctx.drawImage(document.getElementById('canvas3d'), 0, 0);
+    
+    // Gambar canvas writing
+    ctx.drawImage(document.getElementById('writing-canvas'), 0, 0);
+    
+    // Download
+    const link = document.createElement('a');
+    link.download = `writing-${Date.now()}.png`;
+    link.href = combined.toDataURL('image/png');
+    link.click();
+}
+
+// ============================================================
+// ANIMATION LOOP
 // ============================================================
 function updateParticles(time) {
     const posAttr = particles.geometry.attributes.position;
@@ -632,17 +995,19 @@ function animate() {
     particles.material.uniforms.uTime.value = time;
     updateParticles(time);
     
-    if (currentMode === 'text1' || currentMode === 'text2') {
-        textRotationY += CONFIG.rotationSpeed;
-        if (textRotationY > Math.PI * 2) textRotationY -= Math.PI * 2;
-    }
-    
-    if (currentMode === 'sphere' || currentMode === 'expanded') {
-        particles.rotation.y += 0.001;
-        particles.rotation.x = Math.sin(time * 0.2) * 0.1;
-    } else {
-        particles.rotation.y *= 0.95;
-        particles.rotation.x *= 0.95;
+    if (!writingMode) {
+        if (currentMode === 'text1' || currentMode === 'text2') {
+            textRotationY += CONFIG.rotationSpeed;
+            if (textRotationY > Math.PI * 2) textRotationY -= Math.PI * 2;
+        }
+        
+        if (currentMode === 'sphere' || currentMode === 'expanded') {
+            particles.rotation.y += 0.001;
+            particles.rotation.x = Math.sin(time * 0.2) * 0.1;
+        } else {
+            particles.rotation.y *= 0.95;
+            particles.rotation.x *= 0.95;
+        }
     }
     
     frameCount++;
@@ -660,6 +1025,51 @@ function onWindowResize() {
 }
 
 // ============================================================
+// KEYBOARD SHORTCUTS
+// ============================================================
+document.addEventListener('keydown', (e) => {
+    const key = e.key.toLowerCase();
+    
+    if (key === 'w') {
+        toggleWritingMode();
+    } else if (key === 'c' && writingMode) {
+        clearWriting();
+    } else if (key === 'z' && e.ctrlKey && writingMode) {
+        undoWriting();
+    } else if (key === 's' && writingMode) {
+        e.preventDefault();
+        saveWriting();
+    }
+});
+
+// ============================================================
+// TOOLBAR EVENT LISTENERS
+// ============================================================
+function setupToolbar() {
+    // Color buttons
+    document.querySelectorAll('.color-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentPenColor = btn.dataset.color;
+        });
+    });
+    
+    // Pen size slider
+    const slider = document.getElementById('pen-size-slider');
+    const sizeValue = document.getElementById('pen-size-value');
+    slider.addEventListener('input', () => {
+        currentPenSize = parseInt(slider.value);
+        sizeValue.textContent = slider.value + 'px';
+    });
+    
+    // Tool buttons
+    document.getElementById('clear-btn').addEventListener('click', clearWriting);
+    document.getElementById('undo-btn').addEventListener('click', undoWriting);
+    document.getElementById('save-btn').addEventListener('click', saveWriting);
+}
+
+// ============================================================
 // START APP
 // ============================================================
 async function startApp() {
@@ -674,12 +1084,16 @@ async function startApp() {
         await loadLibraries();
         document.getElementById('status-text').textContent = 'Inisialisasi 3D...';
         initThreeJS();
+        document.getElementById('status-text').textContent = 'Inisialisasi Writing Canvas...';
+        writingCtx = initWritingCanvas();
         document.getElementById('status-text').textContent = 'Meminta izin kamera...';
         await initHandDetection();
         
         screen.style.display = 'none';
         document.getElementById('info-panel').style.display = 'block';
         document.getElementById('debug-panel').style.display = 'block';
+        document.querySelector('.shortcut-hint').style.display = 'block';
+        setupToolbar();
         animate();
     } catch (err) {
         screen.innerHTML = `
