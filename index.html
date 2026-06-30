@@ -1,566 +1,1142 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Particle + Writing System</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { overflow: hidden; background: #000; font-family: 'Arial', sans-serif; color: #fff; }
-        
-        #canvas3d { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-        
-        /* Canvas Menulis - di atas 3D, di bawah webcam */
-        #writing-canvas {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 50; display: none; cursor: crosshair;
-            background: rgba(0, 0, 0, 0.3);
-        }
-        
-        #webcam { 
-            position: fixed; bottom: 20px; right: 20px; width: 280px; height: 210px; 
-            border: 2px solid rgba(0,255,255,0.5); border-radius: 10px; 
-            z-index: 100; transform: scaleX(-1); background: #111;
-        }
-        
-        #start-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle at center, #1a1a2e 0%, #000 100%);
-            z-index: 10000; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; text-align: center; padding: 20px;
-        }
-        #start-screen h1 { font-size: 36px; margin-bottom: 20px; color: #0ff; }
-        #start-btn {
-            margin-top: 30px; padding: 18px 50px; font-size: 20px; font-weight: bold;
-            background: linear-gradient(135deg, #0ff, #f0f); border: none; border-radius: 50px;
-            color: #000; cursor: pointer; transition: all 0.3s;
-        }
-        #start-btn:hover { transform: scale(1.05); }
-        .warning-box {
-            background: rgba(255,100,100,0.1); border: 1px solid #f66;
-            padding: 15px 20px; border-radius: 10px; margin-top: 20px;
-            max-width: 600px; font-size: 13px; color: #faa;
-        }
-        .warning-box code { background: #222; padding: 2px 8px; border-radius: 4px; color: #0f0; }
-        
-        #info-panel {
-            position: fixed; top: 20px; left: 20px; z-index: 100;
-            background: rgba(0,0,0,0.8); padding: 15px 20px; border-radius: 10px;
-            border: 1px solid rgba(0,255,255,0.3); font-size: 14px; min-width: 280px;
-        }
-        #info-panel h3 { margin-bottom: 8px; color: #0ff; }
-        #info-panel p { margin: 4px 0; color: #aaa; }
-        
-        /* Writing Mode Toolbar */
-        #writing-toolbar {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            z-index: 200; background: rgba(0,0,0,0.9); padding: 10px 20px;
-            border-radius: 30px; border: 2px solid #0ff;
-            display: none; align-items: center; gap: 15px;
-            box-shadow: 0 0 30px rgba(0,255,255,0.5);
-        }
-        #writing-toolbar.active { display: flex; }
-        
-        .tool-group { display: flex; gap: 8px; align-items: center; }
-        .color-btn {
-            width: 30px; height: 30px; border-radius: 50%; border: 2px solid #fff;
-            cursor: pointer; transition: transform 0.2s;
-        }
-        .color-btn:hover { transform: scale(1.2); }
-        .color-btn.active { border-color: #0ff; box-shadow: 0 0 10px #0ff; }
-        
-        .tool-btn {
-            padding: 8px 15px; background: rgba(255,255,255,0.1); border: 1px solid #555;
-            color: #fff; border-radius: 20px; cursor: pointer; font-size: 13px;
-            transition: all 0.2s;
-        }
-        .tool-btn:hover { background: rgba(0,255,255,0.2); border-color: #0ff; }
-        .tool-btn.danger { border-color: #f55; }
-        .tool-btn.danger:hover { background: rgba(255,0,0,0.3); }
-        
-        #pen-size-slider {
-            width: 100px; cursor: pointer;
-        }
-        
-        #writing-mode-indicator {
-            position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
-            z-index: 200; background: rgba(0,255,0,0.2); border: 2px solid #0f0;
-            padding: 10px 25px; border-radius: 30px; display: none;
-            font-size: 16px; font-weight: bold; color: #0f0;
-        }
-        #writing-mode-indicator.active { display: block; }
-        #writing-mode-indicator.not-drawing {
-            background: rgba(255,255,255,0.1); border-color: #888; color: #888;
-        }
-        
-        #pen-cursor {
-            position: fixed; pointer-events: none; z-index: 150;
-            border-radius: 50%; transform: translate(-50%, -50%);
-            border: 2px solid #0ff; display: none;
-            box-shadow: 0 0 10px rgba(0,255,255,0.8);
-        }
-        
-        #gesture-indicator {
-            position: fixed; top: 20px; right: 320px; padding: 15px 25px;
-            border-radius: 10px; font-size: 18px; font-weight: bold;
-            z-index: 100; display: none;
-        }
-        .gesture-open { background: rgba(0,255,0,0.2); color: #0f0; border: 2px solid #0f0; }
-        .gesture-closed { background: rgba(255,0,0,0.2); color: #f00; border: 2px solid #f00; }
-        .gesture-peace { background: rgba(255,0,255,0.2); color: #f0f; border: 2px solid #f0f; }
-        .gesture-point { background: rgba(255,255,0,0.2); color: #ff0; border: 2px solid #ff0; }
-        
-        #debug-panel {
-            position: fixed; bottom: 20px; left: 20px; z-index: 100;
-            background: rgba(0,0,0,0.9); padding: 15px; border-radius: 10px;
-            border: 1px solid rgba(0,255,255,0.3); font-size: 12px;
-            font-family: monospace; min-width: 250px;
-        }
-        .finger-status {
-            display: flex; justify-content: space-between; padding: 3px 0;
-            border-bottom: 1px solid #222;
-        }
-        .finger-extended { color: #0f0; }
-        .finger-curled { color: #f55; }
-        
-        .loading-spinner {
-            border: 4px solid rgba(0,255,255,0.2); border-top: 4px solid #0ff;
-            border-radius: 50%; width: 50px; height: 50px;
-            animation: spin 1s linear infinite; margin: 20px auto;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
-        .shortcut-hint {
-            position: fixed; bottom: 250px; right: 20px; z-index: 100;
-            background: rgba(0,0,0,0.8); padding: 10px 15px; border-radius: 8px;
-            border: 1px solid rgba(0,255,255,0.3); font-size: 12px;
-        }
-        .shortcut-hint kbd {
-            background: #333; padding: 2px 8px; border-radius: 4px;
-            border: 1px solid #555; color: #0ff; font-weight: bold;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pro Writing System v3.0 — Ultra Accurate</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+    
+    body {
+        overflow: hidden;
+        font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+        color: #fff;
+        background: #0a0a0f;
+        user-select: none;
+    }
+    
+    /* ===== LAYER SYSTEM ===== */
+    #background {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a0f 70%);
+        z-index: 0;
+    }
+    
+    #grid-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        z-index: 1; pointer-events: none;
+        background-image: 
+            linear-gradient(rgba(0,255,255,0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,255,255,0.03) 1px, transparent 1px);
+        background-size: 50px 50px;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    #grid-overlay.active { opacity: 1; }
+    
+    #writing-canvas {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        z-index: 10; cursor: none;
+    }
+    
+    #preview-canvas {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        z-index: 11; pointer-events: none;
+    }
+    
+    #webcam { 
+        position: fixed; bottom: 20px; right: 20px; width: 240px; height: 180px; 
+        border: 2px solid rgba(0,255,255,0.4); border-radius: 12px; 
+        z-index: 100; transform: scaleX(-1); background: #000;
+        box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+    }
+    
+    /* ===== START SCREEN ===== */
+    #start-screen {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: radial-gradient(circle at center, #1a1a2e 0%, #000 100%);
+        z-index: 10000; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; text-align: center; padding: 20px;
+    }
+    #start-screen h1 { 
+        font-size: 48px; margin-bottom: 10px; 
+        background: linear-gradient(135deg, #0ff, #f0f);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    #start-screen .subtitle { color: #888; font-size: 18px; margin-bottom: 40px; }
+    
+    .feature-grid {
+        display: grid; grid-template-columns: repeat(2, 1fr);
+        gap: 15px; max-width: 600px; margin-bottom: 40px; text-align: left;
+    }
+    .feature {
+        background: rgba(255,255,255,0.03); padding: 15px 20px;
+        border-radius: 10px; border-left: 3px solid #0ff;
+    }
+    .feature .icon { font-size: 24px; margin-bottom: 5px; }
+    .feature .title { font-weight: bold; color: #0ff; margin-bottom: 3px; }
+    .feature .desc { font-size: 12px; color: #888; }
+    
+    #start-btn {
+        padding: 20px 60px; font-size: 20px; font-weight: bold;
+        background: linear-gradient(135deg, #0ff, #f0f); border: none; border-radius: 50px;
+        color: #000; cursor: pointer; transition: all 0.3s;
+        box-shadow: 0 0 40px rgba(0,255,255,0.4);
+    }
+    #start-btn:hover { transform: scale(1.05); box-shadow: 0 0 60px rgba(0,255,255,0.7); }
+    
+    /* ===== TOP BAR ===== */
+    #top-bar {
+        position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
+        z-index: 200; background: rgba(10,10,15,0.95);
+        padding: 10px 20px; border-radius: 50px;
+        border: 1px solid rgba(0,255,255,0.2);
+        display: flex; align-items: center; gap: 12px;
+        backdrop-filter: blur(20px);
+        box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+    }
+    
+    .tool-btn {
+        width: 44px; height: 44px; border-radius: 50%;
+        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+        color: #aaa; cursor: pointer; font-size: 18px;
+        display: flex; align-items: center; justify-content: center;
+        transition: all 0.2s; position: relative;
+    }
+    .tool-btn:hover { background: rgba(0,255,255,0.15); color: #0ff; border-color: #0ff; }
+    .tool-btn.active { 
+        background: rgba(0,255,255,0.25); color: #fff; 
+        border-color: #0ff; box-shadow: 0 0 15px rgba(0,255,255,0.5);
+    }
+    .tool-btn .shortcut {
+        position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%);
+        font-size: 9px; color: #555; font-family: monospace;
+    }
+    
+    .separator { width: 1px; height: 30px; background: rgba(255,255,255,0.1); }
+    
+    /* ===== COLOR PICKER ===== */
+    .color-swatch {
+        width: 30px; height: 30px; border-radius: 50%;
+        border: 2px solid rgba(255,255,255,0.2); cursor: pointer;
+        transition: all 0.2s;
+    }
+    .color-swatch:hover { transform: scale(1.15); }
+    .color-swatch.active { border-color: #fff; box-shadow: 0 0 10px currentColor; }
+    
+    /* ===== SIDE PANELS ===== */
+    .side-panel {
+        position: fixed; z-index: 150;
+        background: rgba(10,10,15,0.95); backdrop-filter: blur(20px);
+        padding: 15px; border-radius: 15px;
+        border: 1px solid rgba(0,255,255,0.2);
+        box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+    }
+    
+    #status-panel {
+        top: 80px; left: 20px; min-width: 220px; font-size: 13px;
+    }
+    #status-panel .label { color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+    #status-panel .value { color: #0ff; font-weight: bold; margin-bottom: 8px; }
+    
+    .status-indicator {
+        display: inline-block; width: 8px; height: 8px;
+        border-radius: 50%; margin-right: 5px;
+        animation: pulse 2s infinite;
+    }
+    .status-indicator.active { background: #0f0; box-shadow: 0 0 10px #0f0; }
+    .status-indicator.idle { background: #888; animation: none; }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    
+    #properties-panel {
+        top: 80px; right: 20px; min-width: 200px;
+    }
+    #properties-panel label {
+        display: block; font-size: 11px; color: #888;
+        margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;
+    }
+    #properties-panel input[type="range"] {
+        width: 100%; margin-bottom: 15px;
+    }
+    #properties-panel .value-display {
+        color: #0ff; font-weight: bold; float: right;
+    }
+    
+    /* ===== GESTURE INDICATOR ===== */
+    #gesture-indicator {
+        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+        z-index: 150; padding: 12px 25px; border-radius: 50px;
+        font-size: 14px; font-weight: bold;
+        background: rgba(10,10,15,0.95); backdrop-filter: blur(20px);
+        border: 1px solid rgba(0,255,255,0.3);
+        display: flex; align-items: center; gap: 10px;
+        transition: all 0.3s;
+    }
+    .gesture-dot {
+        width: 10px; height: 10px; border-radius: 50%;
+        background: #888;
+    }
+    .gesture-dot.hover { background: #0ff; box-shadow: 0 0 10px #0ff; }
+    .gesture-dot.draw { background: #0f0; box-shadow: 0 0 10px #0f0; }
+    .gesture-dot.erase { background: #f55; box-shadow: 0 0 10px #f55; }
+    
+    /* ===== PEN CURSOR ===== */
+    #pen-cursor {
+        position: fixed; pointer-events: none; z-index: 500;
+        border-radius: 50%; transform: translate(-50%, -50%);
+        transition: width 0.1s, height 0.1s, background 0.1s;
+        mix-blend-mode: screen;
+    }
+    #pen-cursor::after {
+        content: ''; position: absolute; top: 50%; left: 50%;
+        width: 4px; height: 4px; background: #fff;
+        border-radius: 50%; transform: translate(-50%, -50%);
+    }
+    
+    /* ===== HAND VISUALIZER ===== */
+    #hand-viz {
+        position: fixed; bottom: 220px; right: 20px;
+        width: 240px; height: 180px; z-index: 99;
+        background: rgba(0,0,0,0.6); border-radius: 12px;
+        border: 1px solid rgba(0,255,255,0.3);
+    }
+    
+    /* ===== PAGE INDICATOR ===== */
+    #page-indicator {
+        position: fixed; bottom: 20px; left: 20px;
+        z-index: 150; display: flex; gap: 8px; align-items: center;
+        background: rgba(10,10,15,0.95); backdrop-filter: blur(20px);
+        padding: 8px 15px; border-radius: 50px;
+        border: 1px solid rgba(0,255,255,0.2);
+        font-size: 13px;
+    }
+    .page-btn {
+        width: 28px; height: 28px; border-radius: 50%;
+        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+        color: #aaa; cursor: pointer; font-size: 12px;
+    }
+    .page-btn:hover { background: rgba(0,255,255,0.2); color: #0ff; }
+    
+    /* ===== TOAST NOTIFICATION ===== */
+    #toast {
+        position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+        z-index: 1000; padding: 12px 25px; border-radius: 50px;
+        background: rgba(0,255,255,0.15); backdrop-filter: blur(20px);
+        border: 1px solid #0ff; color: #0ff;
+        opacity: 0; transition: opacity 0.3s; pointer-events: none;
+    }
+    #toast.show { opacity: 1; }
+    
+    /* ===== TUTORIAL OVERLAY ===== */
+    #tutorial {
+        position: fixed; top: 80px; right: 20px; z-index: 180;
+        background: rgba(10,10,15,0.95); backdrop-filter: blur(20px);
+        padding: 15px 20px; border-radius: 12px;
+        border: 1px solid rgba(0,255,255,0.3);
+        max-width: 280px; font-size: 12px;
+        display: none;
+    }
+    #tutorial.show { display: block; }
+    #tutorial h4 { color: #0ff; margin-bottom: 10px; font-size: 14px; }
+    #tutorial .gesture-row {
+        display: flex; justify-content: space-between;
+        padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    #tutorial .gesture-row:last-child { border: none; }
+    #tutorial .key { 
+        background: rgba(0,255,255,0.1); padding: 2px 8px; 
+        border-radius: 4px; font-family: monospace; color: #0ff;
+    }
+    
+    /* ===== LOADING ===== */
+    .spinner {
+        border: 3px solid rgba(0,255,255,0.2);
+        border-top: 3px solid #0ff;
+        border-radius: 50%; width: 40px; height: 40px;
+        animation: spin 1s linear infinite; margin: 20px auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    .warning-box {
+        background: rgba(255,100,100,0.1); border: 1px solid #f66;
+        padding: 15px 20px; border-radius: 10px; margin-top: 20px;
+        max-width: 500px; font-size: 13px; color: #faa;
+    }
+    .warning-box code { background: #222; padding: 2px 8px; border-radius: 4px; color: #0f0; }
+</style>
 </head>
 <body>
 
-<div id="start-screen">
-    <h1>🎮 3D Particle + Writing System</h1>
-    <h2 style="color:#f0f; margin-bottom:20px;">Hand Gesture Control + Remote Writing</h2>
-    <p style="color:#aaa; max-width:600px;">Kendalikan partikel dengan gestur tangan dan menulis di udara dari jarak jauh.</p>
-    <button id="start-btn">🚀 Mulai</button>
-    <div id="loading-status" style="margin-top: 20px; display: none;">
-        <div class="loading-spinner"></div>
-        <p id="status-text">Memuat library...</p>
-    </div>
-    <div class="warning-box">
-        <strong>⚠️ WAJIB:</strong> Buka via <code>http://localhost:8000</code><br>
-        <code>python -m http.server 8000</code>
-    </div>
-</div>
+<!-- Background layers -->
+<div id="background"></div>
+<div id="grid-overlay" class="active"></div>
 
-<!-- 3D Canvas -->
-<canvas id="canvas3d"></canvas>
-
-<!-- Writing Canvas (overlay) -->
+<!-- Canvases -->
 <canvas id="writing-canvas"></canvas>
+<canvas id="preview-canvas"></canvas>
 
-<!-- Pen Cursor Indicator -->
+<!-- Pen cursor -->
 <div id="pen-cursor"></div>
 
-<!-- Writing Mode Indicator -->
-<div id="writing-mode-indicator">✍️ Mode Menulis: AKTIF</div>
-
-<!-- Writing Toolbar -->
-<div id="writing-toolbar">
-    <div class="tool-group">
-        <span style="color:#0ff; font-weight:bold;">🎨 Warna:</span>
-        <div class="color-btn active" data-color="#ff0000" style="background:#ff0000"></div>
-        <div class="color-btn" data-color="#00ff00" style="background:#00ff00"></div>
-        <div class="color-btn" data-color="#0088ff" style="background:#0088ff"></div>
-        <div class="color-btn" data-color="#ffff00" style="background:#ffff00"></div>
-        <div class="color-btn" data-color="#ff00ff" style="background:#ff00ff"></div>
-        <div class="color-btn" data-color="#ffffff" style="background:#ffffff"></div>
+<!-- Start screen -->
+<div id="start-screen">
+    <h1>✍️ Pro Writing System</h1>
+    <p class="subtitle">Ultra-Accurate Hand Tracking Writing · v3.0</p>
+    
+    <div class="feature-grid">
+        <div class="feature">
+            <div class="icon">🎯</div>
+            <div class="title">Kalman Filter</div>
+            <div class="desc">Smoothing 4-layer untuk hasil super halus</div>
+        </div>
+        <div class="feature">
+            <div class="icon">🖊️</div>
+            <div class="title">Pressure Dynamic</div>
+            <div class="desc">Tebal-tipis otomatis berdasarkan kecepatan</div>
+        </div>
+        <div class="feature">
+            <div class="icon">🎨</div>
+            <div class="title">5 Tools</div>
+            <div class="desc">Pen, Marker, Highlighter, Eraser, Laser</div>
+        </div>
+        <div class="feature">
+            <div class="icon">📄</div>
+            <div class="title">Multi-Page</div>
+            <div class="desc">Auto-save + Export PNG</div>
+        </div>
     </div>
     
-    <div class="tool-group">
-        <span style="color:#0ff; font-weight:bold;">📏 Ukuran:</span>
-        <input type="range" id="pen-size-slider" min="2" max="30" value="8">
-        <span id="pen-size-value" style="min-width:30px;">8px</span>
+    <button id="start-btn">🚀 Mulai Menulis</button>
+    
+    <div id="loading-status" style="margin-top: 20px; display: none;">
+        <div class="spinner"></div>
+        <p id="status-text" style="color:#888;">Memuat...</p>
     </div>
     
-    <div class="tool-group">
-        <button class="tool-btn" id="undo-btn">↶ Undo</button>
-        <button class="tool-btn danger" id="clear-btn">🗑️ Clear</button>
-        <button class="tool-btn" id="save-btn">💾 Save PNG</button>
+    <div class="warning-box">
+        <strong>⚠️ Jalankan via localhost:</strong><br>
+        <code>python -m http.server 8000</code> lalu buka <code>http://localhost:8000</code>
     </div>
 </div>
+
+<!-- Top toolbar -->
+<div id="top-bar" style="display:none;">
+    <button class="tool-btn active" data-tool="pen" title="Pen (1)">✏️<span class="shortcut">1</span></button>
+    <button class="tool-btn" data-tool="marker" title="Marker (2)">🖊️<span class="shortcut">2</span></button>
+    <button class="tool-btn" data-tool="highlighter" title="Highlighter (3)">🖍️<span class="shortcut">3</span></button>
+    <button class="tool-btn" data-tool="eraser" title="Eraser (4)">🧽<span class="shortcut">4</span></button>
+    <button class="tool-btn" data-tool="laser" title="Laser (5)">🔴<span class="shortcut">5</span></button>
+    
+    <div class="separator"></div>
+    
+    <div class="color-swatch active" data-color="#ffffff" style="background:#ffffff"></div>
+    <div class="color-swatch" data-color="#00ffff" style="background:#00ffff"></div>
+    <div class="color-swatch" data-color="#ff00ff" style="background:#ff00ff"></div>
+    <div class="color-swatch" data-color="#ffff00" style="background:#ffff00"></div>
+    <div class="color-swatch" data-color="#ff4444" style="background:#ff4444"></div>
+    <div class="color-swatch" data-color="#44ff44" style="background:#44ff44"></div>
+    
+    <div class="separator"></div>
+    
+    <button class="tool-btn" id="undo-btn" title="Undo (Ctrl+Z)">↶</button>
+    <button class="tool-btn" id="redo-btn" title="Redo (Ctrl+Y)">↷</button>
+    <button class="tool-btn" id="clear-btn" title="Clear (C)">🗑️</button>
+    <button class="tool-btn" id="grid-btn" title="Grid (G)">▦</button>
+    <button class="tool-btn" id="save-btn" title="Save (S)">💾</button>
+    <button class="tool-btn" id="help-btn" title="Help (H)">?</button>
+</div>
+
+<!-- Status panel -->
+<div id="status-panel" class="side-panel" style="display:none;">
+    <div class="label">Status</div>
+    <div class="value"><span id="hand-status-indicator" class="status-indicator idle"></span><span id="hand-status-text">Idle</span></div>
+    
+    <div class="label">Mode</div>
+    <div class="value" id="mode-display">HOVER</div>
+    
+    <div class="label">FPS</div>
+    <div class="value" id="fps-display">0</div>
+    
+    <div class="label">Confidence</div>
+    <div class="value" id="confidence-display">0%</div>
+    
+    <div class="label">Pressure</div>
+    <div class="value" id="pressure-display">0.0</div>
+    
+    <div class="label">Velocity</div>
+    <div class="value" id="velocity-display">0 px/s</div>
+</div>
+
+<!-- Properties panel -->
+<div id="properties-panel" class="side-panel" style="display:none;">
+    <label>Size <span class="value-display" id="size-value">5</span></label>
+    <input type="range" id="size-slider" min="1" max="30" value="5">
+    
+    <label>Smoothing <span class="value-display" id="smooth-value">65</span></label>
+    <input type="range" id="smooth-slider" min="0" max="95" value="65">
+    
+    <label>Opacity <span class="value-display" id="opacity-value">100</span></label>
+    <input type="range" id="opacity-slider" min="10" max="100" value="100">
+    
+    <label>Pressure Sensitivity <span class="value-display" id="pressure-value">50</span></label>
+    <input type="range" id="pressure-slider" min="0" max="100" value="50">
+</div>
+
+<!-- Gesture indicator -->
+<div id="gesture-indicator" style="display:none;">
+    <span class="gesture-dot" id="gesture-dot"></span>
+    <span id="gesture-text">Mendeteksi tangan...</span>
+</div>
+
+<!-- Page indicator -->
+<div id="page-indicator" style="display:none;">
+    <button class="page-btn" id="prev-page">◀</button>
+    <span id="page-text">1 / 1</span>
+    <button class="page-btn" id="next-page">▶</button>
+    <button class="page-btn" id="add-page">+</button>
+</div>
+
+<!-- Hand visualizer -->
+<canvas id="hand-viz" style="display:none;"></canvas>
 
 <!-- Webcam -->
-<video id="webcam" autoplay playsinline></video>
+<video id="webcam" autoplay playsinline style="display:none;"></video>
 
-<!-- Info Panel -->
-<div id="info-panel" style="display:none;">
-    <h3>🎮 Kontrol Gestur</h3>
-    <p>🖐️ <strong>Open Palm</strong> → Mengembang</p>
-    <p>✊ <strong>Fist</strong> → Bola</p>
-    <p>☝️ <strong>Pointing</strong> → "hello, world"</p>
-    <p>✌️ <strong>Peace</strong> → "I'm Qwen"</p>
-    <hr style="margin: 8px 0; border-color: rgba(0,255,255,0.2);">
-    <h3>✍️ Mode Menulis</h3>
-    <p>Tekan <kbd>W</kbd> untuk toggle</p>
-    <p>☝️ Jari telunjuk = kursor</p>
-    <p>🖕 Jari tengah = pen down/up</p>
-    <hr style="margin: 8px 0; border-color: rgba(0,255,255,0.2);">
-    <p>Gestur: <span id="current-gesture" style="color:#0ff; font-weight:bold;">-</span></p>
-    <p>FPS: <span id="fps-counter">0</span></p>
+<!-- Tutorial -->
+<div id="tutorial">
+    <h4>🎮 Gesture Control</h4>
+    <div class="gesture-row"><span>☝️ Pointing</span><span class="key">HOVER</span></div>
+    <div class="gesture-row"><span>✌️ Peace</span><span class="key">DRAW</span></div>
+    <div class="gesture-row"><span>🖐️ Open Palm</span><span class="key">ERASE</span></div>
+    <div class="gesture-row"><span>✊ Fist</span><span class="key">IDLE</span></div>
+    <div class="gesture-row"><span>👌 Pinch</span><span class="key">PICK COLOR</span></div>
+    <hr style="margin:10px 0; border-color:rgba(255,255,255,0.1);">
+    <h4>⌨️ Shortcuts</h4>
+    <div class="gesture-row"><span>1-5</span><span class="key">Tools</span></div>
+    <div class="gesture-row"><span>Ctrl+Z / Y</span><span class="key">Undo/Redo</span></div>
+    <div class="gesture-row"><span>C</span><span class="key">Clear</span></div>
+    <div class="gesture-row"><span>S</span><span class="key">Save</span></div>
+    <div class="gesture-row"><span>G</span><span class="key">Grid</span></div>
+    <div class="gesture-row"><span>[ / ]</span><span class="key">Size -/+</span></div>
 </div>
 
-<!-- Debug Panel -->
-<div id="debug-panel" style="display:none;">
-    <div style="color:#0ff; margin-bottom:8px; font-weight:bold;">🔍 Debug</div>
-    <div class="finger-status"><span>👍 Jempol:</span><span id="f-thumb" class="finger-curled">-</span></div>
-    <div class="finger-status"><span>☝️ Telunjuk:</span><span id="f-index" class="finger-curled">-</span></div>
-    <div class="finger-status"><span>🖕 Tengah:</span><span id="f-middle" class="finger-curled">-</span></div>
-    <div class="finger-status"><span>💍 Manis:</span><span id="f-ring" class="finger-curled">-</span></div>
-    <div class="finger-status"><span>🤙 Kelingking:</span><span id="f-pinky" class="finger-curled">-</span></div>
-    <div style="margin-top:8px; padding-top:8px; border-top:1px solid #333;">
-        <div>Pen Pos: <span id="pen-pos" style="color:#ff0;">-</span></div>
-        <div>Velocity: <span id="velocity" style="color:#f0f;">-</span></div>
-        <div>Drawing: <span id="drawing-state" style="color:#0f0;">-</span></div>
-    </div>
-</div>
-
-<!-- Shortcut Hint -->
-<div class="shortcut-hint" style="display:none;">
-    <kbd>W</kbd> Mode Menulis | <kbd>C</kbd> Clear | <kbd>S</kbd> Save
-</div>
-
-<div id="gesture-indicator"></div>
+<!-- Toast -->
+<div id="toast"></div>
 
 <script>
-// ============================================================
+// ================================================================
+// CONFIGURATION
+// ================================================================
+const CONFIG = {
+    // Hand tracking
+    fingerExtendThreshold: 0.82,
+    pinchThreshold: 0.07,
+    gestureBufferSize: 5,
+    minConfidence: 0.6,
+    
+    // Smoothing - 4 layer filter
+    kalmanProcessNoise: 0.01,
+    kalmanMeasurementNoise: 0.1,
+    lowPassAlpha: 0.4,
+    velocitySmoothing: 0.5,
+    
+    // Writing
+    baseSmoothing: 0.65,
+    pressureSensitivity: 0.5,
+    minStrokeWidth: 0.5,
+    maxStrokeWidth: 3.0,
+    catmullRomSegments: 8,
+    
+    // Auto-save
+    autoSaveInterval: 5000,
+    storageKey: 'proWritingSystem_v3',
+};
+
+// ================================================================
+// STATE
+// ================================================================
+const STATE = {
+    currentTool: 'pen',
+    currentColor: '#ffffff',
+    penSize: 5,
+    opacity: 1.0,
+    smoothing: 0.65,
+    
+    pages: [[]], // Array of stroke arrays
+    currentPage: 0,
+    undoStack: [],
+    redoStack: [],
+    
+    // Hand tracking state
+    gestureMode: 'idle', // idle, hover, draw, erase
+    lastGestureMode: 'idle',
+    gestureBuffer: [],
+    handDetected: false,
+    handConfidence: 0,
+    
+    // Position tracking
+    rawPos: null,
+    kalmanPos: null,
+    smoothedPos: null,
+    velocity: { x: 0, y: 0, magnitude: 0 },
+    acceleration: { x: 0, y: 0, magnitude: 0 },
+    lastPos: null,
+    lastVel: { x: 0, y: 0 },
+    lastTime: 0,
+    
+    // Drawing
+    isDrawing: false,
+    currentStroke: null,
+    
+    // Animation
+    frameCount: 0,
+    lastFpsTime: performance.now(),
+};
+
+// Kalman filter state
+const kalman = {
+    x: { value: 0, error: 1, Q: CONFIG.kalmanProcessNoise, R: CONFIG.kalmanMeasurementNoise },
+    y: { value: 0, error: 1, Q: CONFIG.kalmanProcessNoise, R: CONFIG.kalmanMeasurementNoise },
+};
+
+// ================================================================
+// CANVAS SETUP
+// ================================================================
+let writingCanvas, writingCtx, previewCanvas, previewCtx, handVizCanvas, handVizCtx;
+
+function setupCanvases() {
+    writingCanvas = document.getElementById('writing-canvas');
+    previewCanvas = document.getElementById('preview-canvas');
+    handVizCanvas = document.getElementById('hand-viz');
+    
+    function resize() {
+        const w = window.innerWidth, h = window.innerHeight;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        
+        [writingCanvas, previewCanvas].forEach(c => {
+            c.width = w * dpr;
+            c.height = h * dpr;
+            c.style.width = w + 'px';
+            c.style.height = h + 'px';
+            c.getContext('2d').scale(dpr, dpr);
+        });
+        
+        handVizCanvas.width = 240;
+        handVizCanvas.height = 180;
+        
+        writingCtx = writingCanvas.getContext('2d');
+        previewCtx = previewCanvas.getContext('2d');
+        handVizCtx = handVizCanvas.getContext('2d');
+        
+        writingCtx.lineCap = 'round';
+        writingCtx.lineJoin = 'round';
+        
+        redrawCurrentPage();
+    }
+    
+    resize();
+    window.addEventListener('resize', resize);
+}
+
+// ================================================================
 // SCRIPT LOADER
-// ============================================================
+// ================================================================
 function loadScript(src) {
     return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = src;
-        script.crossOrigin = 'anonymous';
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error(`Gagal memuat: ${src}`));
-        document.head.appendChild(script);
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = () => reject(new Error('Gagal memuat: ' + src));
+        document.head.appendChild(s);
     });
 }
 
 async function loadLibraries() {
-    const statusText = document.getElementById('status-text');
-    statusText.textContent = 'Memuat Three.js...';
-    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
-    statusText.textContent = 'Memuat MediaPipe...';
+    const st = document.getElementById('status-text');
+    st.textContent = 'Memuat Three.js...';
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js').catch(() => {});
+    st.textContent = 'Memuat MediaPipe Hands...';
     await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js');
-    statusText.textContent = 'Memuat Camera Utils...';
+    st.textContent = 'Memuat Camera Utils...';
     await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js');
 }
 
-// ============================================================
-// KONFIGURASI
-// ============================================================
-const CONFIG = {
-    particleCount: 5000,
-    particleSize: 3.0,
-    lerpSpeed: 0.03,
-    sphereRadius: 5,
-    textScale: 8,
-    rotationSpeed: 0.005,
-    fingerExtendThreshold: 0.85,
-    gestureBufferSize: 7,
-    // Writing specific
-    smoothingFactor: 0.5,  // 0-1: semakin kecil semakin smooth
-    velocitySmoothing: 0.3,
-    minVelocity: 0.5,
-    colors: {
-        sphere: [0.0, 1.0, 1.0],
-        expanded: [1.0, 0.3, 0.8],
-        text1: [1.0, 1.0, 0.0],
-        text2: [0.3, 1.0, 0.5]
-    }
-};
-
-// ============================================================
-// STATE MANAGEMENT
-// ============================================================
-let scene, camera, renderer, particles;
-let targetPositions, expandedPositions, spherePositions;
-let textPositions1 = [], textPositions2 = [];
-let currentMode = 'sphere';
-let textRotationY = 0;
-let frameCount = 0, lastTime = performance.now();
-const gestureBuffer = [];
-
-// WRITING MODE STATE
-let writingMode = false;
-let isDrawing = false;
-let currentPenColor = '#ff0000';
-let currentPenSize = 8;
-let drawingHistory = []; // Untuk undo
-let lastPenPos = null;
-let smoothedPenPos = null;
-let smoothedVelocity = 0;
-let lastPenTime = 0;
-
-// ============================================================
-// 🎯 DETEKSI JARI (SAMA SEPERTI SEBELUMNYA)
-// ============================================================
-function getDistance(a, b) {
-    return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2);
+// ================================================================
+// HAND TRACKING - GEOMETRIC ANALYSIS
+// ================================================================
+function distance(a, b) {
+    return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 }
 
-function isFingerExtended(landmarks, fingerIndex) {
+function distance2D(a, b) {
+    return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function isFingerExtended(lm, idx) {
     const tips = [4, 8, 12, 16, 20];
     const pips = [3, 6, 10, 14, 18];
     const mcps = [2, 5, 9, 13, 17];
     
-    const tip = landmarks[tips[fingerIndex]];
-    const pip = landmarks[pips[fingerIndex]];
-    const mcp = landmarks[mcps[fingerIndex]];
+    const tip = lm[tips[idx]];
+    const pip = lm[pips[idx]];
+    const mcp = lm[mcps[idx]];
     
-    if (fingerIndex === 0) {
-        const indexMcp = landmarks[5];
-        const wrist = landmarks[0];
-        const tipToIndexMcp = getDistance(tip, indexMcp);
-        const wristToIndexMcp = getDistance(wrist, indexMcp);
-        return tipToIndexMcp > wristToIndexMcp * 0.9;
+    if (idx === 0) {
+        // Thumb: check angle relative to index MCP
+        const indexMcp = lm[5];
+        const wrist = lm[0];
+        const tipToIndex = distance(tip, indexMcp);
+        const wristToIndex = distance(wrist, indexMcp);
+        return tipToIndex > wristToIndex * 0.85;
     }
     
-    const tipToMcp = getDistance(tip, mcp);
-    const pipToMcp = getDistance(pip, mcp);
-    const tipToPip = getDistance(tip, pip);
+    // Finger straightness ratio
+    const tipToMcp = distance(tip, mcp);
+    const pipToMcp = distance(pip, mcp);
+    const tipToPip = distance(tip, pip);
     const straightness = tipToMcp / (pipToMcp + tipToPip);
     return straightness > CONFIG.fingerExtendThreshold;
 }
 
-function getFingerStates(landmarks) {
+function getFingerStates(lm) {
     return {
-        thumb: isFingerExtended(landmarks, 0),
-        index: isFingerExtended(landmarks, 1),
-        middle: isFingerExtended(landmarks, 2),
-        ring: isFingerExtended(landmarks, 3),
-        pinky: isFingerExtended(landmarks, 4)
+        thumb: isFingerExtended(lm, 0),
+        index: isFingerExtended(lm, 1),
+        middle: isFingerExtended(lm, 2),
+        ring: isFingerExtended(lm, 3),
+        pinky: isFingerExtended(lm, 4)
     };
 }
 
-function detectRawGesture(landmarks) {
-    const f = getFingerStates(landmarks);
+function getPinchDistance(lm) {
+    return distance(lm[4], lm[8]);
+}
+
+// ================================================================
+// GESTURE RECOGNITION - STATE MACHINE
+// ================================================================
+function detectGesture(lm) {
+    const f = getFingerStates(lm);
+    const pinch = getPinchDistance(lm);
     
-    // Jika dalam mode menulis, prioritize writing detection
-    if (writingMode) {
-        if (f.index && !f.middle && !f.ring && !f.pinky) return 'writing-pointing';
-        if (f.index && f.middle && !f.ring && !f.pinky) return 'writing-drawing';
-        return 'unknown';
+    // Pinch detection (jempol + telunjuk bertemu)
+    if (pinch < CONFIG.pinchThreshold) {
+        return 'pinch';
     }
     
-    if (f.index && f.middle && !f.ring && !f.pinky) return 'peace';
-    if (f.index && !f.middle && !f.ring && !f.pinky) return 'pointing';
-    if (!f.index && !f.middle && !f.ring && !f.pinky) return 'fist';
+    // Fist - semua jari tertekuk
+    if (!f.index && !f.middle && !f.ring && !f.pinky) {
+        return 'fist';
+    }
     
-    const extendedCount = [f.thumb, f.index, f.middle, f.ring, f.pinky].filter(Boolean).length;
-    if (extendedCount >= 4) return 'open';
+    // Open palm - minimal 4 jari terentang
+    const extended = [f.thumb, f.index, f.middle, f.ring, f.pinky].filter(Boolean).length;
+    if (extended >= 4) {
+        return 'open_palm';
+    }
+    
+    // Peace - index + middle
+    if (f.index && f.middle && !f.ring && !f.pinky) {
+        return 'peace';
+    }
+    
+    // Pointing - hanya index
+    if (f.index && !f.middle && !f.ring && !f.pinky) {
+        return 'pointing';
+    }
     
     return 'unknown';
 }
 
-function smoothGesture(newGesture) {
-    gestureBuffer.push(newGesture);
-    if (gestureBuffer.length > CONFIG.gestureBufferSize) gestureBuffer.shift();
+function smoothGesture(raw) {
+    STATE.gestureBuffer.push(raw);
+    if (STATE.gestureBuffer.length > CONFIG.gestureBufferSize) {
+        STATE.gestureBuffer.shift();
+    }
     
     const counts = {};
-    gestureBuffer.forEach(g => counts[g] = (counts[g] || 0) + 1);
+    STATE.gestureBuffer.forEach(g => counts[g] = (counts[g] || 0) + 1);
     
-    let bestGesture = newGesture;
-    let bestCount = 0;
-    Object.entries(counts).forEach(([g, c]) => {
-        if (c > bestCount) { bestCount = c; bestGesture = g; }
-    });
-    
-    const confidence = Math.round((bestCount / CONFIG.gestureBufferSize) * 100);
-    if (bestCount >= 3 && bestGesture !== 'unknown') {
-        return { gesture: bestGesture, confidence };
-    }
-    return { gesture: newGesture, confidence: Math.round((1 / CONFIG.gestureBufferSize) * 100) };
-}
-
-// ============================================================
-// THREE.JS
-// ============================================================
-function initThreeJS() {
-    scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x000000, 0.02);
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 30;
-
-    renderer = new THREE.WebGLRenderer({ 
-        canvas: document.getElementById('canvas3d'), 
-        antialias: true, alpha: true 
-    });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-    createParticleSystem();
-    generateAllPositions();
-    targetPositions = spherePositions;
-    window.addEventListener('resize', onWindowResize);
-}
-
-function createParticleSystem() {
-    const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(CONFIG.particleCount * 3);
-    const colors = new Float32Array(CONFIG.particleCount * 3);
-    const sizes = new Float32Array(CONFIG.particleCount);
-
-    for (let i = 0; i < CONFIG.particleCount; i++) {
-        const i3 = i * 3;
-        positions[i3] = (Math.random() - 0.5) * 20;
-        positions[i3 + 1] = (Math.random() - 0.5) * 20;
-        positions[i3 + 2] = (Math.random() - 0.5) * 20;
-        colors[i3] = 0; colors[i3 + 1] = 1; colors[i3 + 2] = 1;
-        sizes[i] = CONFIG.particleSize;
-    }
-
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-
-    const material = new THREE.ShaderMaterial({
-        uniforms: {
-            uTime: { value: 0 },
-            uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) }
-        },
-        vertexShader: `
-            attribute float size;
-            attribute vec3 color;
-            varying vec3 vColor;
-            varying float vAlpha;
-            uniform float uTime;
-            uniform float uPixelRatio;
-            void main() {
-                vColor = color;
-                vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-                vAlpha = clamp(1.0 - length(mvPosition.xyz) / 50.0, 0.3, 1.0);
-                gl_PointSize = size * uPixelRatio * (8.0 / -mvPosition.z);
-                gl_PointSize += sin(uTime * 2.0 + position.x) * 0.5;
-                gl_Position = projectionMatrix * mvPosition;
-            }
-        `,
-        fragmentShader: `
-            varying vec3 vColor;
-            varying float vAlpha;
-            void main() {
-                float dist = length(gl_PointCoord - vec2(0.5));
-                if (dist > 0.5) discard;
-                float alpha = 1.0 - smoothstep(0.2, 0.5, dist);
-                vec3 glow = vColor * (1.0 + 0.5 * (1.0 - dist * 2.0));
-                gl_FragColor = vec4(glow, alpha * vAlpha);
-            }
-        `,
-        transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
-    });
-
-    particles = new THREE.Points(geometry, material);
-    scene.add(particles);
-}
-
-function generateAllPositions() {
-    spherePositions = new Float32Array(CONFIG.particleCount * 3);
-    for (let i = 0; i < CONFIG.particleCount; i++) {
-        const i3 = i * 3;
-        const phi = Math.acos(1 - 2 * (i + 0.5) / CONFIG.particleCount);
-        const theta = Math.PI * (1 + Math.sqrt(5)) * i;
-        spherePositions[i3] = CONFIG.sphereRadius * Math.sin(phi) * Math.cos(theta);
-        spherePositions[i3 + 1] = CONFIG.sphereRadius * Math.sin(phi) * Math.sin(theta);
-        spherePositions[i3 + 2] = CONFIG.sphereRadius * Math.cos(phi);
+    let best = raw, bestCount = 0;
+    for (const [g, c] of Object.entries(counts)) {
+        if (c > bestCount) { best = g; bestCount = c; }
     }
     
-    expandedPositions = new Float32Array(CONFIG.particleCount * 3);
-    for (let i = 0; i < CONFIG.particleCount; i++) {
-        const i3 = i * 3;
-        const r = 15 + Math.random() * 20;
-        const theta = Math.random() * Math.PI * 2;
-        const phi = Math.acos(2 * Math.random() - 1);
-        expandedPositions[i3] = r * Math.sin(phi) * Math.cos(theta);
-        expandedPositions[i3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-        expandedPositions[i3 + 2] = r * Math.cos(phi);
+    // Require majority consensus
+    if (bestCount >= Math.ceil(CONFIG.gestureBufferSize * 0.6)) {
+        return best;
     }
-    
-    textPositions1 = getTextPositions("hello, world", CONFIG.textScale);
-    textPositions2 = getTextPositions("I'm Qwen", CONFIG.textScale);
+    return STATE.gestureMode === 'idle' ? 'unknown' : STATE.gestureMode;
 }
 
-function getTextPositions(text, scale) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = 512; canvas.height = 128;
-    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#fff'; ctx.font = 'bold 72px Arial';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+function gestureToMode(gesture, currentTool) {
+    if (gesture === 'fist' || gesture === 'unknown' || gesture === 'pinch') {
+        return 'idle';
+    }
+    if (gesture === 'pointing') return 'hover';
+    if (gesture === 'open_palm') return 'erase';
+    if (gesture === 'peace') return 'draw';
+    return 'hover';
+}
+
+// ================================================================
+// KALMAN FILTER - OPTIMAL SMOOTHING
+// ================================================================
+function kalmanUpdate(state, measurement) {
+    // Prediction step (assume constant position)
+    const predictedValue = state.value;
+    const predictedError = state.error + state.Q;
     
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const pixels = imageData.data;
-    const points = [];
+    // Update step
+    const kalmanGain = predictedError / (predictedError + state.R);
+    state.value = predictedValue + kalmanGain * (measurement - predictedValue);
+    state.error = (1 - kalmanGain) * predictedError;
     
-    for (let y = 0; y < canvas.height; y += 2) {
-        for (let x = 0; x < canvas.width; x += 2) {
-            if (pixels[(y * canvas.width + x) * 4] > 128) {
-                points.push({
-                    x: (x - canvas.width / 2) / canvas.width * scale,
-                    y: -(y - canvas.height / 2) / canvas.height * scale * 0.5,
-                    z: (Math.random() - 0.5) * 0.5
-                });
+    return state.value;
+}
+
+// ================================================================
+// POSITION PROCESSING - 4 LAYER FILTER
+// ================================================================
+function processPosition(landmark) {
+    const canvas = document.getElementById('writing-canvas');
+    const now = performance.now();
+    
+    // Convert to screen coordinates (non-mirror)
+    const rawX = (1 - landmark.x) * canvas.width / (window.devicePixelRatio || 1);
+    const rawY = landmark.y * canvas.height / (window.devicePixelRatio || 1);
+    
+    // Layer 1: Kalman Filter (optimal state estimation)
+    if (!STATE.kalmanPos) {
+        kalman.x.value = rawX;
+        kalman.y.value = rawY;
+        STATE.kalmanPos = { x: rawX, y: rawY };
+    }
+    const kalX = kalmanUpdate(kalman.x, rawX);
+    const kalY = kalmanUpdate(kalman.y, rawY);
+    
+    // Layer 2: Low-pass filter (high frequency noise)
+    if (!STATE.smoothedPos) {
+        STATE.smoothedPos = { x: kalX, y: kalY };
+    }
+    const alpha = CONFIG.lowPassAlpha;
+    STATE.smoothedPos.x = STATE.smoothedPos.x * alpha + kalX * (1 - alpha);
+    STATE.smoothedPos.y = STATE.smoothedPos.y * alpha + kalY * (1 - alpha);
+    
+    // Layer 3: Velocity calculation
+    if (STATE.lastPos && STATE.lastTime > 0) {
+        const dt = Math.max((now - STATE.lastTime) / 1000, 0.001);
+        const vx = (STATE.smoothedPos.x - STATE.lastPos.x) / dt;
+        const vy = (STATE.smoothedPos.y - STATE.lastPos.y) / dt;
+        
+        // Smooth velocity
+        STATE.velocity.x = STATE.velocity.x * CONFIG.velocitySmoothing + vx * (1 - CONFIG.velocitySmoothing);
+        STATE.velocity.y = STATE.velocity.y * CONFIG.velocitySmoothing + vy * (1 - CONFIG.velocitySmoothing);
+        STATE.velocity.magnitude = Math.hypot(STATE.velocity.x, STATE.velocity.y);
+        
+        // Layer 4: Acceleration (for pressure dynamics)
+        if (STATE.lastVel) {
+            STATE.acceleration.x = (STATE.velocity.x - STATE.lastVel.x) / dt;
+            STATE.acceleration.y = (STATE.velocity.y - STATE.lastVel.y) / dt;
+            STATE.acceleration.magnitude = Math.hypot(STATE.acceleration.x, STATE.acceleration.y);
+        }
+        
+        STATE.lastVel = { x: STATE.velocity.x, y: STATE.velocity.y };
+    }
+    
+    STATE.lastPos = { x: STATE.smoothedPos.x, y: STATE.smoothedPos.y };
+    STATE.lastTime = now;
+    
+    return { x: STATE.smoothedPos.x, y: STATE.smoothedPos.y };
+}
+
+// ================================================================
+// PRESSURE SIMULATION
+// ================================================================
+function calculatePressure(velocity, acceleration) {
+    const sens = CONFIG.pressureSensitivity;
+    const vel = Math.min(velocity / 1000, 1); // Normalize to 0-1
+    const acc = Math.min(acceleration / 5000, 1);
+    
+    // Inverse velocity + acceleration boost for natural feel
+    const basePressure = 1 - vel * 0.7;
+    const accBoost = acc * 0.3;
+    const pressure = Math.max(0.1, Math.min(1, (basePressure + accBoost) * (0.5 + sens)));
+    
+    return pressure;
+}
+
+// ================================================================
+// STROKE RENDERING - CATMULL-ROM SPLINE
+// ================================================================
+function catmullRomPoint(p0, p1, p2, p3, t) {
+    const t2 = t * t;
+    const t3 = t2 * t;
+    return {
+        x: 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
+        y: 0.5 * ((2 * p1.y) + (-p0.y + p2.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3)
+    };
+}
+
+function getToolStyle(tool, color, size, opacity, pressure) {
+    const dynamicSize = size * (CONFIG.minStrokeWidth + pressure * (CONFIG.maxStrokeWidth - CONFIG.minStrokeWidth));
+    
+    switch (tool) {
+        case 'pen':
+            return { color, size: dynamicSize, opacity, composite: 'source-over', shadow: 0 };
+        case 'marker':
+            return { color, size: dynamicSize * 1.5, opacity: opacity * 0.85, composite: 'source-over', shadow: 2 };
+        case 'highlighter':
+            return { color, size: dynamicSize * 3, opacity: 0.35, composite: 'source-over', shadow: 0 };
+        case 'eraser':
+            return { color: '#000000', size: size * 3, opacity: 1, composite: 'destination-out', shadow: 0 };
+        case 'laser':
+            return { color, size: 4, opacity: 1, composite: 'source-over', shadow: 20, glow: true };
+        default:
+            return { color, size: dynamicSize, opacity, composite: 'source-over', shadow: 0 };
+    }
+}
+
+function renderStroke(ctx, stroke) {
+    if (stroke.points.length < 2) return;
+    
+    const style = getToolStyle(stroke.tool, stroke.color, stroke.size, stroke.opacity, 0.7);
+    
+    ctx.globalCompositeOperation = style.composite;
+    ctx.globalAlpha = style.opacity;
+    ctx.strokeStyle = style.color;
+    ctx.lineWidth = style.size;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    
+    if (style.shadow > 0) {
+        ctx.shadowBlur = style.shadow;
+        ctx.shadowColor = style.color;
+    } else {
+        ctx.shadowBlur = 0;
+    }
+    
+    // Catmull-Rom spline interpolation for smooth curves
+    ctx.beginPath();
+    const pts = stroke.points;
+    
+    if (pts.length === 2) {
+        ctx.moveTo(pts[0].x, pts[0].y);
+        ctx.lineTo(pts[1].x, pts[1].y);
+    } else {
+        ctx.moveTo(pts[0].x, pts[0].y);
+        
+        for (let i = 0; i < pts.length - 1; i++) {
+            const p0 = pts[i === 0 ? 0 : i - 1];
+            const p1 = pts[i];
+            const p2 = pts[i + 1];
+            const p3 = pts[i + 2 < pts.length ? i + 2 : i + 1];
+            
+            const segments = CONFIG.catmullRomSegments;
+            for (let t = 1; t <= segments; t++) {
+                const pt = catmullRomPoint(p0, p1, p2, p3, t / segments);
+                
+                // Pressure-based width variation
+                if (stroke.pressures && stroke.pressures[i]) {
+                    const pressure = stroke.pressures[i] * 0.5 + (stroke.pressures[i + 1] || stroke.pressures[i]) * 0.5;
+                    const dynamicStyle = getToolStyle(stroke.tool, stroke.color, stroke.size, stroke.opacity, pressure);
+                    ctx.lineWidth = dynamicStyle.size;
+                }
+                
+                ctx.lineTo(pt.x, pt.y);
             }
         }
     }
     
-    const result = new Float32Array(CONFIG.particleCount * 3);
-    for (let i = 0; i < CONFIG.particleCount; i++) {
-        const i3 = i * 3;
-        if (points.length > 0) {
-            const p = points[Math.floor(Math.random() * points.length)];
-            result[i3] = p.x + (Math.random() - 0.5) * 0.1;
-            result[i3 + 1] = p.y + (Math.random() - 0.5) * 0.1;
-            result[i3 + 2] = p.z + (Math.random() - 0.5) * 0.3;
-        }
-    }
-    return result;
+    ctx.stroke();
+    
+    // Reset
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
 }
 
-// ============================================================
-// MEDIAPIPE
-// ============================================================
-async function initHandDetection() {
+// ================================================================
+// STROKE MANAGEMENT
+// ================================================================
+function startStroke(pos) {
+    STATE.currentStroke = {
+        tool: STATE.currentTool,
+        color: STATE.currentColor,
+        size: STATE.penSize,
+        opacity: STATE.opacity,
+        points: [{ x: pos.x, y: pos.y }],
+        pressures: [0.7],
+        timestamp: Date.now()
+    };
+    STATE.isDrawing = true;
+}
+
+function continueStroke(pos, pressure) {
+    if (!STATE.currentStroke) return;
+    
+    // Distance check to avoid too many points
+    const lastPt = STATE.currentStroke.points[STATE.currentStroke.points.length - 1];
+    const dist = Math.hypot(pos.x - lastPt.x, pos.y - lastPt.y);
+    if (dist < 1.5) return;
+    
+    STATE.currentStroke.points.push({ x: pos.x, y: pos.y });
+    STATE.currentStroke.pressures.push(pressure);
+    
+    // Preview rendering
+    renderPreview();
+}
+
+function endStroke() {
+    if (!STATE.currentStroke) return;
+    if (STATE.currentStroke.points.length >= 2) {
+        STATE.pages[STATE.currentPage].push(STATE.currentStroke);
+        STATE.undoStack.push({
+            action: 'add',
+            page: STATE.currentPage,
+            strokeIndex: STATE.pages[STATE.currentPage].length - 1
+        });
+        STATE.redoStack = [];
+        
+        // Commit to main canvas
+        renderStroke(writingCtx, STATE.currentStroke);
+        autoSave();
+    }
+    STATE.currentStroke = null;
+    STATE.isDrawing = false;
+    previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+}
+
+function renderPreview() {
+    previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+    if (STATE.currentStroke) {
+        renderStroke(previewCtx, STATE.currentStroke);
+    }
+}
+
+function redrawCurrentPage() {
+    if (!writingCtx) return;
+    writingCtx.clearRect(0, 0, writingCanvas.width, writingCanvas.height);
+    STATE.pages[STATE.currentPage].forEach(stroke => renderStroke(writingCtx, stroke));
+}
+
+// ================================================================
+// ERASER LOGIC
+// ================================================================
+function eraseAtPoint(pos) {
+    const strokes = STATE.pages[STATE.currentPage];
+    const eraseRadius = STATE.penSize * 2;
+    let erased = false;
+    
+    for (let i = strokes.length - 1; i >= 0; i--) {
+        const stroke = strokes[i];
+        if (stroke.tool === 'eraser') continue;
+        
+        for (const pt of stroke.points) {
+            if (Math.hypot(pt.x - pos.x, pt.y - pos.y) < eraseRadius) {
+                strokes.splice(i, 1);
+                erased = true;
+                break;
+            }
+        }
+    }
+    
+    if (erased) {
+        redrawCurrentPage();
+        autoSave();
+    }
+}
+
+// ================================================================
+// UNDO / REDO
+// ================================================================
+function undo() {
+    if (STATE.undoStack.length === 0) return;
+    const action = STATE.undoStack.pop();
+    
+    if (action.action === 'add') {
+        const stroke = STATE.pages[action.page].pop();
+        STATE.redoStack.push({ action: 'add', page: action.page, stroke });
+    } else if (action.action === 'clear') {
+        STATE.pages[action.page] = action.strokes;
+        STATE.redoStack.push({ action: 'clear', page: action.page });
+    }
+    
+    redrawCurrentPage();
+    showToast('↶ Undo');
+}
+
+function redo() {
+    if (STATE.redoStack.length === 0) return;
+    const action = STATE.redoStack.pop();
+    
+    if (action.action === 'add') {
+        STATE.pages[action.page].push(action.stroke);
+        STATE.undoStack.push({ action: 'add', page: action.page, strokeIndex: STATE.pages[action.page].length - 1 });
+    } else if (action.action === 'clear') {
+        STATE.undoStack.push({ action: 'clear', page: action.page, strokes: STATE.pages[action.page].slice() });
+        STATE.pages[action.page] = [];
+    }
+    
+    redrawCurrentPage();
+    showToast('↷ Redo');
+}
+
+function clearPage() {
+    if (STATE.pages[STATE.currentPage].length === 0) return;
+    STATE.undoStack.push({
+        action: 'clear',
+        page: STATE.currentPage,
+        strokes: STATE.pages[STATE.currentPage].slice()
+    });
+    STATE.redoStack = [];
+    STATE.pages[STATE.currentPage] = [];
+    redrawCurrentPage();
+    autoSave();
+    showToast('🗑️ Page cleared');
+}
+
+// ================================================================
+// PAGE MANAGEMENT
+// ================================================================
+function switchPage(idx) {
+    if (idx < 0 || idx >= STATE.pages.length) return;
+    STATE.currentPage = idx;
+    redrawCurrentPage();
+    updatePageIndicator();
+}
+
+function addPage() {
+    STATE.pages.push([]);
+    switchPage(STATE.pages.length - 1);
+    showToast('📄 New page added');
+}
+
+function updatePageIndicator() {
+    document.getElementById('page-text').textContent = `${STATE.currentPage + 1} / ${STATE.pages.length}`;
+}
+
+// ================================================================
+// SAVE / LOAD
+// ================================================================
+function autoSave() {
+    try {
+        const data = {
+            pages: STATE.pages,
+            currentPage: STATE.currentPage,
+            tool: STATE.currentTool,
+            color: STATE.currentColor,
+            size: STATE.penSize
+        };
+        localStorage.setItem(CONFIG.storageKey, JSON.stringify(data));
+    } catch (e) { console.warn('Auto-save failed:', e); }
+}
+
+function loadSaved() {
+    try {
+        const saved = localStorage.getItem(CONFIG.storageKey);
+        if (saved) {
+            const data = JSON.parse(saved);
+            STATE.pages = data.pages || [[]];
+            STATE.currentPage = data.currentPage || 0;
+            STATE.currentTool = data.tool || 'pen';
+            STATE.currentColor = data.color || '#ffffff';
+            STATE.penSize = data.size || 5;
+            redrawCurrentPage();
+            updatePageIndicator();
+            updateToolUI();
+            showToast('💾 Loaded saved work');
+        }
+    } catch (e) { console.warn('Load failed:', e); }
+}
+
+function saveAsPNG() {
+    const combined = document.createElement('canvas');
+    combined.width = window.innerWidth;
+    combined.height = window.innerHeight;
+    const ctx = combined.getContext('2d');
+    
+    ctx.fillStyle = '#0a0a0f';
+    ctx.fillRect(0, 0, combined.width, combined.height);
+    ctx.drawImage(writingCanvas, 0, 0, combined.width, combined.height);
+    
+    const link = document.createElement('a');
+    link.download = `writing-page${STATE.currentPage + 1}-${Date.now()}.png`;
+    link.href = combined.toDataURL('image/png');
+    link.click();
+    showToast('💾 Saved as PNG');
+}
+
+// ================================================================
+// HAND VISUALIZER
+// ================================================================
+function drawHandViz(landmarks) {
+    if (!handVizCtx || !landmarks) return;
+    
+    handVizCtx.clearRect(0, 0, 240, 180);
+    
+    // Draw connections
+    const connections = [
+        [0,1],[1,2],[2,3],[3,4],  // Thumb
+        [0,5],[5,6],[6,7],[7,8],  // Index
+        [5,9],[9,10],[10,11],[11,12],  // Middle
+        [9,13],[13,14],[14,15],[15,16],  // Ring
+        [13,17],[17,18],[18,19],[19,20],  // Pinky
+        [0,17]
+    ];
+    
+    handVizCtx.strokeStyle = 'rgba(0,255,255,0.5)';
+    handVizCtx.lineWidth = 2;
+    
+    connections.forEach(([a, b]) => {
+        handVizCtx.beginPath();
+        handVizCtx.moveTo(landmarks[a].x * 240, landmarks[a].y * 180);
+        handVizCtx.lineTo(landmarks[b].x * 240, landmarks[b].y * 180);
+        handVizCtx.stroke();
+    });
+    
+    // Draw points
+    landmarks.forEach((lm, i) => {
+        handVizCtx.fillStyle = [4,8,12,16,20].includes(i) ? '#ff0' : '#0ff';
+        handVizCtx.beginPath();
+        handVizCtx.arc(lm.x * 240, lm.y * 180, 3, 0, Math.PI * 2);
+        handVizCtx.fill();
+    });
+}
+
+// ================================================================
+// MEDIAPIPE HANDS
+// ================================================================
+async function initHandTracking() {
     const video = document.getElementById('webcam');
     
     if (!window.isSecureContext) {
         throw new Error('Butuh HTTPS atau localhost!');
     }
     
-    const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { width: 640, height: 480, facingMode: 'user' } 
+    const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 640, height: 480, facingMode: 'user', frameRate: 60 }
     });
     video.srcObject = stream;
     
     const hands = new Hands({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
     });
-
+    
     hands.setOptions({
         maxNumHands: 1,
         modelComplexity: 1,
-        minDetectionConfidence: 0.7,
-        minTrackingConfidence: 0.5
+        minDetectionConfidence: 0.75,
+        minTrackingConfidence: 0.75
     });
-
+    
     hands.onResults(onHandResults);
-
+    
     const cam = new Camera(video, {
         onFrame: async () => { await hands.send({ image: video }); },
         width: 640, height: 480
@@ -568,510 +1144,249 @@ async function initHandDetection() {
     cam.start();
 }
 
-// ============================================================
-// ✍️ WRITING SYSTEM - INTI PENAMBAHAN
-// ============================================================
-function initWritingCanvas() {
-    const canvas = document.getElementById('writing-canvas');
-    const ctx = canvas.getContext('2d');
-    
-    function resize() {
-        // Simpan gambar yang ada
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = canvas.width;
-        tempCanvas.height = canvas.height;
-        tempCanvas.getContext('2d').drawImage(canvas, 0, 0);
-        
-        // Resize
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        
-        // Gambar ulang
-        if (tempCanvas.width > 0) {
-            ctx.drawImage(tempCanvas, 0, 0);
-        }
-    }
-    
-    resize();
-    window.addEventListener('resize', resize);
-    
-    // Setup context
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    
-    return ctx;
-}
-
-let writingCtx;
-
-// Transform koordinat dari MediaPipe ke Canvas (NON-MIRROR)
-function transformCoordinates(landmark) {
-    const canvas = document.getElementById('writing-canvas');
-    
-    // Video element memiliki transform: scaleX(-1) (mirror)
-    // MediaPipe memberikan koordinat pada gambar ASLI (sebelum mirror)
-    // Untuk hasil yang pas dengan gerakan user:
-    // - User gerakkan tangan ke KANAN user
-    // - Tangan user sebenarnya di KANAN layar (karena video dimirror)
-    // - Di MediaPipe (gambar asli): tangan ada di KIRI (x rendah)
-    // - Jadi kita perlu mirror koordinat: (1 - x)
-    
-    return {
-        x: (1 - landmark.x) * canvas.width,
-        y: landmark.y * canvas.height
-    };
-}
-
-function drawStroke(from, to, velocity) {
-    if (!writingCtx) return;
-    
-    // Velocity-based stroke size (lebih cepat = lebih tipis)
-    const baseSize = currentPenSize;
-    const velocityFactor = Math.max(0.3, 1 - velocity / 50);
-    const dynamicSize = baseSize * velocityFactor;
-    
-    writingCtx.strokeStyle = currentPenColor;
-    writingCtx.lineWidth = dynamicSize;
-    writingCtx.beginPath();
-    writingCtx.moveTo(from.x, from.y);
-    
-    // Quadratic curve untuk smoothing
-    const midX = (from.x + to.x) / 2;
-    const midY = (from.y + to.y) / 2;
-    writingCtx.quadraticCurveTo(from.x, from.y, midX, midY);
-    writingCtx.lineTo(to.x, to.y);
-    writingCtx.stroke();
-}
-
-function processWritingMode(landmarks) {
-    const fingerStates = getFingerStates(landmarks);
-    const indexTip = landmarks[8];
-    const middleExtended = fingerStates.middle;
-    
-    // Transform koordinat
-    const penPos = transformCoordinates(indexTip);
-    
-    // Exponential smoothing untuk kurangi jitter
-    if (!smoothedPenPos) {
-        smoothedPenPos = { x: penPos.x, y: penPos.y };
-    } else {
-        smoothedPenPos.x = smoothedPenPos.x * CONFIG.smoothingFactor + 
-                          penPos.x * (1 - CONFIG.smoothingFactor);
-        smoothedPenPos.y = smoothedPenPos.y * CONFIG.smoothingFactor + 
-                          penPos.y * (1 - CONFIG.smoothingFactor);
-    }
-    
-    // Hitung velocity (kecepatan tangan)
-    const now = performance.now();
-    let velocity = 0;
-    if (lastPenPos && lastPenTime > 0) {
-        const dt = (now - lastPenTime) / 1000;
-        const dx = smoothedPenPos.x - lastPenPos.x;
-        const dy = smoothedPenPos.y - lastPenPos.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        velocity = distance / Math.max(dt, 0.01);
-        
-        // Smooth velocity
-        smoothedVelocity = smoothedVelocity * CONFIG.velocitySmoothing + 
-                          velocity * (1 - CONFIG.velocitySmoothing);
-    }
-    
-    // Update UI cursor
-    const penCursor = document.getElementById('pen-cursor');
-    penCursor.style.display = 'block';
-    penCursor.style.left = smoothedPenPos.x + 'px';
-    penCursor.style.top = smoothedPenPos.y + 'px';
-    penCursor.style.width = currentPenSize + 'px';
-    penCursor.style.height = currentPenSize + 'px';
-    penCursor.style.backgroundColor = currentPenColor;
-    
-    // Update debug info
-    document.getElementById('pen-pos').textContent = 
-        `${Math.round(smoothedPenPos.x)}, ${Math.round(smoothedPenPos.y)}`;
-    document.getElementById('velocity').textContent = 
-        `${Math.round(smoothedVelocity)} px/s`;
-    
-    // Deteksi drawing state (jari tengah sebagai trigger)
-    const wasDrawing = isDrawing;
-    isDrawing = middleExtended;
-    
-    const drawingStateEl = document.getElementById('drawing-state');
-    const indicatorEl = document.getElementById('writing-mode-indicator');
-    
-    if (isDrawing) {
-        drawingStateEl.textContent = '✓ DRAWING';
-        drawingStateEl.style.color = '#0f0';
-        indicatorEl.textContent = '✍️ MENULIS...';
-        indicatorEl.classList.remove('not-drawing');
-        penCursor.style.backgroundColor = currentPenColor;
-        penCursor.style.boxShadow = `0 0 20px ${currentPenColor}`;
-        
-        // Jika baru mulai menggambar, inisialisasi stroke
-        if (!wasDrawing || !lastPenPos) {
-            drawingHistory.push({
-                color: currentPenColor,
-                size: currentPenSize,
-                points: [{ x: smoothedPenPos.x, y: smoothedPenPos.y }]
-            });
-        } else {
-            // Gambar stroke
-            drawStroke(lastPenPos, smoothedPenPos, smoothedVelocity);
-            
-            // Tambah ke history untuk undo
-            if (drawingHistory.length > 0) {
-                drawingHistory[drawingHistory.length - 1].points.push({
-                    x: smoothedPenPos.x,
-                    y: smoothedPenPos.y
-                });
-            }
-        }
-    } else {
-        drawingStateEl.textContent = '✗ Pen Up';
-        drawingStateEl.style.color = '#888';
-        indicatorEl.textContent = '✍️ Mode Menulis: AKTIF (Pen Up)';
-        indicatorEl.classList.add('not-drawing');
-        penCursor.style.backgroundColor = 'transparent';
-        penCursor.style.boxShadow = '0 0 10px rgba(0,255,255,0.8)';
-    }
-    
-    // Update untuk frame berikutnya
-    lastPenPos = { x: smoothedPenPos.x, y: smoothedPenPos.y };
-    lastPenTime = now;
-}
-
-// ============================================================
-// HANDLING HASIL MEDIAPIPE
-// ============================================================
+// ================================================================
+// MAIN HAND RESULTS HANDLER
+// ================================================================
 function onHandResults(results) {
-    const indicator = document.getElementById('gesture-indicator');
-    const gestureEl = document.getElementById('current-gesture');
+    const gestureIndicator = document.getElementById('gesture-indicator');
+    const gestureDot = document.getElementById('gesture-dot');
+    const gestureText = document.getElementById('gesture-text');
+    const penCursor = document.getElementById('pen-cursor');
     
+    // No hand detected
     if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
-        indicator.style.display = 'none';
-        gestureEl.textContent = 'Tidak terdeteksi';
-        gestureEl.style.color = '#888';
-        resetFingerDisplay();
-        gestureBuffer.length = 0;
+        STATE.handDetected = false;
+        STATE.gestureMode = 'idle';
+        penCursor.style.display = 'none';
+        gestureIndicator.style.display = 'none';
+        document.getElementById('hand-status-indicator').className = 'status-indicator idle';
+        document.getElementById('hand-status-text').textContent = 'No hand';
+        STATE.handConfidence = 0;
+        document.getElementById('confidence-display').textContent = '0%';
         
-        // Hide pen cursor if no hand
-        document.getElementById('pen-cursor').style.display = 'none';
+        if (STATE.isDrawing) endStroke();
         return;
     }
     
     const landmarks = results.multiHandLandmarks[0];
+    STATE.handDetected = true;
+    STATE.handConfidence = results.multiHandedness?.[0]?.score || 0.9;
+    document.getElementById('confidence-display').textContent = Math.round(STATE.handConfidence * 100) + '%';
     
-    // Jika dalam mode menulis, proses writing dan skip gesture partikel
-    if (writingMode) {
-        processWritingMode(landmarks);
-        
-        // Update finger display
-        const f = getFingerStates(landmarks);
-        updateFingerDisplay(f);
-        
-        // Hide gesture indicator saat menulis
-        indicator.style.display = 'none';
-        gestureEl.textContent = 'Writing Mode';
-        gestureEl.style.color = '#0ff';
-        return;
+    document.getElementById('hand-status-indicator').className = 'status-indicator active';
+    document.getElementById('hand-status-text').textContent = 'Tracking';
+    
+    // Draw hand visualizer
+    drawHandViz(landmarks);
+    
+    // Process position through 4-layer filter
+    const indexTip = landmarks[8];
+    const pos = processPosition(indexTip);
+    
+    // Detect gesture and smooth
+    const rawGesture = detectGesture(landmarks);
+    const smoothedGesture = smoothGesture(rawGesture);
+    const newMode = gestureToMode(smoothedGesture, STATE.currentTool);
+    
+    // Handle pinch for color picking
+    if (smoothedGesture === 'pinch' && STATE.gestureMode !== 'pinch') {
+        pickColorAt(pos);
     }
     
-    // MODE BIASA: Gesture partikel
-    const rawGesture = detectRawGesture(landmarks);
-    const { gesture, confidence } = smoothGesture(rawGesture);
+    STATE.gestureMode = newMode;
+    document.getElementById('mode-display').textContent = newMode.toUpperCase();
     
-    const f = getFingerStates(landmarks);
-    updateFingerDisplay(f);
-    document.getElementById('drawing-state').textContent = '-';
+    // Update gesture indicator
+    gestureIndicator.style.display = 'flex';
+    gestureText.textContent = `${smoothedGesture.toUpperCase()} → ${newMode.toUpperCase()}`;
+    gestureDot.className = 'gesture-dot';
+    if (newMode === 'hover') gestureDot.classList.add('hover');
+    else if (newMode === 'draw') gestureDot.classList.add('draw');
+    else if (newMode === 'erase') gestureDot.classList.add('erase');
     
-    indicator.style.display = 'block';
+    // Update pen cursor
+    penCursor.style.display = 'block';
+    penCursor.style.left = pos.x + 'px';
+    penCursor.style.top = pos.y + 'px';
     
-    switch(gesture) {
-        case 'peace':
-            currentMode = 'text2'; targetPositions = textPositions2;
-            indicator.className = 'gesture-indicator gesture-peace';
-            indicator.textContent = '✌️ PEACE → "I\'m Qwen"';
-            gestureEl.textContent = 'PEACE (✌️)';
-            gestureEl.style.color = '#f0f';
-            break;
-        case 'pointing':
-            currentMode = 'text1'; targetPositions = textPositions1;
-            indicator.className = 'gesture-indicator gesture-point';
-            indicator.textContent = '☝️ POINTING → "hello, world"';
-            gestureEl.textContent = 'POINTING (☝️)';
-            gestureEl.style.color = '#ff0';
-            break;
-        case 'open':
-            currentMode = 'expanded'; targetPositions = expandedPositions;
-            indicator.className = 'gesture-indicator gesture-open';
-            indicator.textContent = '🖐️ OPEN → Mengembang';
-            gestureEl.textContent = 'OPEN PALM (🖐️)';
-            gestureEl.style.color = '#0f0';
-            break;
-        case 'fist':
-            currentMode = 'sphere'; targetPositions = spherePositions;
-            indicator.className = 'gesture-indicator gesture-closed';
-            indicator.textContent = '✊ FIST → Bola';
-            gestureEl.textContent = 'FIST (✊)';
-            gestureEl.style.color = '#f00';
-            break;
-        default:
-            indicator.style.display = 'none';
-            gestureEl.textContent = 'Unknown';
-            gestureEl.style.color = '#888';
-    }
-}
-
-function updateFingerDisplay(f) {
-    const names = ['thumb', 'index', 'middle', 'ring', 'pinky'];
-    const ids = ['f-thumb', 'f-index', 'f-middle', 'f-ring', 'f-pinky'];
+    const toolStyle = getToolStyle(STATE.currentTool, STATE.currentColor, STATE.penSize, STATE.opacity, 0.7);
+    const cursorSize = STATE.currentTool === 'eraser' ? STATE.penSize * 3 : toolStyle.size * 2;
+    penCursor.style.width = Math.max(cursorSize, 10) + 'px';
+    penCursor.style.height = Math.max(cursorSize, 10) + 'px';
+    penCursor.style.border = `2px solid ${STATE.currentTool === 'eraser' ? '#fff' : STATE.currentColor}`;
+    penCursor.style.boxShadow = `0 0 15px ${STATE.currentColor}`;
     
-    names.forEach((name, i) => {
-        const el = document.getElementById(ids[i]);
-        if (f[name]) {
-            el.textContent = '✓ EXTENDED';
-            el.className = 'finger-extended';
+    // Update status panel
+    const pressure = calculatePressure(STATE.velocity.magnitude, STATE.acceleration.magnitude);
+    document.getElementById('pressure-display').textContent = pressure.toFixed(2);
+    document.getElementById('velocity-display').textContent = Math.round(STATE.velocity.magnitude) + ' px/s';
+    
+    // Handle drawing/erasing based on mode
+    if (newMode === 'draw') {
+        if (!STATE.isDrawing || STATE.currentStroke?.tool !== STATE.currentTool) {
+            if (STATE.isDrawing) endStroke();
+            startStroke(pos);
         } else {
-            el.textContent = '✗ CURLED';
-            el.className = 'finger-curled';
+            continueStroke(pos, pressure);
         }
-    });
-}
-
-function resetFingerDisplay() {
-    ['f-thumb', 'f-index', 'f-middle', 'f-ring', 'f-pinky'].forEach(id => {
-        const el = document.getElementById(id);
-        el.textContent = '-';
-        el.className = 'finger-curled';
-    });
-}
-
-// ============================================================
-// ✍️ WRITING MODE CONTROLS
-// ============================================================
-function toggleWritingMode() {
-    writingMode = !writingMode;
-    const canvas = document.getElementById('writing-canvas');
-    const toolbar = document.getElementById('writing-toolbar');
-    const indicator = document.getElementById('writing-mode-indicator');
-    const penCursor = document.getElementById('pen-cursor');
-    
-    if (writingMode) {
-        canvas.style.display = 'block';
-        toolbar.classList.add('active');
-        indicator.classList.add('active');
-        indicator.textContent = '✍️ Mode Menulis: AKTIF';
-        
-        // Reset states
-        isDrawing = false;
-        lastPenPos = null;
-        smoothedPenPos = null;
-        smoothedVelocity = 0;
-        lastPenTime = 0;
-        
-        // Dim partikel agar tulisan lebih terlihat
-        particles.material.opacity = 0.3;
-        particles.material.transparent = true;
+    } else if (newMode === 'erase') {
+        if (STATE.isDrawing) endStroke();
+        eraseAtPoint(pos);
     } else {
-        canvas.style.display = 'none';
-        toolbar.classList.remove('active');
-        indicator.classList.remove('active');
-        penCursor.style.display = 'none';
-        
-        // Kembalikan opacity partikel
-        particles.material.opacity = 1.0;
+        // Hover or idle
+        if (STATE.isDrawing) endStroke();
     }
 }
 
-function clearWriting() {
-    if (!writingCtx) return;
-    const canvas = document.getElementById('writing-canvas');
-    writingCtx.clearRect(0, 0, canvas.width, canvas.height);
-    drawingHistory = [];
+// ================================================================
+// COLOR PICKER FROM CANVAS
+// ================================================================
+function pickColorAt(pos) {
+    try {
+        const dpr = window.devicePixelRatio || 1;
+        const pixel = writingCtx.getImageData(pos.x * dpr, pos.y * dpr, 1, 1).data;
+        if (pixel[3] > 50) { // Has content
+            const hex = '#' + [pixel[0], pixel[1], pixel[2]]
+                .map(x => x.toString(16).padStart(2, '0')).join('');
+            STATE.currentColor = hex;
+            updateToolUI();
+            showToast(`🎨 Picked ${hex}`);
+        }
+    } catch (e) {}
 }
 
-function undoWriting() {
-    if (!writingCtx || drawingHistory.length === 0) return;
-    
-    drawingHistory.pop();
-    
-    // Redraw everything
-    const canvas = document.getElementById('writing-canvas');
-    writingCtx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    drawingHistory.forEach(stroke => {
-        if (stroke.points.length < 2) return;
-        
-        writingCtx.strokeStyle = stroke.color;
-        writingCtx.lineWidth = stroke.size;
-        writingCtx.lineCap = 'round';
-        writingCtx.lineJoin = 'round';
-        writingCtx.beginPath();
-        writingCtx.moveTo(stroke.points[0].x, stroke.points[0].y);
-        
-        for (let i = 1; i < stroke.points.length; i++) {
-            const from = stroke.points[i - 1];
-            const to = stroke.points[i];
-            const midX = (from.x + to.x) / 2;
-            const midY = (from.y + to.y) / 2;
-            writingCtx.quadraticCurveTo(from.x, from.y, midX, midY);
-        }
-        writingCtx.stroke();
+// ================================================================
+// UI UPDATES
+// ================================================================
+function updateToolUI() {
+    document.querySelectorAll('.tool-btn[data-tool]').forEach(b => {
+        b.classList.toggle('active', b.dataset.tool === STATE.currentTool);
     });
+    document.querySelectorAll('.color-swatch').forEach(s => {
+        s.classList.toggle('active', s.dataset.color === STATE.currentColor);
+    });
+    document.getElementById('size-slider').value = STATE.penSize;
+    document.getElementById('size-value').textContent = STATE.penSize;
+    document.getElementById('opacity-slider').value = Math.round(STATE.opacity * 100);
+    document.getElementById('opacity-value').textContent = Math.round(STATE.opacity * 100);
 }
 
-function saveWriting() {
-    // Buat canvas gabungan (3D + writing)
-    const combined = document.createElement('canvas');
-    combined.width = window.innerWidth;
-    combined.height = window.innerHeight;
-    const ctx = combined.getContext('2d');
-    
-    // Background hitam
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, combined.width, combined.height);
-    
-    // Gambar canvas 3D
-    ctx.drawImage(document.getElementById('canvas3d'), 0, 0);
-    
-    // Gambar canvas writing
-    ctx.drawImage(document.getElementById('writing-canvas'), 0, 0);
-    
-    // Download
-    const link = document.createElement('a');
-    link.download = `writing-${Date.now()}.png`;
-    link.href = combined.toDataURL('image/png');
-    link.click();
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 2000);
 }
 
-// ============================================================
-// ANIMATION LOOP
-// ============================================================
-function updateParticles(time) {
-    const posAttr = particles.geometry.attributes.position;
-    const colAttr = particles.geometry.attributes.color;
-    const posArray = posAttr.array;
-    const colArray = colAttr.array;
-    
-    const colors = {
-        sphere: CONFIG.colors.sphere,
-        expanded: CONFIG.colors.expanded,
-        text1: CONFIG.colors.text1,
-        text2: CONFIG.colors.text2
-    };
-    const targetColor = colors[currentMode];
-
-    for (let i = 0; i < CONFIG.particleCount; i++) {
-        const i3 = i * 3;
-        let tx, ty, tz;
-        
-        if (currentMode === 'text1' || currentMode === 'text2') {
-            const srcPos = currentMode === 'text1' ? textPositions1 : textPositions2;
-            const rawX = srcPos[i3], rawY = srcPos[i3 + 1], rawZ = srcPos[i3 + 2];
-            const cosY = Math.cos(textRotationY), sinY = Math.sin(textRotationY);
-            tx = rawX * cosY - rawZ * sinY;
-            ty = rawY + Math.sin(time * 2 + rawX * 2) * 0.1;
-            tz = rawX * sinY + rawZ * cosY;
-        } else {
-            tx = targetPositions[i3];
-            ty = targetPositions[i3 + 1];
-            tz = targetPositions[i3 + 2];
-        }
-        
-        posArray[i3] += (tx - posArray[i3]) * CONFIG.lerpSpeed;
-        posArray[i3 + 1] += (ty - posArray[i3 + 1]) * CONFIG.lerpSpeed;
-        posArray[i3 + 2] += (tz - posArray[i3 + 2]) * CONFIG.lerpSpeed;
-        
-        colArray[i3] += (targetColor[0] - colArray[i3]) * CONFIG.lerpSpeed;
-        colArray[i3 + 1] += (targetColor[1] - colArray[i3 + 1]) * CONFIG.lerpSpeed;
-        colArray[i3 + 2] += (targetColor[2] - colArray[i3 + 2]) * CONFIG.lerpSpeed;
-    }
-    posAttr.needsUpdate = true;
-    colAttr.needsUpdate = true;
-}
-
-function animate() {
-    requestAnimationFrame(animate);
-    const time = performance.now() * 0.001;
-    particles.material.uniforms.uTime.value = time;
-    updateParticles(time);
-    
-    if (!writingMode) {
-        if (currentMode === 'text1' || currentMode === 'text2') {
-            textRotationY += CONFIG.rotationSpeed;
-            if (textRotationY > Math.PI * 2) textRotationY -= Math.PI * 2;
-        }
-        
-        if (currentMode === 'sphere' || currentMode === 'expanded') {
-            particles.rotation.y += 0.001;
-            particles.rotation.x = Math.sin(time * 0.2) * 0.1;
-        } else {
-            particles.rotation.y *= 0.95;
-            particles.rotation.x *= 0.95;
-        }
-    }
-    
-    frameCount++;
-    if (time * 1000 - lastTime >= 1000) {
-        document.getElementById('fps-counter').textContent = frameCount;
-        frameCount = 0; lastTime = time * 1000;
-    }
-    renderer.render(scene, camera);
-}
-
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}
-
-// ============================================================
-// KEYBOARD SHORTCUTS
-// ============================================================
-document.addEventListener('keydown', (e) => {
-    const key = e.key.toLowerCase();
-    
-    if (key === 'w') {
-        toggleWritingMode();
-    } else if (key === 'c' && writingMode) {
-        clearWriting();
-    } else if (key === 'z' && e.ctrlKey && writingMode) {
-        undoWriting();
-    } else if (key === 's' && writingMode) {
-        e.preventDefault();
-        saveWriting();
-    }
-});
-
-// ============================================================
-// TOOLBAR EVENT LISTENERS
-// ============================================================
-function setupToolbar() {
-    // Color buttons
-    document.querySelectorAll('.color-btn').forEach(btn => {
+// ================================================================
+// EVENT LISTENERS
+// ================================================================
+function setupEventListeners() {
+    // Tool buttons
+    document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentPenColor = btn.dataset.color;
+            STATE.currentTool = btn.dataset.tool;
+            updateToolUI();
+            showToast(`🔧 ${STATE.currentTool.toUpperCase()} tool`);
         });
     });
     
-    // Pen size slider
-    const slider = document.getElementById('pen-size-slider');
-    const sizeValue = document.getElementById('pen-size-value');
-    slider.addEventListener('input', () => {
-        currentPenSize = parseInt(slider.value);
-        sizeValue.textContent = slider.value + 'px';
+    // Color swatches
+    document.querySelectorAll('.color-swatch').forEach(s => {
+        s.addEventListener('click', () => {
+            STATE.currentColor = s.dataset.color;
+            updateToolUI();
+        });
     });
     
-    // Tool buttons
-    document.getElementById('clear-btn').addEventListener('click', clearWriting);
-    document.getElementById('undo-btn').addEventListener('click', undoWriting);
-    document.getElementById('save-btn').addEventListener('click', saveWriting);
+    // Action buttons
+    document.getElementById('undo-btn').addEventListener('click', undo);
+    document.getElementById('redo-btn').addEventListener('click', redo);
+    document.getElementById('clear-btn').addEventListener('click', clearPage);
+    document.getElementById('grid-btn').addEventListener('click', () => {
+        document.getElementById('grid-overlay').classList.toggle('active');
+    });
+    document.getElementById('save-btn').addEventListener('click', saveAsPNG);
+    document.getElementById('help-btn').addEventListener('click', () => {
+        document.getElementById('tutorial').classList.toggle('show');
+    });
+    
+    // Page controls
+    document.getElementById('prev-page').addEventListener('click', () => switchPage(STATE.currentPage - 1));
+    document.getElementById('next-page').addEventListener('click', () => switchPage(STATE.currentPage + 1));
+    document.getElementById('add-page').addEventListener('click', addPage);
+    
+    // Sliders
+    document.getElementById('size-slider').addEventListener('input', e => {
+        STATE.penSize = parseInt(e.target.value);
+        document.getElementById('size-value').textContent = STATE.penSize;
+    });
+    document.getElementById('smooth-slider').addEventListener('input', e => {
+        const v = parseInt(e.target.value);
+        STATE.smoothing = v / 100;
+        CONFIG.lowPassAlpha = 1 - STATE.smoothing;
+        document.getElementById('smooth-value').textContent = v;
+    });
+    document.getElementById('opacity-slider').addEventListener('input', e => {
+        STATE.opacity = parseInt(e.target.value) / 100;
+        document.getElementById('opacity-value').textContent = e.target.value;
+    });
+    document.getElementById('pressure-slider').addEventListener('input', e => {
+        CONFIG.pressureSensitivity = parseInt(e.target.value) / 100;
+        document.getElementById('pressure-value').textContent = e.target.value;
+    });
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', e => {
+        if (e.ctrlKey || e.metaKey) {
+            if (e.key === 'z') { e.preventDefault(); undo(); }
+            else if (e.key === 'y') { e.preventDefault(); redo(); }
+            else if (e.key === 's') { e.preventDefault(); saveAsPNG(); }
+        } else {
+            switch (e.key) {
+                case '1': STATE.currentTool = 'pen'; break;
+                case '2': STATE.currentTool = 'marker'; break;
+                case '3': STATE.currentTool = 'highlighter'; break;
+                case '4': STATE.currentTool = 'eraser'; break;
+                case '5': STATE.currentTool = 'laser'; break;
+                case 'c': case 'C': clearPage(); return;
+                case 'g': case 'G':
+                    document.getElementById('grid-overlay').classList.toggle('active');
+                    return;
+                case 'h': case 'H':
+                    document.getElementById('tutorial').classList.toggle('show');
+                    return;
+                case '[':
+                    STATE.penSize = Math.max(1, STATE.penSize - 1); break;
+                case ']':
+                    STATE.penSize = Math.min(30, STATE.penSize + 1); break;
+            }
+            updateToolUI();
+        }
+    });
+    
+    // Auto-save interval
+    setInterval(autoSave, CONFIG.autoSaveInterval);
 }
 
-// ============================================================
+// ================================================================
+// FPS COUNTER
+// ================================================================
+function updateFPS() {
+    STATE.frameCount++;
+    const now = performance.now();
+    if (now - STATE.lastFpsTime >= 1000) {
+        document.getElementById('fps-display').textContent = STATE.frameCount;
+        STATE.frameCount = 0;
+        STATE.lastFpsTime = now;
+    }
+    requestAnimationFrame(updateFPS);
+}
+
+// ================================================================
 // START APP
-// ============================================================
+// ================================================================
 async function startApp() {
     const btn = document.getElementById('start-btn');
     const screen = document.getElementById('start-screen');
@@ -1082,25 +1397,44 @@ async function startApp() {
     
     try {
         await loadLibraries();
-        document.getElementById('status-text').textContent = 'Inisialisasi 3D...';
-        initThreeJS();
-        document.getElementById('status-text').textContent = 'Inisialisasi Writing Canvas...';
-        writingCtx = initWritingCanvas();
+        document.getElementById('status-text').textContent = 'Setup canvases...';
+        setupCanvases();
+        
         document.getElementById('status-text').textContent = 'Meminta izin kamera...';
-        await initHandDetection();
+        await initHandTracking();
+        
+        document.getElementById('status-text').textContent = 'Memuat pekerjaan tersimpan...';
+        loadSaved();
         
         screen.style.display = 'none';
-        document.getElementById('info-panel').style.display = 'block';
-        document.getElementById('debug-panel').style.display = 'block';
-        document.querySelector('.shortcut-hint').style.display = 'block';
-        setupToolbar();
-        animate();
+        
+        ['top-bar', 'status-panel', 'properties-panel', 'gesture-indicator', 
+         'page-indicator', 'hand-viz', 'webcam'].forEach(id => {
+            document.getElementById(id).style.display = '';
+        });
+        
+        setupEventListeners();
+        updateToolUI();
+        updatePageIndicator();
+        updateFPS();
+        
+        // Show tutorial briefly
+        document.getElementById('tutorial').classList.add('show');
+        setTimeout(() => document.getElementById('tutorial').classList.remove('show'), 8000);
+        
+        showToast('✨ Sistem siap! Tunjukkan tangan Anda');
+        
     } catch (err) {
         screen.innerHTML = `
-            <h1 style="color:#f55">⚠️ Error</h1>
-            <p style="color:#faa; max-width:600px;">${err.message}</p>
-            <div class="warning-box">Pastikan membuka via <code>http://localhost:8000</code></div>
-            <button onclick="location.reload()" style="margin-top:20px;padding:12px 30px;background:#0ff;border:none;border-radius:30px;font-weight:bold;cursor:pointer;">🔄 Coba Lagi</button>
+            <h1 style="color:#f55; font-size:36px;">⚠️ Error</h1>
+            <p style="color:#faa; max-width:500px; margin:20px;">${err.message}</p>
+            <div class="warning-box">
+                <strong>Solusi:</strong><br>
+                1. Jalankan via <code>http://localhost:8000</code><br>
+                2. Izinkan akses kamera<br>
+                3. Pastikan internet aktif untuk load library
+            </div>
+            <button onclick="location.reload()" style="margin-top:20px;padding:12px 30px;background:#0ff;border:none;border-radius:30px;font-weight:bold;cursor:pointer;color:#000;">🔄 Coba Lagi</button>
         `;
     }
 }
