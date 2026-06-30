@@ -3,680 +3,412 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pro Writing System v4.1 — Optimized</title>
+<title>Pro Writing v5.0 — Ultra Optimized</title>
 <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    
-    :root {
-        --bg: #0a0a0f;
-        --panel: rgba(20, 20, 30, 0.92);
-        --border: rgba(0, 229, 255, 0.2);
-        --accent: #00e5ff;
-        --text: #fff;
-        --text-dim: #8892b0;
-        --danger: #ff4757;
-        --success: #2ed573;
-    }
-    
-    body {
-        overflow: hidden;
-        font-family: -apple-system, 'Segoe UI', sans-serif;
-        color: var(--text);
-        background: var(--bg);
-        user-select: none;
-        height: 100vh;
-    }
-    
-    #background {
-        position: fixed; inset: 0;
-        background: 
-            radial-gradient(ellipse at 20% 30%, rgba(0, 229, 255, 0.04) 0%, transparent 50%),
-            radial-gradient(ellipse at 80% 70%, rgba(255, 0, 255, 0.03) 0%, transparent 50%),
-            var(--bg);
-        z-index: 0;
-    }
-    
-    #grid-overlay {
-        position: fixed; inset: 0; z-index: 1; pointer-events: none;
-        background-image: 
-            linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px);
-        background-size: 40px 40px;
-        opacity: 0; transition: opacity 0.3s;
-    }
-    #grid-overlay.active { opacity: 1; }
-    
-    #writing-canvas { position: fixed; inset: 0; z-index: 10; }
-    #preview-canvas { position: fixed; inset: 0; z-index: 11; pointer-events: none; }
-    
-    /* Pen cursor */
-    #pen-cursor {
-        position: fixed; pointer-events: none; z-index: 500;
-        border-radius: 50%; transform: translate(-50%, -50%);
-        display: none; transition: width 0.1s, height 0.1s;
-    }
-    #pen-cursor::before {
-        content: ''; position: absolute; top: 50%; left: 50%;
-        width: 3px; height: 3px; background: #fff;
-        border-radius: 50%; transform: translate(-50%, -50%);
-    }
-    
-    /* Start screen */
-    #start-screen {
-        position: fixed; inset: 0;
-        background: radial-gradient(circle, #12121f 0%, #000 100%);
-        z-index: 10000; display: flex; flex-direction: column;
-        align-items: center; justify-content: center; padding: 20px;
-    }
-    .logo { font-size: 64px; margin-bottom: 10px; }
-    #start-screen h1 {
-        font-size: 38px; margin-bottom: 8px;
-        background: linear-gradient(135deg, #fff, var(--accent));
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .subtitle { color: var(--text-dim); margin-bottom: 40px; letter-spacing: 2px; font-size: 14px; }
-    
-    .features {
-        display: grid; grid-template-columns: repeat(3, 1fr);
-        gap: 12px; max-width: 650px; margin-bottom: 35px;
-    }
-    .feature {
-        background: var(--panel); padding: 18px 14px; border-radius: 14px;
-        border: 1px solid var(--border); text-align: center;
-    }
-    .feature .icon { font-size: 26px; margin-bottom: 6px; }
-    .feature .title { font-weight: 600; font-size: 13px; color: var(--accent); margin-bottom: 3px; }
-    .feature .desc { font-size: 11px; color: var(--text-dim); }
-    
-    #start-btn {
-        padding: 16px 60px; font-size: 16px; font-weight: 600;
-        background: linear-gradient(135deg, var(--accent), #b026ff);
-        border: none; border-radius: 50px; color: #000; cursor: pointer;
-        box-shadow: 0 10px 40px rgba(0, 229, 255, 0.3);
-        transition: transform 0.2s;
-    }
-    #start-btn:hover { transform: translateY(-2px); }
-    
-    .server-hint {
-        margin-top: 25px; padding: 12px 18px;
-        background: rgba(255,100,100,0.1); border: 1px solid rgba(255,100,100,0.3);
-        border-radius: 10px; font-size: 12px; color: #ffb3b3;
-    }
-    .server-hint code {
-        background: #000; padding: 2px 8px; border-radius: 4px;
-        color: var(--success); font-family: monospace;
-    }
-    
-    .spinner {
-        border: 3px solid rgba(0,229,255,0.2); border-top-color: var(--accent);
-        border-radius: 50%; width: 40px; height: 40px;
-        animation: spin 1s linear infinite; margin: 20px auto;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    
-    /* Status bar */
-    #status-bar {
-        position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
-        z-index: 200; background: var(--panel);
-        padding: 7px 18px; border-radius: 50px;
-        border: 1px solid var(--border);
-        display: none; align-items: center; gap: 18px;
-        font-size: 12px;
-    }
-    .status-item { display: flex; align-items: center; gap: 5px; color: var(--text-dim); }
-    .status-item .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
-    .status-item .value { color: var(--text); font-weight: 600; }
-    .status-dot {
-        width: 6px; height: 6px; border-radius: 50%;
-        background: var(--text-dim);
-    }
-    .status-dot.active { background: var(--success); }
-    .status-dot.drawing { background: var(--accent); animation: pulse 1.5s infinite; }
-    .status-dot.erasing { background: var(--danger); }
-    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
-    .sep { width: 1px; height: 14px; background: var(--border); }
-    
-    /* Floating dock */
-    #dock {
-        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-        z-index: 200; background: var(--panel);
-        padding: 6px; border-radius: 18px; border: 1px solid var(--border);
-        display: none; gap: 3px; align-items: center;
-    }
-    .dock-item {
-        width: 42px; height: 42px; border-radius: 11px;
-        background: transparent; border: none; color: var(--text-dim);
-        cursor: pointer; font-size: 18px;
-        display: flex; align-items: center; justify-content: center;
-        position: relative; transition: background 0.15s, color 0.15s;
-    }
-    .dock-item:hover { background: rgba(255,255,255,0.08); color: var(--text); }
-    .dock-item.active {
-        background: linear-gradient(135deg, var(--accent), #b026ff);
-        color: #000;
-    }
-    .dock-item .tt {
-        position: absolute; bottom: calc(100% + 8px); left: 50%;
-        transform: translateX(-50%); background: #000; color: #fff;
-        padding: 4px 9px; border-radius: 5px; font-size: 10px;
-        white-space: nowrap; opacity: 0; pointer-events: none;
-        transition: opacity 0.15s;
-    }
-    .dock-item:hover .tt { opacity: 1; }
-    .dock-sep { width: 1px; height: 28px; background: var(--border); margin: 0 3px; }
-    
-    /* Color panel */
-    #color-panel {
-        position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-        z-index: 199; background: var(--panel);
-        padding: 12px; border-radius: 16px; border: 1px solid var(--border);
-        display: none; gap: 8px; flex-wrap: wrap; max-width: 280px; justify-content: center;
-    }
-    #color-panel.show { display: flex; }
-    .color-btn {
-        width: 34px; height: 34px; border-radius: 50%;
-        border: 2px solid transparent; cursor: pointer;
-    }
-    .color-btn:hover { transform: scale(1.1); }
-    .color-btn.active { border-color: #fff; }
-    
-    /* Properties panel */
-    #props-panel {
-        position: fixed; left: 20px; top: 50%; transform: translateY(-50%);
-        z-index: 150; background: var(--panel);
-        padding: 18px; border-radius: 14px; border: 1px solid var(--border);
-        width: 210px; display: none;
-    }
-    .props-header {
-        display: flex; justify-content: space-between; align-items: center;
-        margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
-    }
-    .props-title { font-size: 12px; font-weight: 600; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; }
-    .props-close {
-        background: none; border: none; color: var(--text-dim);
-        cursor: pointer; font-size: 14px; padding: 2px 6px;
-    }
-    .props-close:hover { color: var(--text); }
-    .prop-group { margin-bottom: 14px; }
-    .prop-label {
-        display: flex; justify-content: space-between;
-        font-size: 11px; color: var(--text-dim);
-        text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;
-    }
-    .prop-value { color: var(--accent); font-weight: 600; }
-    input[type="range"] {
-        width: 100%; height: 4px; background: rgba(255,255,255,0.1);
-        border-radius: 2px; outline: none; -webkit-appearance: none;
-    }
-    input[type="range"]::-webkit-slider-thumb {
-        -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
-        background: var(--accent); cursor: pointer;
-    }
-    
-    /* Toggle buttons */
-    .toggle-btn {
-        position: fixed; z-index: 199; width: 40px; height: 40px;
-        border-radius: 50%; background: var(--panel);
-        border: 1px solid var(--border); color: var(--text-dim);
-        cursor: pointer; font-size: 16px; display: none;
-        align-items: center; justify-content: center;
-    }
-    .toggle-btn:hover { color: var(--accent); border-color: var(--accent); }
-    #toggle-props { left: 20px; top: 70px; }
-    #toggle-help { right: 20px; top: 70px; }
-    #toggle-webcam { right: 20px; bottom: 85px; }
-    
-    /* Webcam */
-    #webcam-container { position: fixed; bottom: 20px; right: 20px; z-index: 150; display: none; }
-    #webcam {
-        width: 160px; height: 120px; border: 1px solid var(--border);
-        border-radius: 10px; background: #000; transform: scaleX(-1);
-    }
-    .webcam-overlay {
-        position: absolute; top: 6px; left: 6px;
-        background: rgba(0,0,0,0.7); padding: 2px 7px; border-radius: 8px;
-        font-size: 9px; color: var(--success);
-        display: flex; align-items: center; gap: 3px;
-    }
-    .webcam-overlay .dot {
-        width: 5px; height: 5px; border-radius: 50%;
-        background: var(--success); animation: pulse 2s infinite;
-    }
-    
-    /* Tutorial */
-    #tutorial-overlay {
-        position: fixed; inset: 0; z-index: 9999;
-        background: rgba(0,0,0,0.85); display: none;
-        align-items: center; justify-content: center; padding: 20px;
-    }
-    #tutorial-overlay.show { display: flex; }
-    .tutorial-card {
-        background: var(--panel); border: 1px solid var(--border);
-        border-radius: 20px; padding: 35px; max-width: 650px; width: 100%;
-    }
-    .tutorial-card h2 {
-        font-size: 26px; margin-bottom: 6px;
-        background: linear-gradient(135deg, #fff, var(--accent));
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .tutorial-card .subtitle { color: var(--text-dim); margin-bottom: 22px; font-size: 13px; }
-    .gesture-grid {
-        display: grid; grid-template-columns: repeat(2, 1fr);
-        gap: 10px; margin-bottom: 20px;
-    }
-    .gesture-card {
-        background: rgba(255,255,255,0.03); padding: 14px;
-        border-radius: 10px; border: 1px solid var(--border);
-        display: flex; align-items: center; gap: 10px;
-    }
-    .gesture-card .emoji { font-size: 28px; }
-    .gesture-card .info .title { font-weight: 600; color: var(--accent); font-size: 13px; }
-    .gesture-card .info .desc { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
-    .shortcuts-list {
-        background: rgba(255,255,255,0.03); padding: 14px;
-        border-radius: 10px; margin-bottom: 18px;
-    }
-    .shortcuts-list h4 { color: var(--accent); margin-bottom: 8px; font-size: 13px; }
-    .shortcut-row {
-        display: flex; justify-content: space-between;
-        padding: 5px 0; font-size: 12px;
-        border-bottom: 1px solid rgba(255,255,255,0.04);
-    }
-    .shortcut-row:last-child { border: none; }
-    .key {
-        background: rgba(0,229,255,0.15); color: var(--accent);
-        padding: 2px 7px; border-radius: 3px; font-family: monospace; font-size: 10px;
-    }
-    .tutorial-close {
-        padding: 11px 28px; background: var(--accent);
-        border: none; border-radius: 50px; color: #000;
-        font-weight: 600; cursor: pointer; font-size: 13px;
-    }
-    
-    /* Toast */
-    #toast {
-        position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-15px);
-        z-index: 1000; background: var(--panel);
-        padding: 9px 22px; border-radius: 50px;
-        border: 1px solid var(--border); font-size: 12px;
-        opacity: 0; transition: all 0.25s; pointer-events: none;
-    }
-    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-    
-    /* Page indicator */
-    #page-indicator {
-        position: fixed; bottom: 20px; left: 20px;
-        z-index: 150; display: none; align-items: center; gap: 6px;
-        background: var(--panel); padding: 5px 10px; border-radius: 50px;
-        border: 1px solid var(--border); font-size: 11px;
-    }
-    .page-btn {
-        width: 24px; height: 24px; border-radius: 50%;
-        background: rgba(255,255,255,0.05); border: none;
-        color: var(--text-dim); cursor: pointer; font-size: 10px;
-    }
-    .page-btn:hover { background: var(--accent); color: #000; }
-    .page-text { color: var(--text); font-weight: 600; min-width: 36px; text-align: center; }
-    
-    /* Mode indicator */
-    #mode-indicator {
-        position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
-        z-index: 150; padding: 6px 16px; border-radius: 50px;
-        background: var(--panel); border: 1px solid var(--border);
-        font-size: 11px; font-weight: 600; opacity: 0;
-        transition: opacity 0.2s; pointer-events: none;
-        display: flex; align-items: center; gap: 6px;
-    }
-    #mode-indicator.show { opacity: 1; }
-    #mode-indicator.draw { border-color: var(--accent); color: var(--accent); }
-    #mode-indicator.erase { border-color: var(--danger); color: var(--danger); }
-    #mode-indicator.hover { border-color: var(--success); color: var(--success); }
-    
-    /* Debug - for troubleshooting */
-    #debug-panel {
-        position: fixed; bottom: 150px; right: 20px;
-        z-index: 149; background: var(--panel);
-        padding: 10px 14px; border-radius: 10px;
-        border: 1px solid var(--border); font-size: 10px;
-        font-family: monospace; display: none; min-width: 180px;
-    }
-    .debug-row { display: flex; justify-content: space-between; padding: 2px 0; color: var(--text-dim); }
-    .debug-row .val { color: var(--accent); }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    overflow: hidden; font-family: -apple-system, sans-serif;
+    background: #0a0a0f; color: #fff; user-select: none;
+}
+#bg { position: fixed; inset: 0; background: radial-gradient(ellipse at 30% 40%, #0f1624 0%, #0a0a0f 70%); z-index: 0; }
+#grid { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0; transition: opacity 0.3s;
+    background-image: linear-gradient(rgba(0,229,255,0.05) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(0,229,255,0.05) 1px, transparent 1px);
+    background-size: 50px 50px; }
+#grid.on { opacity: 1; }
+canvas { position: fixed; inset: 0; }
+#main { z-index: 10; }
+#prev { z-index: 11; pointer-events: none; }
+#cursor { position: fixed; pointer-events: none; z-index: 500; border-radius: 50%;
+    transform: translate(-50%, -50%); display: none; border: 2px solid #0ff;
+    transition: width 0.08s, height 0.08s; }
+#cursor::after { content: ''; position: absolute; inset: 50%; width: 3px; height: 3px;
+    background: #fff; border-radius: 50%; transform: translate(-50%, -50%); }
+
+/* Start screen */
+#start { position: fixed; inset: 0; background: #0a0a0f; z-index: 9999;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+#start h1 { font-size: 38px; margin: 10px 0; color: #0ff; }
+#start p { color: #8892b0; margin-bottom: 30px; }
+.feat { display: flex; gap: 12px; margin-bottom: 30px; flex-wrap: wrap; justify-content: center; }
+.feat div { background: #151520; padding: 14px 18px; border-radius: 10px; border: 1px solid #1f2937; min-width: 140px; text-align: center; }
+.feat .i { font-size: 22px; margin-bottom: 5px; }
+.feat .t { color: #0ff; font-weight: 600; font-size: 13px; }
+.feat .d { color: #8892b0; font-size: 11px; margin-top: 3px; }
+#go { padding: 14px 50px; font-size: 15px; font-weight: 600;
+    background: #0ff; border: none; border-radius: 30px; color: #000; cursor: pointer; }
+#go:hover { background: #00d4eb; }
+.hint { margin-top: 20px; padding: 10px 15px; background: #1a0a0a; border: 1px solid #5c1a1a;
+    border-radius: 8px; font-size: 12px; color: #ff8080; max-width: 500px; text-align: center; }
+.hint code { background: #000; padding: 2px 8px; border-radius: 3px; color: #0f0; font-family: monospace; }
+.spin { border: 3px solid #1f2937; border-top-color: #0ff; border-radius: 50%;
+    width: 35px; height: 35px; animation: sp 0.8s linear infinite; margin: 15px auto; }
+@keyframes sp { to { transform: rotate(360deg); } }
+
+/* Status bar */
+#bar { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 200;
+    background: #151520; padding: 6px 15px; border-radius: 20px; border: 1px solid #1f2937;
+    display: none; align-items: center; gap: 14px; font-size: 11px; }
+.si { display: flex; align-items: center; gap: 5px; color: #8892b0; }
+.si .l { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; }
+.si .v { color: #fff; font-weight: 600; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: #666; }
+.dot.on { background: #2ed573; }
+.dot.drw { background: #0ff; animation: pu 1.5s infinite; }
+.dot.ers { background: #ff4757; }
+@keyframes pu { 50% { opacity: 0.4; } }
+.sep { width: 1px; height: 14px; background: #1f2937; }
+
+/* Dock */
+#dock { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 200;
+    background: #151520; padding: 5px; border-radius: 15px; border: 1px solid #1f2937;
+    display: none; gap: 3px; align-items: center; }
+.di { width: 40px; height: 40px; border-radius: 10px; background: transparent;
+    border: none; color: #8892b0; cursor: pointer; font-size: 17px;
+    display: flex; align-items: center; justify-content: center; position: relative; }
+.di:hover { background: #1f2937; color: #fff; }
+.di.on { background: #0ff; color: #000; }
+.di .tp { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+    background: #000; padding: 3px 7px; border-radius: 4px; font-size: 10px;
+    white-space: nowrap; opacity: 0; pointer-events: none; margin-bottom: 6px;
+    transition: opacity 0.15s; }
+.di:hover .tp { opacity: 1; }
+.ds { width: 1px; height: 26px; background: #1f2937; margin: 0 3px; }
+
+/* Color panel */
+#cpan { position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%);
+    z-index: 199; background: #151520; padding: 10px; border-radius: 13px;
+    border: 1px solid #1f2937; display: none; gap: 6px; flex-wrap: wrap;
+    max-width: 260px; justify-content: center; }
+#cpan.on { display: flex; }
+.cb { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent;
+    cursor: pointer; }
+.cb:hover { border-color: #666; }
+.cb.on { border-color: #fff; }
+
+/* Settings panel */
+#span { position: fixed; left: 15px; top: 50%; transform: translateY(-50%);
+    z-index: 150; background: #151520; padding: 15px; border-radius: 12px;
+    border: 1px solid #1f2937; width: 200px; display: none; }
+.sh { display: flex; justify-content: space-between; margin-bottom: 12px;
+    padding-bottom: 8px; border-bottom: 1px solid #1f2937; }
+.st { font-size: 11px; font-weight: 600; color: #0ff; letter-spacing: 1px; text-transform: uppercase; }
+.sc { background: none; border: none; color: #8892b0; cursor: pointer; font-size: 13px; }
+.pg { margin-bottom: 12px; }
+.pl { display: flex; justify-content: space-between; font-size: 10px; color: #8892b0;
+    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.pv { color: #0ff; font-weight: 600; }
+input[type="range"] { width: 100%; height: 3px; background: #1f2937; border-radius: 2px;
+    outline: none; -webkit-appearance: none; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 13px;
+    height: 13px; border-radius: 50%; background: #0ff; cursor: pointer; }
+
+/* Toggle buttons */
+.tg { position: fixed; z-index: 199; width: 36px; height: 36px; border-radius: 50%;
+    background: #151520; border: 1px solid #1f2937; color: #8892b0; cursor: pointer;
+    font-size: 15px; display: none; align-items: center; justify-content: center; }
+.tg:hover { color: #0ff; border-color: #0ff; }
+#tp { left: 15px; top: 60px; }
+#th { right: 15px; top: 60px; }
+#tw { right: 15px; bottom: 75px; }
+
+/* Webcam */
+#wc { position: fixed; bottom: 18px; right: 15px; z-index: 150; display: none; }
+#cam { width: 140px; height: 105px; border: 1px solid #1f2937; border-radius: 8px;
+    background: #000; transform: scaleX(-1); }
+.ov { position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.7);
+    padding: 2px 6px; border-radius: 6px; font-size: 9px; color: #2ed573;
+    display: flex; align-items: center; gap: 3px; }
+.od { width: 4px; height: 4px; border-radius: 50%; background: #2ed573; animation: pu 2s infinite; }
+
+/* Page indicator */
+#pi { position: fixed; bottom: 18px; left: 15px; z-index: 150; display: none;
+    align-items: center; gap: 5px; background: #151520; padding: 4px 9px;
+    border-radius: 15px; border: 1px solid #1f2937; font-size: 11px; }
+.pb { width: 22px; height: 22px; border-radius: 50%; background: #1f2937; border: none;
+    color: #8892b0; cursor: pointer; font-size: 10px; }
+.pb:hover { background: #0ff; color: #000; }
+.pt { color: #fff; font-weight: 600; min-width: 32px; text-align: center; }
+
+/* Mode indicator */
+#mi { position: fixed; top: 52px; left: 50%; transform: translateX(-50%); z-index: 150;
+    padding: 5px 13px; border-radius: 15px; background: #151520;
+    border: 1px solid #1f2937; font-size: 11px; font-weight: 600;
+    opacity: 0; transition: opacity 0.2s; pointer-events: none;
+    display: flex; align-items: center; gap: 5px; }
+#mi.on { opacity: 1; }
+#mi.drw { border-color: #0ff; color: #0ff; }
+#mi.ers { border-color: #ff4757; color: #ff4757; }
+#mi.hvr { border-color: #2ed573; color: #2ed573; }
+
+/* Tutorial */
+#tut { position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.85);
+    display: none; align-items: center; justify-content: center; padding: 20px; }
+#tut.on { display: flex; }
+.tc { background: #151520; border: 1px solid #1f2937; border-radius: 16px;
+    padding: 30px; max-width: 600px; width: 100%; }
+.tc h2 { font-size: 24px; color: #0ff; margin-bottom: 5px; }
+.tc .sub { color: #8892b0; margin-bottom: 20px; font-size: 12px; }
+.gg { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 18px; }
+.gc { background: #0f0f18; padding: 12px; border-radius: 8px; border: 1px solid #1f2937;
+    display: flex; align-items: center; gap: 10px; }
+.gc .em { font-size: 26px; }
+.gc .ti { font-weight: 600; color: #0ff; font-size: 13px; }
+.gc .de { font-size: 11px; color: #8892b0; margin-top: 2px; }
+.sl { background: #0f0f18; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+.sl h4 { color: #0ff; margin-bottom: 6px; font-size: 12px; }
+.sr { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px;
+    border-bottom: 1px solid #1a1a28; }
+.sr:last-child { border: none; }
+.ky { background: rgba(0,229,255,0.15); color: #0ff; padding: 1px 6px;
+    border-radius: 3px; font-family: monospace; font-size: 10px; }
+.tx { padding: 10px 25px; background: #0ff; border: none; border-radius: 25px;
+    color: #000; font-weight: 600; cursor: pointer; font-size: 13px; }
+
+/* Toast */
+#toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%) translateY(-10px);
+    z-index: 1000; background: #151520; padding: 7px 18px; border-radius: 20px;
+    border: 1px solid #1f2937; font-size: 12px; opacity: 0;
+    transition: all 0.25s; pointer-events: none; }
+#toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Debug */
+#dbg { position: fixed; top: 12px; right: 15px; z-index: 149; background: #0f0f18;
+    padding: 8px 12px; border-radius: 8px; border: 1px solid #1f2937;
+    font-size: 10px; font-family: monospace; display: none; min-width: 170px; }
+.dr { display: flex; justify-content: space-between; padding: 2px 0; color: #8892b0; }
+.dr .vl { color: #0ff; }
 </style>
 </head>
 <body>
 
-<div id="background"></div>
-<div id="grid-overlay"></div>
-<canvas id="writing-canvas"></canvas>
-<canvas id="preview-canvas"></canvas>
-<div id="pen-cursor"></div>
+<div id="bg"></div>
+<div id="grid"></div>
+<canvas id="main"></canvas>
+<canvas id="prev"></canvas>
+<div id="cursor"></div>
 
-<!-- Start screen -->
-<div id="start-screen">
-    <div class="logo">✍️</div>
+<div id="start">
+    <div style="font-size:60px;">✍️</div>
     <h1>Pro Writing System</h1>
-    <p class="subtitle">v4.1 · OPTIMIZED & STABLE</p>
-    
-    <div class="features">
-        <div class="feature">
-            <div class="icon">🎯</div>
-            <div class="title">Accurate Tracking</div>
-            <div class="desc">Kalman + Adaptive smoothing</div>
-        </div>
-        <div class="feature">
-            <div class="icon">🖊️</div>
-            <div class="title">5 Tools</div>
-            <div class="desc">Pen, Marker, Highlight, Eraser, Laser</div>
-        </div>
-        <div class="feature">
-            <div class="icon">💾</div>
-            <div class="title">Auto-Save</div>
-            <div class="desc">Multi-page & Export PNG</div>
-        </div>
+    <p>v5.0 · ULTRA OPTIMIZED · 60 FPS</p>
+    <div class="feat">
+        <div><div class="i">⚡</div><div class="t">60 FPS</div><div class="d">Ultra ringan</div></div>
+        <div><div class="i">🎯</div><div class="t">Smart Track</div><div class="d">Angle-based AI</div></div>
+        <div><div class="i">🖊️</div><div class="t">5 Tools</div><div class="d">Pen, Marker, dll</div></div>
     </div>
-    
-    <button id="start-btn">MULAI MENULIS</button>
-    
-    <div id="loading-status" style="display: none;">
-        <div class="spinner"></div>
-        <p id="status-text" style="color: var(--text-dim); font-size: 12px;">Memuat...</p>
-    </div>
-    
-    <div class="server-hint">
-        ⚠️ Jalankan via: <code>python -m http.server 8000</code><br>
-        lalu buka <code>http://localhost:8000</code>
-    </div>
+    <button id="go">MULAI MENULIS</button>
+    <div id="ld" style="display:none;"><div class="spin"></div><p id="lt" style="color:#8892b0;font-size:12px;">Loading...</p></div>
+    <div class="hint">Jalankan via: <code>python -m http.server 8000</code> → buka <code>localhost:8000</code></div>
 </div>
 
-<!-- Status bar -->
-<div id="status-bar">
-    <div class="status-item">
-        <span class="status-dot active" id="hand-dot"></span>
-        <span class="value" id="hand-status">Idle</span>
-    </div>
+<div id="bar">
+    <div class="si"><span class="dot on" id="hd"></span><span class="v" id="hs">Idle</span></div>
     <div class="sep"></div>
-    <div class="status-item"><span class="label">Mode</span><span class="value" id="mode-value">—</span></div>
+    <div class="si"><span class="l">Mode</span><span class="v" id="mv">—</span></div>
     <div class="sep"></div>
-    <div class="status-item"><span class="label">FPS</span><span class="value" id="fps-value">0</span></div>
+    <div class="si"><span class="l">FPS</span><span class="v" id="fv">0</span></div>
     <div class="sep"></div>
-    <div class="status-item"><span class="label">Tool</span><span class="value" id="tool-value">Pen</span></div>
+    <div class="si"><span class="l">Tool</span><span class="v" id="tv">Pen</span></div>
 </div>
 
-<div id="mode-indicator"><span id="mode-icon">✍️</span><span id="mode-label">Drawing</span></div>
+<div id="mi"><span id="mii">✍️</span><span id="mil">Drawing</span></div>
 
-<!-- Floating dock -->
 <div id="dock">
-    <button class="dock-item active" data-tool="pen">✏️<span class="tt">Pen (1)</span></button>
-    <button class="dock-item" data-tool="marker">🖊️<span class="tt">Marker (2)</span></button>
-    <button class="dock-item" data-tool="highlighter">🖍️<span class="tt">Highlight (3)</span></button>
-    <button class="dock-item" data-tool="eraser">🧽<span class="tt">Eraser (4)</span></button>
-    <button class="dock-item" data-tool="laser">🔴<span class="tt">Laser (5)</span></button>
-    <div class="dock-sep"></div>
-    <button class="dock-item" id="color-btn">🎨<span class="tt">Color</span></button>
-    <button class="dock-item" id="props-btn">⚙️<span class="tt">Settings</span></button>
-    <div class="dock-sep"></div>
-    <button class="dock-item" id="undo-btn">↶<span class="tt">Undo</span></button>
-    <button class="dock-item" id="redo-btn">↷<span class="tt">Redo</span></button>
-    <button class="dock-item" id="clear-btn">🗑️<span class="tt">Clear</span></button>
-    <button class="dock-item" id="grid-btn">▦<span class="tt">Grid</span></button>
-    <button class="dock-item" id="save-btn">💾<span class="tt">Save</span></button>
+    <button class="di on" data-tool="pen">✏️<span class="tp">Pen (1)</span></button>
+    <button class="di" data-tool="marker">🖊️<span class="tp">Marker (2)</span></button>
+    <button class="di" data-tool="highlighter">🖍️<span class="tp">Highlight (3)</span></button>
+    <button class="di" data-tool="eraser">🧽<span class="tp">Eraser (4)</span></button>
+    <button class="di" data-tool="laser">🔴<span class="tp">Laser (5)</span></button>
+    <div class="ds"></div>
+    <button class="di" id="cb">🎨<span class="tp">Color</span></button>
+    <button class="di" id="pb">⚙️<span class="tp">Settings</span></button>
+    <div class="ds"></div>
+    <button class="di" id="ub">↶<span class="tp">Undo</span></button>
+    <button class="di" id="rb">↷<span class="tp">Redo</span></button>
+    <button class="di" id="xb">🗑️<span class="tp">Clear</span></button>
+    <button class="di" id="gb">▦<span class="tp">Grid</span></button>
+    <button class="di" id="sb">💾<span class="tp">Save</span></button>
 </div>
 
-<!-- Color panel -->
-<div id="color-panel">
-    <button class="color-btn active" data-color="#ffffff" style="background:#fff"></button>
-    <button class="color-btn" data-color="#000000" style="background:#000; border:1px solid #444;"></button>
-    <button class="color-btn" data-color="#ff4757" style="background:#ff4757"></button>
-    <button class="color-btn" data-color="#ffa502" style="background:#ffa502"></button>
-    <button class="color-btn" data-color="#ffdd59" style="background:#ffdd59"></button>
-    <button class="color-btn" data-color="#2ed573" style="background:#2ed573"></button>
-    <button class="color-btn" data-color="#1e90ff" style="background:#1e90ff"></button>
-    <button class="color-btn" data-color="#5352ed" style="background:#5352ed"></button>
-    <button class="color-btn" data-color="#b026ff" style="background:#b026ff"></button>
-    <button class="color-btn" data-color="#00e5ff" style="background:#00e5ff"></button>
+<div id="cpan">
+    <button class="cb on" data-color="#ffffff" style="background:#fff"></button>
+    <button class="cb" data-color="#000000" style="background:#000;border:1px solid #444;"></button>
+    <button class="cb" data-color="#ff4757" style="background:#ff4757"></button>
+    <button class="cb" data-color="#ffa502" style="background:#ffa502"></button>
+    <button class="cb" data-color="#ffdd59" style="background:#ffdd59"></button>
+    <button class="cb" data-color="#2ed573" style="background:#2ed573"></button>
+    <button class="cb" data-color="#1e90ff" style="background:#1e90ff"></button>
+    <button class="cb" data-color="#5352ed" style="background:#5352ed"></button>
+    <button class="cb" data-color="#b026ff" style="background:#b026ff"></button>
+    <button class="cb" data-color="#00e5ff" style="background:#00e5ff"></button>
 </div>
 
-<!-- Properties panel -->
-<div id="props-panel">
-    <div class="props-header">
-        <span class="props-title">Settings</span>
-        <button class="props-close" id="props-close">✕</button>
-    </div>
-    <div class="prop-group">
-        <div class="prop-label"><span>Size</span><span class="prop-value" id="size-value">5</span></div>
-        <input type="range" id="size-slider" min="1" max="30" value="5">
-    </div>
-    <div class="prop-group">
-        <div class="prop-label"><span>Opacity</span><span class="prop-value" id="opacity-value">100%</span></div>
-        <input type="range" id="opacity-slider" min="10" max="100" value="100">
-    </div>
-    <div class="prop-group">
-        <div class="prop-label"><span>Smoothing</span><span class="prop-value" id="smooth-value">50%</span></div>
-        <input type="range" id="smooth-slider" min="0" max="90" value="50">
-    </div>
+<div id="span">
+    <div class="sh"><span class="st">Settings</span><button class="sc" id="px">✕</button></div>
+    <div class="pg"><div class="pl"><span>Size</span><span class="pv" id="sv">5</span></div>
+        <input type="range" id="ss" min="1" max="30" value="5"></div>
+    <div class="pg"><div class="pl"><span>Opacity</span><span class="pv" id="ov">100%</span></div>
+        <input type="range" id="os" min="10" max="100" value="100"></div>
+    <div class="pg"><div class="pl"><span>Smoothing</span><span class="pv" id="mv2">50%</span></div>
+        <input type="range" id="ms" min="0" max="90" value="50"></div>
 </div>
 
-<!-- Toggle buttons -->
-<button class="toggle-btn" id="toggle-props">⚙️</button>
-<button class="toggle-btn" id="toggle-help">?</button>
-<button class="toggle-btn" id="toggle-webcam">📷</button>
+<button class="tg" id="tp">⚙️</button>
+<button class="tg" id="th">?</button>
+<button class="tg" id="tw">📷</button>
 
-<!-- Webcam -->
-<div id="webcam-container">
-    <video id="webcam" autoplay playsinline muted></video>
-    <div class="webcam-overlay"><span class="dot"></span><span>TRACKING</span></div>
+<div id="wc"><video id="cam" autoplay playsinline muted></video>
+    <div class="ov"><span class="od"></span><span>TRACKING</span></div></div>
+
+<div id="pi">
+    <button class="pb" id="pp">◀</button>
+    <span class="pt" id="ptx">1/1</span>
+    <button class="pb" id="pn">▶</button>
+    <button class="pb" id="pa">+</button>
 </div>
 
-<!-- Page indicator -->
-<div id="page-indicator">
-    <button class="page-btn" id="prev-page">◀</button>
-    <span class="page-text" id="page-text">1/1</span>
-    <button class="page-btn" id="next-page">▶</button>
-    <button class="page-btn" id="add-page">+</button>
-</div>
-
-<!-- Tutorial -->
-<div id="tutorial-overlay">
-    <div class="tutorial-card">
-        <h2>🎮 Cara Penggunaan</h2>
-        <p class="subtitle">Kontrol dengan gesture tangan alami</p>
-        
-        <div class="gesture-grid">
-            <div class="gesture-card">
-                <div class="emoji">✌️</div>
-                <div class="info">
-                    <div class="title">Peace (✌️)</div>
-                    <div class="desc">Menulis (DRAW)</div>
-                </div>
-            </div>
-            <div class="gesture-card">
-                <div class="emoji">☝️</div>
-                <div class="info">
-                    <div class="title">Pointing</div>
-                    <div class="desc">Lihat posisi (HOVER)</div>
-                </div>
-            </div>
-            <div class="gesture-card">
-                <div class="emoji">🖐️</div>
-                <div class="info">
-                    <div class="title">Open Palm</div>
-                    <div class="desc">Hapus (ERASE)</div>
-                </div>
-            </div>
-            <div class="gesture-card">
-                <div class="emoji">✊</div>
-                <div class="info">
-                    <div class="title">Fist</div>
-                    <div class="desc">Non-aktif (IDLE)</div>
-                </div>
-            </div>
+<div id="tut">
+    <div class="tc">
+        <h2>🎮 Cara Pakai</h2>
+        <p class="sub">Kontrol dengan gestur tangan natural</p>
+        <div class="gg">
+            <div class="gc"><div class="em">✌️</div><div><div class="ti">Peace</div><div class="de">MENULIS (draw)</div></div></div>
+            <div class="gc"><div class="em">☝️</div><div><div class="ti">Point</div><div class="de">HOVER (lihat)</div></div></div>
+            <div class="gc"><div class="em">🖐️</div><div><div class="ti">Palm</div><div class="de">ERASE (hapus)</div></div></div>
+            <div class="gc"><div class="em">✊</div><div><div class="ti">Fist</div><div class="de">IDLE (diam)</div></div></div>
         </div>
-        
-        <div class="shortcuts-list">
-            <h4>⌨️ Keyboard</h4>
-            <div class="shortcut-row"><span>Tool 1-5</span><span class="key">1-5</span></div>
-            <div class="shortcut-row"><span>Undo / Redo</span><span class="key">Ctrl+Z / Y</span></div>
-            <div class="shortcut-row"><span>Save PNG</span><span class="key">Ctrl+S</span></div>
-            <div class="shortcut-row"><span>Clear / Grid</span><span class="key">C / G</span></div>
-            <div class="shortcut-row"><span>Size ±</span><span class="key">] / [</span></div>
+        <div class="sl">
+            <h4>⌨️ Shortcuts</h4>
+            <div class="sr"><span>Tool 1-5</span><span class="ky">1-5</span></div>
+            <div class="sr"><span>Undo / Redo</span><span class="ky">Ctrl+Z/Y</span></div>
+            <div class="sr"><span>Save PNG</span><span class="ky">Ctrl+S</span></div>
+            <div class="sr"><span>Debug Panel</span><span class="ky">D</span></div>
         </div>
-        
         <div style="text-align:center;">
-            <button class="tutorial-close" id="close-tutorial">Mulai Menulis →</button>
+            <button class="tx" id="tx">Mulai Menulis →</button>
         </div>
     </div>
 </div>
 
-<!-- Debug panel (hidden by default, toggle with D) -->
-<div id="debug-panel">
-    <div class="debug-row"><span>Gesture:</span><span class="val" id="dbg-gesture">-</span></div>
-    <div class="debug-row"><span>Mode:</span><span class="val" id="dbg-mode">-</span></div>
-    <div class="debug-row"><span>Fingers:</span><span class="val" id="dbg-fingers">-</span></div>
-    <div class="debug-row"><span>Vel:</span><span class="val" id="dbg-vel">-</span></div>
-    <div class="debug-row"><span>Drawing:</span><span class="val" id="dbg-drawing">-</span></div>
+<div id="dbg">
+    <div class="dr"><span>Gesture:</span><span class="vl" id="dg">-</span></div>
+    <div class="dr"><span>Mode:</span><span class="vl" id="dm">-</span></div>
+    <div class="dr"><span>Fingers:</span><span class="vl" id="df">-</span></div>
+    <div class="dr"><span>Velocity:</span><span class="vl" id="dv">-</span></div>
+    <div class="dr"><span>Hand Size:</span><span class="vl" id="dh">-</span></div>
+    <div class="dr"><span>Drawing:</span><span class="vl" id="dd">no</span></div>
 </div>
 
 <div id="toast"></div>
 
 <script>
-// ================================================================
-// CONFIGURATION
-// ================================================================
-const CONFIG = {
-    fingerThreshold: 0.82,
-    gestureBuffer: 5,
-    gestureConsensus: 0.5,  // Relaxed from 0.6 to 0.5
-    kalmanQ: 0.01,
-    kalmanR: 0.15,
-    smoothing: 0.5,
-    minStrokeWidth: 0.4,
-    maxStrokeWidth: 2.5,
-    splineSegments: 4,  // Reduced from 8 for performance
-    autoSaveMs: 5000,
-    storageKey: 'pws_v41',
+// ============== CONFIG ==============
+const CFG = {
+    fingerAngle: 160,       // derajat: jari lurus jika sudut > ini
+    gestureBuf: 5,
+    consensus: 0.6,
+    smooth: 0.4,
+    minW: 0.4, maxW: 2.5,
+    saveKey: 'pws_v5',
+    saveMs: 5000,
+    skipFrames: 1,          // process detection setiap N frame
 };
 
-// ================================================================
-// STATE
-// ================================================================
-const STATE = {
-    tool: 'pen',
-    color: '#ffffff',
-    size: 5,
-    opacity: 1.0,
-    smoothing: 0.5,
-    
-    pages: [[]],
-    pageIdx: 0,
-    undoStack: [],
-    redoStack: [],
-    
-    // Hand tracking
-    handDetected: false,
-    mode: 'idle',
-    gestureBuf: [],
-    
-    // Position
-    kalman: { x: { v: 0, e: 1 }, y: { v: 0, e: 1 } },
-    smoothPos: null,
-    lastPos: null,
-    lastTime: 0,
-    velocity: 0,
-    
-    // Drawing
-    drawing: false,
-    stroke: null,
-    
-    // UI
-    colorOpen: false,
-    propsOpen: false,
-    
-    // FPS
-    frames: 0,
-    lastFps: performance.now(),
+// ============== STATE ==============
+const S = {
+    tool: 'pen', color: '#ffffff', size: 5, opacity: 1, smooth: 0.4,
+    pages: [[]], pg: 0, undo: [], redo: [],
+    hand: false, mode: 'idle', gbuf: [],
+    kx: { v: 0, e: 1 }, ky: { v: 0, e: 1 },
+    sp: null, lp: null, lt: 0, vel: 0,
+    drw: false, str: null,
+    col: false, pro: false, dbg: false,
+    fr: 0, lf: performance.now(),
+    skip: 0, lastHandScale: 1,
 };
 
-// ================================================================
-// CANVAS
-// ================================================================
-let writeCanvas, writeCtx, prevCanvas, prevCtx;
+// ============== CANVAS ==============
+let mc, mx, pc, px;
 
 function setupCanvas() {
-    writeCanvas = document.getElementById('writing-canvas');
-    prevCanvas = document.getElementById('preview-canvas');
-    
-    const resize = () => {
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    mc = document.getElementById('main');
+    pc = document.getElementById('prev');
+    const rz = () => {
+        const dpr = Math.min(window.devicePixelRatio || 1, 1.5); // Max 1.5 untuk performa
         const w = window.innerWidth, h = window.innerHeight;
-        
-        [writeCanvas, prevCanvas].forEach(c => {
-            c.width = w * dpr;
-            c.height = h * dpr;
-            c.style.width = w + 'px';
-            c.style.height = h + 'px';
+        [mc, pc].forEach(c => {
+            c.width = w * dpr; c.height = h * dpr;
+            c.style.width = w + 'px'; c.style.height = h + 'px';
             c.getContext('2d').scale(dpr, dpr);
         });
-        
-        writeCtx = writeCanvas.getContext('2d');
-        prevCtx = prevCanvas.getContext('2d');
-        writeCtx.lineCap = 'round';
-        writeCtx.lineJoin = 'round';
-        
-        redrawPage();
+        mx = mc.getContext('2d'); px = pc.getContext('2d');
+        mx.lineCap = 'round'; mx.lineJoin = 'round';
+        redraw();
     };
-    
-    resize();
-    window.addEventListener('resize', resize);
+    rz();
+    window.addEventListener('resize', rz);
 }
 
-// ================================================================
-// LIBRARY LOADER
-// ================================================================
+// ============== LIB LOADER ==============
 function loadScript(src) {
-    return new Promise((res, rej) => {
+    return new Promise((r, j) => {
         const s = document.createElement('script');
-        s.src = src;
-        s.onload = res;
-        s.onerror = () => rej(new Error('Gagal load: ' + src));
+        s.src = src; s.onload = r;
+        s.onerror = () => j(new Error('Load failed: ' + src));
         document.head.appendChild(s);
     });
 }
 
 async function loadLibs() {
-    const st = document.getElementById('status-text');
-    st.textContent = 'Loading MediaPipe...';
+    const lt = document.getElementById('lt');
+    lt.textContent = 'MediaPipe...';
     await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js');
-    st.textContent = 'Loading Camera...';
+    lt.textContent = 'Camera Utils...';
     await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js');
 }
 
-// ================================================================
-// HAND TRACKING
-// ================================================================
-function dist3(a, b) {
-    return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+// ============== SMART FINGER DETECTION (ANGLE-BASED) ==============
+// Menggunakan sudut antar joint, bukan hanya distance ratio
+// Lebih akurat di berbagai orientasi tangan
+
+function angle3D(a, b, c) {
+    // Sudut di titik b, antara vektor ba dan bc
+    const ba = { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+    const bc = { x: c.x - b.x, y: c.y - b.y, z: c.z - b.z };
+    const dot = ba.x * bc.x + ba.y * bc.y + ba.z * bc.z;
+    const mba = Math.hypot(ba.x, ba.y, ba.z);
+    const mbc = Math.hypot(bc.x, bc.y, bc.z);
+    if (mba === 0 || mbc === 0) return 0;
+    const cos = Math.max(-1, Math.min(1, dot / (mba * mbc)));
+    return Math.acos(cos) * 180 / Math.PI;
 }
 
 function fingerExtended(lm, idx) {
+    // Jari-jari: MCP -> PIP -> DIP -> TIP
     const tips = [4, 8, 12, 16, 20];
-    const pips = [3, 6, 10, 14, 18];
-    const mcps = [2, 5, 9, 13, 17];
-    
-    const tip = lm[tips[idx]], pip = lm[pips[idx]], mcp = lm[mcps[idx]];
+    const dips = [3, 6, 10, 14, 18];
+    const pips = [2, 5, 9, 13, 17];
+    const mcps = [1, 4, 8, 12, 16]; // index sebelumnya (untuk mcp)
     
     if (idx === 0) {
-        // Thumb
-        const tipIdx = dist3(tip, lm[5]);
-        const wristIdx = dist3(lm[0], lm[5]);
-        return tipIdx > wristIdx * 0.85;
+        // Jempol: cek sudut di IP joint (landmark 3)
+        // MCP(2) - IP(3) - TIP(4)
+        const ang = angle3D(lm[2], lm[3], lm[4]);
+        return ang > 140;
     }
     
-    const tipMcp = dist3(tip, mcp);
-    const pipMcp = dist3(pip, mcp);
-    const tipPip = dist3(tip, pip);
+    // Jari lain: cek 2 sudut
+    const tip = tips[idx], dip = dips[idx], pip = pips[idx];
+    // MCP mapping untuk jari 1-4
+    const mcpMap = [0, 5, 9, 13, 17];
+    const mcp = mcpMap[idx];
     
-    return (tipMcp / (pipMcp + tipPip)) > CONFIG.fingerThreshold;
+    const ang1 = angle3D(lm[mcp], lm[pip], lm[dip]); // Sudut di PIP
+    const ang2 = angle3D(lm[pip], lm[dip], lm[tip]); // Sudut di DIP
+    
+    // Jari lurus jika kedua sudut > 160°
+    return ang1 > CFG.fingerAngle && ang2 > CFG.fingerAngle - 20;
 }
 
 function getFingers(lm) {
@@ -689,139 +421,133 @@ function getFingers(lm) {
     };
 }
 
-// FIXED: More forgiving gesture detection
+// ============== SMART GESTURE DETECTION ==============
 function detectGesture(lm) {
     const f = getFingers(lm);
-    const extCount = [f.t, f.i, f.m, f.r, f.p].filter(Boolean).length;
+    const ext = [f.t, f.i, f.m, f.r, f.p].filter(Boolean).length;
     
-    // FIST: all closed
+    // Hitung spread jari (untuk deteksi palm terbuka)
+    const spread = Math.hypot(lm[8].x - lm[20].x, lm[8].y - lm[20].y);
+    const handSize = Math.hypot(lm[0].x - lm[9].x, lm[0].y - lm[9].y);
+    const spreadRatio = spread / (handSize || 0.01);
+    
+    // FIST: semua jari closed (kecuali mungkin jempol)
     if (!f.i && !f.m && !f.r && !f.p) return 'fist';
     
-    // OPEN PALM: 4+ fingers extended
-    if (extCount >= 4) return 'open_palm';
+    // OPEN PALM: 4-5 jari terentang + spread lebar
+    if (ext >= 4 && spreadRatio > 0.5) return 'open_palm';
     
-    // PEACE: index + middle extended (most important for drawing)
-    // RELAXED: doesn't matter about ring/pinky strict state
-    if (f.i && f.m) {
-        // If ring or pinky also extended, still peace if i+m are dominant
-        if (!f.r || !f.p) return 'peace';
-        // If all 4 extended but user clearly trying peace (common case)
-        return 'peace';
+    // PEACE: index + middle terentang (prioritas tinggi)
+    if (f.i && f.m && !f.r && !f.p) return 'peace';
+    if (f.i && f.m && (f.r || f.p)) {
+        // Jika ring/pinky sedikit terentang, cek apakah i+m dominan
+        const imExt = (lm[8].y < lm[6].y) && (lm[12].y < lm[10].y);
+        if (imExt) return 'peace';
     }
     
-    // POINTING: only index
+    // POINTING: hanya index
     if (f.i && !f.m && !f.r && !f.p) return 'pointing';
     
-    // Fallback: if index is extended, assume hover
+    // Fallback: jika index terentang, anggap pointing
     if (f.i) return 'pointing';
+    
+    // 3-4 jari tapi tidak spread
+    if (ext >= 3) return 'open_palm';
     
     return 'unknown';
 }
 
 function smoothGesture(raw) {
-    STATE.gestureBuf.push(raw);
-    if (STATE.gestureBuf.length > CONFIG.gestureBuffer) STATE.gestureBuf.shift();
+    S.gbuf.push(raw);
+    if (S.gbuf.length > CFG.gestureBuf) S.gbuf.shift();
     
     const counts = {};
-    STATE.gestureBuf.forEach(g => counts[g] = (counts[g] || 0) + 1);
+    S.gbuf.forEach(g => counts[g] = (counts[g] || 0) + 1);
     
     let best = raw, max = 0;
     for (const [g, c] of Object.entries(counts)) {
         if (c > max) { best = g; max = c; }
     }
     
-    // Relaxed consensus: 50% instead of 60%
-    const needed = Math.ceil(CONFIG.gestureBuffer * CONFIG.gestureConsensus);
+    // Hysteresis: butuh consensus lebih tinggi untuk ganti mode
+    const needed = Math.ceil(CFG.gestureBuf * CFG.consensus);
     if (max >= needed && best !== 'unknown') return best;
     
-    return STATE.mode === 'idle' ? 'unknown' : STATE.mode;
+    // Jika mode sebelumnya bukan idle, pertahankan
+    return S.mode === 'idle' ? 'unknown' : best;
 }
 
-function gestureToMode(g) {
+function toMode(g) {
     if (g === 'peace') return 'draw';
     if (g === 'open_palm') return 'erase';
     if (g === 'pointing') return 'hover';
     return 'idle';
 }
 
-// ================================================================
-// KALMAN FILTER
-// ================================================================
+// ============== KALMAN FILTER (LIGHTWEIGHT) ==============
 function kalman(k, m) {
-    const pe = k.e + CONFIG.kalmanQ;
-    const gain = pe / (pe + CONFIG.kalmanR);
-    k.v = k.v + gain * (m - k.v);
-    k.e = (1 - gain) * pe;
+    const Q = 0.01, R = 0.15;
+    const pe = k.e + Q;
+    const g = pe / (pe + R);
+    k.v = k.v + g * (m - k.v);
+    k.e = (1 - g) * pe;
     return k.v;
 }
 
-// ================================================================
-// POSITION PROCESSING
-// ================================================================
+// ============== POSITION PROCESSING ==============
 function processPos(lm) {
-    const canvas = writeCanvas;
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     const now = performance.now();
     
-    // Convert (non-mirror)
-    const rawX = (1 - lm.x) * canvas.width / dpr;
-    const rawY = lm.y * canvas.height / dpr;
+    // Non-mirror transform
+    const rawX = (1 - lm.x) * mc.width / dpr;
+    const rawY = lm.y * mc.height / dpr;
     
-    // Initialize
-    if (!STATE.smoothPos) {
-        STATE.kalman.x.v = rawX;
-        STATE.kalman.y.v = rawY;
-        STATE.smoothPos = { x: rawX, y: rawY };
+    if (!S.sp) {
+        S.kx.v = rawX; S.ky.v = rawY;
+        S.sp = { x: rawX, y: rawY };
     }
     
-    // Kalman
-    const kx = kalman(STATE.kalman.x, rawX);
-    const ky = kalman(STATE.kalman.y, rawY);
+    const kx = kalman(S.kx, rawX);
+    const ky = kalman(S.ky, rawY);
     
-    // Calculate velocity
     let vel = 0;
-    if (STATE.lastPos && STATE.lastTime > 0) {
-        const dt = Math.max((now - STATE.lastTime) / 1000, 0.001);
-        const dx = kx - STATE.lastPos.x;
-        const dy = ky - STATE.lastPos.y;
-        vel = Math.hypot(dx, dy) / dt;
-        STATE.velocity = STATE.velocity * 0.7 + vel * 0.3;
+    if (S.lp && S.lt > 0) {
+        const dt = Math.max((now - S.lt) / 1000, 0.001);
+        vel = Math.hypot(kx - S.lp.x, ky - S.lp.y) / dt;
+        S.vel = S.vel * 0.7 + vel * 0.3;
     }
     
-    // Adaptive smoothing
-    let alpha = STATE.smoothing;
-    if (STATE.velocity > 1500) alpha = 0.9;  // Fast = responsive
-    else if (STATE.velocity < 100) alpha = 0.3;  // Slow = smooth
+    // Adaptive smoothing: lebih smooth saat pelan, responsif saat cepat
+    let a = S.smooth;
+    if (S.vel > 1500) a = 0.85;
+    else if (S.vel < 100) a = 0.25;
     
-    STATE.smoothPos.x = STATE.smoothPos.x * alpha + kx * (1 - alpha);
-    STATE.smoothPos.y = STATE.smoothPos.y * alpha + ky * (1 - alpha);
+    S.sp.x = S.sp.x * a + kx * (1 - a);
+    S.sp.y = S.sp.y * a + ky * (1 - a);
     
-    STATE.lastPos = { x: STATE.smoothPos.x, y: STATE.smoothPos.y };
-    STATE.lastTime = now;
+    S.lp = { x: S.sp.x, y: S.sp.y };
+    S.lt = now;
     
-    return STATE.smoothPos;
+    return S.sp;
 }
 
-// ================================================================
-// STROKE RENDERING (Optimized)
-// ================================================================
-function toolStyle(tool, color, size, opacity, pressure) {
-    const dyn = size * (CONFIG.minStrokeWidth + pressure * (CONFIG.maxStrokeWidth - CONFIG.minStrokeWidth));
-    
+// ============== STROKE RENDERING (OPTIMIZED) ==============
+function toolStyle(tool, color, size, opacity) {
+    const dyn = size;
     switch (tool) {
-        case 'pen': return { c: color, s: dyn, o: opacity, comp: 'source-over', blur: 0 };
-        case 'marker': return { c: color, s: dyn * 1.5, o: opacity * 0.85, comp: 'source-over', blur: 2 };
-        case 'highlighter': return { c: color, s: dyn * 3, o: 0.35, comp: 'source-over', blur: 0 };
-        case 'eraser': return { c: '#000', s: size * 3, o: 1, comp: 'destination-out', blur: 0 };
-        case 'laser': return { c: color, s: 4, o: 1, comp: 'lighter', blur: 15 };
-        default: return { c: color, s: dyn, o: opacity, comp: 'source-over', blur: 0 };
+        case 'pen': return { c: color, s: dyn, o: opacity, comp: 'source-over' };
+        case 'marker': return { c: color, s: dyn * 1.5, o: opacity * 0.85, comp: 'source-over' };
+        case 'highlighter': return { c: color, s: dyn * 3, o: 0.35, comp: 'source-over' };
+        case 'eraser': return { c: '#000', s: size * 3, o: 1, comp: 'destination-out' };
+        case 'laser': return { c: color, s: 4, o: 1, comp: 'lighter' };
+        default: return { c: color, s: dyn, o: opacity, comp: 'source-over' };
     }
 }
 
 function renderStroke(ctx, stroke) {
-    if (stroke.points.length < 2) return;
-    
-    const style = toolStyle(stroke.tool, stroke.color, stroke.size, stroke.opacity, 0.7);
+    if (stroke.pts.length < 2) return;
+    const style = toolStyle(stroke.tool, stroke.color, stroke.size, stroke.opacity);
     
     ctx.globalCompositeOperation = style.comp;
     ctx.globalAlpha = style.o;
@@ -829,248 +555,167 @@ function renderStroke(ctx, stroke) {
     ctx.lineWidth = style.s;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    
-    if (style.blur > 0) {
-        ctx.shadowBlur = style.blur;
-        ctx.shadowColor = style.c;
-    } else {
-        ctx.shadowBlur = 0;
-    }
+    // NO SHADOW BLUR untuk performa!
     
     ctx.beginPath();
-    const pts = stroke.points;
+    const p = stroke.pts;
     
-    // Optimized rendering - use quadratic curves instead of catmull-rom for speed
-    if (pts.length === 2) {
-        ctx.moveTo(pts[0].x, pts[0].y);
-        ctx.lineTo(pts[1].x, pts[1].y);
+    if (p.length === 2) {
+        ctx.moveTo(p[0].x, p[0].y);
+        ctx.lineTo(p[1].x, p[1].y);
     } else {
-        ctx.moveTo(pts[0].x, pts[0].y);
-        
-        // Quadratic bezier through midpoints (much faster than catmull-rom)
-        for (let i = 1; i < pts.length - 1; i++) {
-            const midX = (pts[i].x + pts[i+1].x) / 2;
-            const midY = (pts[i].y + pts[i+1].y) / 2;
-            ctx.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
+        ctx.moveTo(p[0].x, p[0].y);
+        // Quadratic bezier melalui midpoint (cepat dan halus)
+        for (let i = 1; i < p.length - 1; i++) {
+            const mx = (p[i].x + p[i+1].x) / 2;
+            const my = (p[i].y + p[i+1].y) / 2;
+            ctx.quadraticCurveTo(p[i].x, p[i].y, mx, my);
         }
-        
-        // Last segment
-        const last = pts[pts.length - 1];
-        ctx.lineTo(last.x, last.y);
+        ctx.lineTo(p[p.length - 1].x, p[p.length - 1].y);
     }
-    
     ctx.stroke();
     
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
-    ctx.shadowBlur = 0;
 }
 
-// ================================================================
-// STROKE MANAGEMENT
-// ================================================================
+// ============== STROKE MANAGEMENT ==============
 function startStroke(pos) {
-    STATE.stroke = {
-        tool: STATE.tool,
-        color: STATE.color,
-        size: STATE.size,
-        opacity: STATE.opacity,
-        points: [{ x: pos.x, y: pos.y }],
-        time: Date.now()
+    S.str = {
+        tool: S.tool, color: S.color, size: S.size, opacity: S.opacity,
+        pts: [{ x: pos.x, y: pos.y }], time: Date.now()
     };
-    STATE.drawing = true;
+    S.drw = true;
 }
 
 function continueStroke(pos) {
-    if (!STATE.stroke) return;
-    
-    const last = STATE.stroke.points[STATE.stroke.points.length - 1];
+    if (!S.str) return;
+    const last = S.str.pts[S.str.pts.length - 1];
     const d = Math.hypot(pos.x - last.x, pos.y - last.y);
-    if (d < 1) return;  // Skip if too close
-    
-    STATE.stroke.points.push({ x: pos.x, y: pos.y });
+    if (d < 1.5) return;  // Skip titik terlalu dekat
+    S.str.pts.push({ x: pos.x, y: pos.y });
     renderPreview();
 }
 
 function endStroke() {
-    if (!STATE.stroke) return;
-    
-    if (STATE.stroke.points.length >= 2) {
-        STATE.pages[STATE.pageIdx].push(STATE.stroke);
-        STATE.undoStack.push({
-            type: 'add',
-            page: STATE.pageIdx,
-            idx: STATE.pages[STATE.pageIdx].length - 1
-        });
-        STATE.redoStack = [];
-        
-        // CRITICAL: Render to main canvas
-        renderStroke(writeCtx, STATE.stroke);
+    if (!S.str) return;
+    if (S.str.pts.length >= 2) {
+        S.pages[S.pg].push(S.str);
+        S.undo.push({ t: 'a', p: S.pg, i: S.pages[S.pg].length - 1 });
+        S.redo = [];
+        renderStroke(mx, S.str);
         save();
     }
-    
-    STATE.stroke = null;
-    STATE.drawing = false;
-    prevCtx.clearRect(0, 0, prevCanvas.width, prevCanvas.height);
+    S.str = null; S.drw = false;
+    px.clearRect(0, 0, pc.width, pc.height);
 }
 
 function renderPreview() {
-    prevCtx.clearRect(0, 0, prevCanvas.width, prevCanvas.height);
-    if (STATE.stroke) renderStroke(prevCtx, STATE.stroke);
+    px.clearRect(0, 0, pc.width, pc.height);
+    if (S.str) renderStroke(px, S.str);
 }
 
-function redrawPage() {
-    if (!writeCtx) return;
-    writeCtx.clearRect(0, 0, writeCanvas.width, writeCanvas.height);
-    STATE.pages[STATE.pageIdx].forEach(s => renderStroke(writeCtx, s));
+function redraw() {
+    if (!mx) return;
+    mx.clearRect(0, 0, mc.width, mc.height);
+    S.pages[S.pg].forEach(s => renderStroke(mx, s));
 }
 
-// ================================================================
-// ERASER
-// ================================================================
+// ============== ERASER ==============
 function eraseAt(pos) {
-    const strokes = STATE.pages[STATE.pageIdx];
-    const r = STATE.size * 2;
+    const strokes = S.pages[S.pg];
+    const r = S.size * 2;
     let erased = false;
-    
     for (let i = strokes.length - 1; i >= 0; i--) {
         const s = strokes[i];
         if (s.tool === 'eraser') continue;
-        
-        for (const p of s.points) {
+        for (const p of s.pts) {
             if (Math.hypot(p.x - pos.x, p.y - pos.y) < r) {
-                strokes.splice(i, 1);
-                erased = true;
-                break;
+                strokes.splice(i, 1); erased = true; break;
             }
         }
     }
-    
-    if (erased) {
-        redrawPage();
-        save();
-    }
+    if (erased) { redraw(); save(); }
 }
 
-// ================================================================
-// UNDO/REDO
-// ================================================================
+// ============== UNDO/REDO ==============
 function undo() {
-    if (!STATE.undoStack.length) return;
-    const a = STATE.undoStack.pop();
-    
-    if (a.type === 'add') {
-        const s = STATE.pages[a.page].pop();
-        STATE.redoStack.push({ type: 'add', page: a.page, stroke: s });
-    } else if (a.type === 'clear') {
-        STATE.pages[a.page] = a.strokes;
-        STATE.redoStack.push({ type: 'clear', page: a.page });
+    if (!S.undo.length) return;
+    const a = S.undo.pop();
+    if (a.t === 'a') {
+        const s = S.pages[a.p].pop();
+        S.redo.push({ t: 'a', p: a.p, s });
+    } else if (a.t === 'c') {
+        S.pages[a.p] = a.ss; S.redo.push({ t: 'c', p: a.p });
     }
-    
-    redrawPage();
-    toast('↶ Undo');
+    redraw(); toast('↶ Undo');
 }
 
 function redo() {
-    if (!STATE.redoStack.length) return;
-    const a = STATE.redoStack.pop();
-    
-    if (a.type === 'add') {
-        STATE.pages[a.page].push(a.stroke);
-        STATE.undoStack.push({ type: 'add', page: a.page, idx: STATE.pages[a.page].length - 1 });
-    } else if (a.type === 'clear') {
-        STATE.undoStack.push({ type: 'clear', page: a.page, strokes: STATE.pages[a.page].slice() });
-        STATE.pages[a.page] = [];
+    if (!S.redo.length) return;
+    const a = S.redo.pop();
+    if (a.t === 'a') {
+        S.pages[a.p].push(a.s);
+        S.undo.push({ t: 'a', p: a.p, i: S.pages[a.p].length - 1 });
+    } else if (a.t === 'c') {
+        S.undo.push({ t: 'c', p: a.p, ss: S.pages[a.p].slice() });
+        S.pages[a.p] = [];
     }
-    
-    redrawPage();
-    toast('↷ Redo');
+    redraw(); toast('↷ Redo');
 }
 
 function clearPage() {
-    if (!STATE.pages[STATE.pageIdx].length) return;
-    STATE.undoStack.push({ type: 'clear', page: STATE.pageIdx, strokes: STATE.pages[STATE.pageIdx].slice() });
-    STATE.redoStack = [];
-    STATE.pages[STATE.pageIdx] = [];
-    redrawPage();
-    save();
-    toast('🗑️ Clear');
+    if (!S.pages[S.pg].length) return;
+    S.undo.push({ t: 'c', p: S.pg, ss: S.pages[S.pg].slice() });
+    S.redo = []; S.pages[S.pg] = [];
+    redraw(); save(); toast('🗑️ Clear');
 }
 
-// ================================================================
-// PAGES
-// ================================================================
+// ============== PAGES ==============
 function switchPage(i) {
-    if (i < 0 || i >= STATE.pages.length) return;
-    STATE.pageIdx = i;
-    redrawPage();
-    updatePage();
-    toast(`📄 Page ${i + 1}`);
+    if (i < 0 || i >= S.pages.length) return;
+    S.pg = i; redraw(); updPage(); toast('📄 Page ' + (i + 1));
 }
+function addPage() { S.pages.push([]); switchPage(S.pages.length - 1); }
+function updPage() { document.getElementById('ptx').textContent = (S.pg + 1) + '/' + S.pages.length; }
 
-function addPage() {
-    STATE.pages.push([]);
-    switchPage(STATE.pages.length - 1);
-}
-
-function updatePage() {
-    document.getElementById('page-text').textContent = `${STATE.pageIdx + 1}/${STATE.pages.length}`;
-}
-
-// ================================================================
-// SAVE/LOAD
-// ================================================================
+// ============== SAVE ==============
 function save() {
     try {
-        localStorage.setItem(CONFIG.storageKey, JSON.stringify({
-            pages: STATE.pages, pageIdx: STATE.pageIdx,
-            tool: STATE.tool, color: STATE.color, size: STATE.size
+        localStorage.setItem(CFG.saveKey, JSON.stringify({
+            p: S.pages, pg: S.pg, t: S.tool, c: S.color, sz: S.size
         }));
     } catch (e) {}
 }
-
 function load() {
     try {
-        const d = JSON.parse(localStorage.getItem(CONFIG.storageKey) || '{}');
-        if (d.pages) {
-            STATE.pages = d.pages;
-            STATE.pageIdx = d.pageIdx || 0;
-            STATE.tool = d.tool || 'pen';
-            STATE.color = d.color || '#ffffff';
-            STATE.size = d.size || 5;
-            redrawPage();
-            updatePage();
-            updateToolUI();
+        const d = JSON.parse(localStorage.getItem(CFG.saveKey) || '{}');
+        if (d.p) {
+            S.pages = d.p; S.pg = d.pg || 0;
+            S.tool = d.t || 'pen'; S.color = d.c || '#fff'; S.size = d.sz || 5;
+            redraw(); updPage(); updToolUI();
         }
     } catch (e) {}
 }
-
 function savePNG() {
     const c = document.createElement('canvas');
-    c.width = window.innerWidth;
-    c.height = window.innerHeight;
-    const ctx = c.getContext('2d');
-    ctx.fillStyle = '#0a0a0f';
-    ctx.fillRect(0, 0, c.width, c.height);
-    ctx.drawImage(writeCanvas, 0, 0, c.width, c.height);
-    
+    c.width = window.innerWidth; c.height = window.innerHeight;
+    const cx = c.getContext('2d');
+    cx.fillStyle = '#0a0a0f'; cx.fillRect(0, 0, c.width, c.height);
+    cx.drawImage(mc, 0, 0, c.width, c.height);
     const a = document.createElement('a');
-    a.download = `writing-${Date.now()}.png`;
-    a.href = c.toDataURL('image/png');
-    a.click();
+    a.download = 'writing-' + Date.now() + '.png';
+    a.href = c.toDataURL('image/png'); a.click();
     toast('💾 Saved');
 }
 
-// ================================================================
-// MEDIAPIPE INIT
-// ================================================================
+// ============== MEDIAPIPE INIT (OPTIMIZED) ==============
 async function initTracking() {
-    const video = document.getElementById('webcam');
-    
+    const video = document.getElementById('cam');
     if (!window.isSecureContext) throw new Error('Butuh HTTPS/localhost!');
     
     const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480, facingMode: 'user' }
+        video: { width: 640, height: 480, facingMode: 'user', frameRate: 30 }
     });
     video.srcObject = stream;
     
@@ -1078,11 +723,12 @@ async function initTracking() {
         locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
     });
     
+    // KUNCI OPTIMASI: modelComplexity 0 = 2-3x lebih cepat
     hands.setOptions({
         maxNumHands: 1,
-        modelComplexity: 1,
-        minDetectionConfidence: 0.7,
-        minTrackingConfidence: 0.6
+        modelComplexity: 0,           // <- 0 = FAST, 1 = ACCURATE (berat)
+        minDetectionConfidence: 0.5,  // <- Lebih rendah = lebih cepat detect
+        minTrackingConfidence: 0.5
     });
     
     hands.onResults(onResults);
@@ -1094,248 +740,200 @@ async function initTracking() {
     cam.start();
 }
 
-// ================================================================
-// MAIN HAND RESULTS - FIXED & OPTIMIZED
-// ================================================================
+// ============== MAIN HANDLER ==============
 function onResults(results) {
-    const cursor = document.getElementById('pen-cursor');
-    const dot = document.getElementById('hand-dot');
-    const statusEl = document.getElementById('hand-status');
-    const modeEl = document.getElementById('mode-value');
+    const cursor = document.getElementById('cursor');
+    const dot = document.getElementById('hd');
+    const hs = document.getElementById('hs');
+    const mv = document.getElementById('mv');
     
-    // NO HAND
     if (!results.multiHandLandmarks || !results.multiHandLandmarks.length) {
-        STATE.handDetected = false;
-        STATE.mode = 'idle';
+        S.hand = false; S.mode = 'idle';
         cursor.style.display = 'none';
-        dot.className = 'status-dot';
-        statusEl.textContent = 'No hand';
-        modeEl.textContent = '—';
-        updateModeIndicator('idle');
-        if (STATE.drawing) endStroke();
-        updateDebug('none', 'idle', '-', 0);
+        dot.className = 'dot'; hs.textContent = 'No hand';
+        mv.textContent = '—';
+        updMI('idle');
+        if (S.drw) endStroke();
+        updDbg('none', 'idle', '-', 0, 0);
         return;
     }
     
-    STATE.handDetected = true;
+    S.hand = true;
     const lm = results.multiHandLandmarks[0];
-    dot.className = 'status-dot active';
-    statusEl.textContent = 'Tracking';
+    dot.className = 'dot on'; hs.textContent = 'Tracking';
     
-    // Get position
     const pos = processPos(lm[8]);
     
-    // Detect gesture
-    const raw = detectGesture(lm);
-    const smoothed = smoothGesture(raw);
-    const newMode = gestureToMode(smoothed);
+    // Frame skipping untuk deteksi gesture (hemat CPU)
+    S.skip++;
+    let smoothed;
+    if (S.skip >= CFG.skipFrames) {
+        S.skip = 0;
+        const raw = detectGesture(lm);
+        smoothed = smoothGesture(raw);
+    } else {
+        smoothed = S.gbuf.length > 0 ? S.gbuf[S.gbuf.length - 1] : 'unknown';
+    }
     
-    STATE.mode = newMode;
-    modeEl.textContent = newMode.toUpperCase();
-    updateModeIndicator(newMode);
+    const newMode = toMode(smoothed);
+    S.mode = newMode;
+    mv.textContent = newMode.toUpperCase();
+    updMI(newMode);
     
     // Update cursor
     cursor.style.display = 'block';
     cursor.style.left = pos.x + 'px';
     cursor.style.top = pos.y + 'px';
     
-    const style = toolStyle(STATE.tool, STATE.color, STATE.size, STATE.opacity, 0.7);
-    const cursorSize = STATE.tool === 'eraser' ? STATE.size * 3 : Math.max(style.s * 2, 12);
-    cursor.style.width = cursorSize + 'px';
-    cursor.style.height = cursorSize + 'px';
-    cursor.style.border = `2px solid ${STATE.tool === 'eraser' ? '#fff' : STATE.color}`;
-    cursor.style.background = STATE.drawing ? STATE.color + '33' : 'transparent';
+    const style = toolStyle(S.tool, S.color, S.size, S.opacity);
+    const cs = S.tool === 'eraser' ? S.size * 3 : Math.max(style.s * 2, 12);
+    cursor.style.width = cs + 'px';
+    cursor.style.height = cs + 'px';
+    cursor.style.borderColor = S.tool === 'eraser' ? '#fff' : S.color;
+    cursor.style.background = S.drw ? S.color + '33' : 'transparent';
     
-    // FINGER DEBUG
     const f = getFingers(lm);
-    const fingerStr = `${f.i?'I':'-'}${f.m?'M':'-'}${f.r?'R':'-'}${f.p?'P':'-'}`;
+    const fs = (f.t?'T':'') + (f.i?'I':'') + (f.m?'M':'') + (f.r?'R':'') + (f.p?'P':'');
+    const handSize = Math.hypot(lm[0].x - lm[9].x, lm[0].y - lm[9].y);
     
-    // MODE ACTIONS - CRITICAL FIX
+    // AKSI MODE
     if (newMode === 'draw') {
-        // START or CONTINUE drawing
-        if (!STATE.drawing) {
-            startStroke(pos);
-        } else {
-            continueStroke(pos);
-        }
-        dot.className = 'status-dot drawing';
+        if (!S.drw) startStroke(pos);
+        else continueStroke(pos);
+        dot.className = 'dot drw';
     } else if (newMode === 'erase') {
-        if (STATE.drawing) endStroke();
+        if (S.drw) endStroke();
         eraseAt(pos);
-        dot.className = 'status-dot erasing';
+        dot.className = 'dot ers';
     } else {
-        // hover, idle - end any drawing
-        if (STATE.drawing) endStroke();
+        if (S.drw) endStroke();
     }
     
-    updateDebug(raw, newMode, fingerStr, STATE.velocity);
+    updDbg(smoothed, newMode, fs, S.vel, handSize);
 }
 
-// ================================================================
-// UI HELPERS
-// ================================================================
-function updateModeIndicator(mode) {
-    const el = document.getElementById('mode-indicator');
-    const icon = document.getElementById('mode-icon');
-    const label = document.getElementById('mode-label');
-    
+// ============== UI ==============
+function updMI(m) {
+    const el = document.getElementById('mi');
+    const ic = document.getElementById('mii');
+    const lb = document.getElementById('mil');
     el.className = '';
-    
-    if (mode === 'draw') {
-        el.classList.add('draw', 'show');
-        icon.textContent = '✍️';
-        label.textContent = 'Drawing';
-    } else if (mode === 'erase') {
-        el.classList.add('erase', 'show');
-        icon.textContent = '🧽';
-        label.textContent = 'Erasing';
-    } else if (mode === 'hover') {
-        el.classList.add('hover', 'show');
-        icon.textContent = '☝️';
-        label.textContent = 'Hover';
-    } else {
-        el.classList.remove('show');
-    }
+    if (m === 'draw') { el.classList.add('drw', 'on'); ic.textContent = '✍️'; lb.textContent = 'Drawing'; }
+    else if (m === 'erase') { el.classList.add('ers', 'on'); ic.textContent = '🧽'; lb.textContent = 'Erasing'; }
+    else if (m === 'hover') { el.classList.add('hvr', 'on'); ic.textContent = '☝️'; lb.textContent = 'Hover'; }
+    else { el.classList.remove('on'); }
 }
 
-function updateDebug(gesture, mode, fingers, vel) {
-    const panel = document.getElementById('debug-panel');
-    if (panel.style.display !== 'block') return;
-    
-    document.getElementById('dbg-gesture').textContent = gesture;
-    document.getElementById('dbg-mode').textContent = mode;
-    document.getElementById('dbg-fingers').textContent = fingers;
-    document.getElementById('dbg-vel').textContent = Math.round(vel) + 'px/s';
-    document.getElementById('dbg-drawing').textContent = STATE.drawing ? 'YES' : 'no';
+function updDbg(g, m, f, v, h) {
+    if (!S.dbg) return;
+    document.getElementById('dg').textContent = g;
+    document.getElementById('dm').textContent = m;
+    document.getElementById('df').textContent = f;
+    document.getElementById('dv').textContent = Math.round(v) + 'px/s';
+    document.getElementById('dh').textContent = h.toFixed(3);
+    document.getElementById('dd').textContent = S.drw ? 'YES' : 'no';
 }
 
-function updateToolUI() {
-    document.querySelectorAll('.dock-item[data-tool]').forEach(b => {
-        b.classList.toggle('active', b.dataset.tool === STATE.tool);
+function updToolUI() {
+    document.querySelectorAll('.di[data-tool]').forEach(b => {
+        b.classList.toggle('on', b.dataset.tool === S.tool);
     });
-    document.querySelectorAll('.color-btn').forEach(s => {
-        s.classList.toggle('active', s.dataset.color.toLowerCase() === STATE.color.toLowerCase());
+    document.querySelectorAll('.cb').forEach(s => {
+        s.classList.toggle('on', s.dataset.color.toLowerCase() === S.color.toLowerCase());
     });
-    document.getElementById('tool-value').textContent = STATE.tool.charAt(0).toUpperCase() + STATE.tool.slice(1);
+    document.getElementById('tv').textContent = S.tool[0].toUpperCase() + S.tool.slice(1);
 }
 
-function updatePropsUI() {
-    document.getElementById('size-slider').value = STATE.size;
-    document.getElementById('size-value').textContent = STATE.size;
-    document.getElementById('opacity-slider').value = Math.round(STATE.opacity * 100);
-    document.getElementById('opacity-value').textContent = Math.round(STATE.opacity * 100) + '%';
-    document.getElementById('smooth-slider').value = Math.round(STATE.smoothing * 100);
-    document.getElementById('smooth-value').textContent = Math.round(STATE.smoothing * 100) + '%';
+function updPropUI() {
+    document.getElementById('ss').value = S.size;
+    document.getElementById('sv').textContent = S.size;
+    document.getElementById('os').value = Math.round(S.opacity * 100);
+    document.getElementById('ov').textContent = Math.round(S.opacity * 100) + '%';
+    document.getElementById('ms').value = Math.round(S.smooth * 100);
+    document.getElementById('mv2').textContent = Math.round(S.smooth * 100) + '%';
 }
 
-function toggleColor() {
-    STATE.colorOpen = !STATE.colorOpen;
-    document.getElementById('color-panel').classList.toggle('show', STATE.colorOpen);
+function togCol() {
+    S.col = !S.col;
+    document.getElementById('cpan').classList.toggle('on', S.col);
 }
-
-function toggleProps() {
-    STATE.propsOpen = !STATE.propsOpen;
-    document.getElementById('props-panel').style.display = STATE.propsOpen ? 'block' : 'none';
+function togPro() {
+    S.pro = !S.pro;
+    document.getElementById('span').style.display = S.pro ? 'block' : 'none';
 }
-
-function toggleWebcam() {
-    document.getElementById('webcam-container').style.display = 
-        document.getElementById('webcam-container').style.display === 'none' ? 'block' : 'none';
+function togWeb() {
+    const w = document.getElementById('wc');
+    w.style.display = w.style.display === 'none' ? 'block' : 'none';
 }
-
-function toggleGrid() {
-    document.getElementById('grid-overlay').classList.toggle('active');
+function togGrid() { document.getElementById('grid').classList.toggle('on'); }
+function togDbg() {
+    S.dbg = !S.dbg;
+    document.getElementById('dbg').style.display = S.dbg ? 'block' : 'none';
 }
-
-function toggleDebug() {
-    const p = document.getElementById('debug-panel');
-    p.style.display = p.style.display === 'block' ? 'none' : 'block';
-}
-
 function toast(msg) {
     const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    clearTimeout(t._tt);
-    t._tt = setTimeout(() => t.classList.remove('show'), 1800);
+    t.textContent = msg; t.classList.add('on');
+    clearTimeout(t._t);
+    t._t = setTimeout(() => t.classList.remove('on'), 1800);
 }
 
-// ================================================================
-// EVENT LISTENERS
-// ================================================================
+// ============== EVENTS ==============
 function setupEvents() {
-    // Tools
-    document.querySelectorAll('.dock-item[data-tool]').forEach(b => {
+    document.querySelectorAll('.di[data-tool]').forEach(b => {
         b.addEventListener('click', () => {
-            STATE.tool = b.dataset.tool;
-            updateToolUI();
-            toast(`🔧 ${STATE.tool}`);
+            S.tool = b.dataset.tool; updToolUI(); toast('🔧 ' + S.tool);
         });
     });
     
-    // Actions
-    document.getElementById('color-btn').addEventListener('click', toggleColor);
-    document.getElementById('props-btn').addEventListener('click', toggleProps);
-    document.getElementById('undo-btn').addEventListener('click', undo);
-    document.getElementById('redo-btn').addEventListener('click', redo);
-    document.getElementById('clear-btn').addEventListener('click', clearPage);
-    document.getElementById('grid-btn').addEventListener('click', toggleGrid);
-    document.getElementById('save-btn').addEventListener('click', savePNG);
+    document.getElementById('cb').addEventListener('click', togCol);
+    document.getElementById('pb').addEventListener('click', togPro);
+    document.getElementById('ub').addEventListener('click', undo);
+    document.getElementById('rb').addEventListener('click', redo);
+    document.getElementById('xb').addEventListener('click', clearPage);
+    document.getElementById('gb').addEventListener('click', togGrid);
+    document.getElementById('sb').addEventListener('click', savePNG);
     
-    // Colors
-    document.querySelectorAll('.color-btn').forEach(b => {
+    document.querySelectorAll('.cb').forEach(b => {
         b.addEventListener('click', () => {
-            STATE.color = b.dataset.color;
-            updateToolUI();
+            S.color = b.dataset.color; updToolUI();
         });
     });
     
-    // Click outside color panel closes it
     document.addEventListener('click', e => {
-        if (STATE.colorOpen && !e.target.closest('#color-panel') && !e.target.closest('#color-btn')) {
-            STATE.colorOpen = false;
-            document.getElementById('color-panel').classList.remove('show');
+        if (S.col && !e.target.closest('#cpan') && !e.target.closest('#cb')) {
+            S.col = false; document.getElementById('cpan').classList.remove('on');
         }
     });
     
-    // Toggles
-    document.getElementById('toggle-props').addEventListener('click', toggleProps);
-    document.getElementById('toggle-help').addEventListener('click', () => {
-        document.getElementById('tutorial-overlay').classList.add('show');
+    document.getElementById('tp').addEventListener('click', togPro);
+    document.getElementById('th').addEventListener('click', () => {
+        document.getElementById('tut').classList.add('on');
     });
-    document.getElementById('toggle-webcam').addEventListener('click', toggleWebcam);
-    
-    // Props close
-    document.getElementById('props-close').addEventListener('click', () => {
-        STATE.propsOpen = false;
-        document.getElementById('props-panel').style.display = 'none';
+    document.getElementById('tw').addEventListener('click', togWeb);
+    document.getElementById('px').addEventListener('click', () => {
+        S.pro = false; document.getElementById('span').style.display = 'none';
     });
     
-    // Sliders
-    document.getElementById('size-slider').addEventListener('input', e => {
-        STATE.size = parseInt(e.target.value);
-        document.getElementById('size-value').textContent = STATE.size;
+    document.getElementById('ss').addEventListener('input', e => {
+        S.size = parseInt(e.target.value);
+        document.getElementById('sv').textContent = S.size;
     });
-    document.getElementById('opacity-slider').addEventListener('input', e => {
-        STATE.opacity = parseInt(e.target.value) / 100;
-        document.getElementById('opacity-value').textContent = e.target.value + '%';
+    document.getElementById('os').addEventListener('input', e => {
+        S.opacity = parseInt(e.target.value) / 100;
+        document.getElementById('ov').textContent = e.target.value + '%';
     });
-    document.getElementById('smooth-slider').addEventListener('input', e => {
-        STATE.smoothing = parseInt(e.target.value) / 100;
-        document.getElementById('smooth-value').textContent = e.target.value + '%';
-    });
-    
-    // Pages
-    document.getElementById('prev-page').addEventListener('click', () => switchPage(STATE.pageIdx - 1));
-    document.getElementById('next-page').addEventListener('click', () => switchPage(STATE.pageIdx + 1));
-    document.getElementById('add-page').addEventListener('click', addPage);
-    
-    // Tutorial
-    document.getElementById('close-tutorial').addEventListener('click', () => {
-        document.getElementById('tutorial-overlay').classList.remove('show');
+    document.getElementById('ms').addEventListener('input', e => {
+        S.smooth = parseInt(e.target.value) / 100;
+        document.getElementById('mv2').textContent = e.target.value + '%';
     });
     
-    // Keyboard
+    document.getElementById('pp').addEventListener('click', () => switchPage(S.pg - 1));
+    document.getElementById('pn').addEventListener('click', () => switchPage(S.pg + 1));
+    document.getElementById('pa').addEventListener('click', addPage);
+    document.getElementById('tx').addEventListener('click', () => {
+        document.getElementById('tut').classList.remove('on');
+    });
+    
     document.addEventListener('keydown', e => {
         if (e.ctrlKey || e.metaKey) {
             if (e.key === 'z') { e.preventDefault(); undo(); }
@@ -1343,106 +941,87 @@ function setupEvents() {
             else if (e.key === 's') { e.preventDefault(); savePNG(); }
         } else {
             switch (e.key) {
-                case '1': STATE.tool = 'pen'; break;
-                case '2': STATE.tool = 'marker'; break;
-                case '3': STATE.tool = 'highlighter'; break;
-                case '4': STATE.tool = 'eraser'; break;
-                case '5': STATE.tool = 'laser'; break;
+                case '1': S.tool = 'pen'; break;
+                case '2': S.tool = 'marker'; break;
+                case '3': S.tool = 'highlighter'; break;
+                case '4': S.tool = 'eraser'; break;
+                case '5': S.tool = 'laser'; break;
                 case 'c': case 'C': clearPage(); return;
-                case 'g': case 'G': toggleGrid(); return;
-                case 'p': case 'P': toggleProps(); return;
-                case 'd': case 'D': toggleDebug(); return;
-                case '?': document.getElementById('tutorial-overlay').classList.add('show'); return;
-                case '[': STATE.size = Math.max(1, STATE.size - 1); updatePropsUI(); return;
-                case ']': STATE.size = Math.min(30, STATE.size + 1); updatePropsUI(); return;
+                case 'g': case 'G': togGrid(); return;
+                case 'p': case 'P': togPro(); return;
+                case 'd': case 'D': togDbg(); return;
+                case '?': document.getElementById('tut').classList.add('on'); return;
+                case '[': S.size = Math.max(1, S.size - 1); updPropUI(); return;
+                case ']': S.size = Math.min(30, S.size + 1); updPropUI(); return;
                 case 'Escape':
-                    document.getElementById('tutorial-overlay').classList.remove('show');
-                    if (STATE.colorOpen) toggleColor();
-                    if (STATE.propsOpen) toggleProps();
+                    document.getElementById('tut').classList.remove('on');
+                    if (S.col) togCol(); if (S.pro) togPro();
                     return;
                 default: return;
             }
-            updateToolUI();
+            updToolUI();
         }
     });
     
-    setInterval(save, CONFIG.autoSaveMs);
+    setInterval(save, CFG.saveMs);
 }
 
-// ================================================================
-// FPS
-// ================================================================
-function updateFPS() {
-    STATE.frames++;
+// ============== FPS ==============
+function updFPS() {
+    S.fr++;
     const now = performance.now();
-    if (now - STATE.lastFps >= 1000) {
-        document.getElementById('fps-value').textContent = STATE.frames;
-        STATE.frames = 0;
-        STATE.lastFps = now;
+    if (now - S.lf >= 1000) {
+        document.getElementById('fv').textContent = S.fr;
+        S.fr = 0; S.lf = now;
     }
-    requestAnimationFrame(updateFPS);
+    requestAnimationFrame(updFPS);
 }
 
-// ================================================================
-// START
-// ================================================================
+// ============== START ==============
 async function start() {
-    const btn = document.getElementById('start-btn');
-    const screen = document.getElementById('start-screen');
-    const loading = document.getElementById('loading-status');
-    
-    btn.style.display = 'none';
-    loading.style.display = 'block';
+    const btn = document.getElementById('go');
+    const sc = document.getElementById('start');
+    const ld = document.getElementById('ld');
+    btn.style.display = 'none'; ld.style.display = 'block';
     
     try {
         await loadLibs();
-        document.getElementById('status-text').textContent = 'Setup canvas...';
+        document.getElementById('lt').textContent = 'Setup canvas...';
         setupCanvas();
-        
-        document.getElementById('status-text').textContent = 'Requesting camera...';
+        document.getElementById('lt').textContent = 'Requesting camera...';
         await initTracking();
-        
-        document.getElementById('status-text').textContent = 'Loading data...';
+        document.getElementById('lt').textContent = 'Loading data...';
         load();
+        sc.style.display = 'none';
         
-        screen.style.display = 'none';
-        
-        // Show UI
-        ['status-bar', 'dock', 'toggle-props', 'toggle-help', 'toggle-webcam',
-         'webcam-container', 'page-indicator'].forEach(id => {
+        ['bar', 'dock', 'tp', 'th', 'tw', 'wc', 'pi'].forEach(id => {
             const el = document.getElementById(id);
-            el.style.display = id === 'dock' || id === 'status-bar' || id === 'page-indicator' ? 'flex' : 'block';
+            el.style.display = (id === 'dock' || id === 'bar' || id === 'pi') ? 'flex' : 'block';
         });
-        document.querySelectorAll('.toggle-btn').forEach(b => b.style.display = 'flex');
+        document.querySelectorAll('.tg').forEach(b => b.style.display = 'flex');
         
         setupEvents();
-        updateToolUI();
-        updatePropsUI();
-        updatePage();
-        updateFPS();
-        
-        // Show tutorial
-        document.getElementById('tutorial-overlay').classList.add('show');
-        
-        toast('✨ Ready! Show your hand');
-        
+        updToolUI(); updPropUI(); updPage(); updFPS();
+        document.getElementById('tut').classList.add('on');
+        toast('✨ Ready!');
     } catch (err) {
-        screen.innerHTML = `
-            <div class="logo" style="color:#ff4757;">⚠️</div>
+        sc.innerHTML = `
+            <div style="font-size:60px;">⚠️</div>
             <h1 style="color:#ff4757;">Error</h1>
-            <p style="color:#ffb3b3; max-width:500px; margin:20px;">${err.message}</p>
-            <div class="server-hint">
+            <p style="color:#ff8080;max-width:500px;margin:20px;">${err.message}</p>
+            <div class="hint">
                 <strong>Solusi:</strong><br>
                 1. Jalankan via <code>http://localhost:8000</code><br>
-                2. Izinkan kamera<br>
-                3. Internet aktif untuk load library
+                2. Izinkan akses kamera<br>
+                3. Pastikan internet aktif<br>
+                4. Gunakan Chrome/Edge terbaru
             </div>
-            <button onclick="location.reload()" style="margin-top:25px;padding:14px 35px;background:var(--accent);border:none;border-radius:50px;font-weight:600;cursor:pointer;color:#000;">🔄 Retry</button>
+            <button onclick="location.reload()" style="margin-top:20px;padding:12px 30px;background:#0ff;border:none;border-radius:25px;font-weight:600;cursor:pointer;color:#000;">🔄 Retry</button>
         `;
     }
 }
 
-document.getElementById('start-btn').addEventListener('click', start);
+document.getElementById('go').addEventListener('click', start);
 </script>
 </body>
 </html>
