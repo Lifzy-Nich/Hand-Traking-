@@ -3,22 +3,39 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pro Writing System v3.0 — Ultra Accurate</title>
+<title>Pro Writing System v4.0 — Ultimate</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
     
-    body {
-        overflow: hidden;
-        font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
-        color: #fff;
-        background: #0a0a0f;
-        user-select: none;
+    :root {
+        --bg-primary: #0a0a0f;
+        --bg-secondary: rgba(15, 15, 25, 0.85);
+        --glass: rgba(20, 20, 35, 0.6);
+        --glass-border: rgba(0, 255, 255, 0.15);
+        --accent: #00e5ff;
+        --accent-glow: rgba(0, 229, 255, 0.5);
+        --text-primary: #ffffff;
+        --text-secondary: #8892b0;
+        --danger: #ff4757;
+        --success: #2ed573;
     }
     
-    /* ===== LAYER SYSTEM ===== */
+    body {
+        overflow: hidden;
+        font-family: -apple-system, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+        color: var(--text-primary);
+        background: var(--bg-primary);
+        user-select: none;
+        height: 100vh;
+    }
+    
+    /* ===== BACKGROUND ===== */
     #background {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a0f 70%);
+        background: 
+            radial-gradient(ellipse at 20% 30%, rgba(0, 229, 255, 0.05) 0%, transparent 50%),
+            radial-gradient(ellipse at 80% 70%, rgba(255, 0, 255, 0.03) 0%, transparent 50%),
+            var(--bg-primary);
         z-index: 0;
     }
     
@@ -26,406 +43,717 @@
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         z-index: 1; pointer-events: none;
         background-image: 
-            linear-gradient(rgba(0,255,255,0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0,255,255,0.03) 1px, transparent 1px);
-        background-size: 50px 50px;
+            linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px);
+        background-size: 40px 40px;
         opacity: 0;
-        transition: opacity 0.3s;
+        transition: opacity 0.4s;
     }
     #grid-overlay.active { opacity: 1; }
     
-    #writing-canvas {
+    /* ===== CANVASES ===== */
+    #writing-canvas, #preview-canvas {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        z-index: 10; cursor: none;
     }
-    
-    #preview-canvas {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        z-index: 11; pointer-events: none;
-    }
-    
-    #webcam { 
-        position: fixed; bottom: 20px; right: 20px; width: 240px; height: 180px; 
-        border: 2px solid rgba(0,255,255,0.4); border-radius: 12px; 
-        z-index: 100; transform: scaleX(-1); background: #000;
-        box-shadow: 0 4px 30px rgba(0,0,0,0.5);
-    }
-    
-    /* ===== START SCREEN ===== */
-    #start-screen {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: radial-gradient(circle at center, #1a1a2e 0%, #000 100%);
-        z-index: 10000; display: flex; flex-direction: column;
-        align-items: center; justify-content: center; text-align: center; padding: 20px;
-    }
-    #start-screen h1 { 
-        font-size: 48px; margin-bottom: 10px; 
-        background: linear-gradient(135deg, #0ff, #f0f);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    #start-screen .subtitle { color: #888; font-size: 18px; margin-bottom: 40px; }
-    
-    .feature-grid {
-        display: grid; grid-template-columns: repeat(2, 1fr);
-        gap: 15px; max-width: 600px; margin-bottom: 40px; text-align: left;
-    }
-    .feature {
-        background: rgba(255,255,255,0.03); padding: 15px 20px;
-        border-radius: 10px; border-left: 3px solid #0ff;
-    }
-    .feature .icon { font-size: 24px; margin-bottom: 5px; }
-    .feature .title { font-weight: bold; color: #0ff; margin-bottom: 3px; }
-    .feature .desc { font-size: 12px; color: #888; }
-    
-    #start-btn {
-        padding: 20px 60px; font-size: 20px; font-weight: bold;
-        background: linear-gradient(135deg, #0ff, #f0f); border: none; border-radius: 50px;
-        color: #000; cursor: pointer; transition: all 0.3s;
-        box-shadow: 0 0 40px rgba(0,255,255,0.4);
-    }
-    #start-btn:hover { transform: scale(1.05); box-shadow: 0 0 60px rgba(0,255,255,0.7); }
-    
-    /* ===== TOP BAR ===== */
-    #top-bar {
-        position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
-        z-index: 200; background: rgba(10,10,15,0.95);
-        padding: 10px 20px; border-radius: 50px;
-        border: 1px solid rgba(0,255,255,0.2);
-        display: flex; align-items: center; gap: 12px;
-        backdrop-filter: blur(20px);
-        box-shadow: 0 4px 30px rgba(0,0,0,0.5);
-    }
-    
-    .tool-btn {
-        width: 44px; height: 44px; border-radius: 50%;
-        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-        color: #aaa; cursor: pointer; font-size: 18px;
-        display: flex; align-items: center; justify-content: center;
-        transition: all 0.2s; position: relative;
-    }
-    .tool-btn:hover { background: rgba(0,255,255,0.15); color: #0ff; border-color: #0ff; }
-    .tool-btn.active { 
-        background: rgba(0,255,255,0.25); color: #fff; 
-        border-color: #0ff; box-shadow: 0 0 15px rgba(0,255,255,0.5);
-    }
-    .tool-btn .shortcut {
-        position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%);
-        font-size: 9px; color: #555; font-family: monospace;
-    }
-    
-    .separator { width: 1px; height: 30px; background: rgba(255,255,255,0.1); }
-    
-    /* ===== COLOR PICKER ===== */
-    .color-swatch {
-        width: 30px; height: 30px; border-radius: 50%;
-        border: 2px solid rgba(255,255,255,0.2); cursor: pointer;
-        transition: all 0.2s;
-    }
-    .color-swatch:hover { transform: scale(1.15); }
-    .color-swatch.active { border-color: #fff; box-shadow: 0 0 10px currentColor; }
-    
-    /* ===== SIDE PANELS ===== */
-    .side-panel {
-        position: fixed; z-index: 150;
-        background: rgba(10,10,15,0.95); backdrop-filter: blur(20px);
-        padding: 15px; border-radius: 15px;
-        border: 1px solid rgba(0,255,255,0.2);
-        box-shadow: 0 4px 30px rgba(0,0,0,0.5);
-    }
-    
-    #status-panel {
-        top: 80px; left: 20px; min-width: 220px; font-size: 13px;
-    }
-    #status-panel .label { color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
-    #status-panel .value { color: #0ff; font-weight: bold; margin-bottom: 8px; }
-    
-    .status-indicator {
-        display: inline-block; width: 8px; height: 8px;
-        border-radius: 50%; margin-right: 5px;
-        animation: pulse 2s infinite;
-    }
-    .status-indicator.active { background: #0f0; box-shadow: 0 0 10px #0f0; }
-    .status-indicator.idle { background: #888; animation: none; }
-    
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
-    }
-    
-    #properties-panel {
-        top: 80px; right: 20px; min-width: 200px;
-    }
-    #properties-panel label {
-        display: block; font-size: 11px; color: #888;
-        margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;
-    }
-    #properties-panel input[type="range"] {
-        width: 100%; margin-bottom: 15px;
-    }
-    #properties-panel .value-display {
-        color: #0ff; font-weight: bold; float: right;
-    }
-    
-    /* ===== GESTURE INDICATOR ===== */
-    #gesture-indicator {
-        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-        z-index: 150; padding: 12px 25px; border-radius: 50px;
-        font-size: 14px; font-weight: bold;
-        background: rgba(10,10,15,0.95); backdrop-filter: blur(20px);
-        border: 1px solid rgba(0,255,255,0.3);
-        display: flex; align-items: center; gap: 10px;
-        transition: all 0.3s;
-    }
-    .gesture-dot {
-        width: 10px; height: 10px; border-radius: 50%;
-        background: #888;
-    }
-    .gesture-dot.hover { background: #0ff; box-shadow: 0 0 10px #0ff; }
-    .gesture-dot.draw { background: #0f0; box-shadow: 0 0 10px #0f0; }
-    .gesture-dot.erase { background: #f55; box-shadow: 0 0 10px #f55; }
+    #writing-canvas { z-index: 10; }
+    #preview-canvas { z-index: 11; pointer-events: none; }
     
     /* ===== PEN CURSOR ===== */
     #pen-cursor {
         position: fixed; pointer-events: none; z-index: 500;
         border-radius: 50%; transform: translate(-50%, -50%);
-        transition: width 0.1s, height 0.1s, background 0.1s;
+        transition: width 0.15s, height 0.15s, border-color 0.2s, background 0.2s;
         mix-blend-mode: screen;
-    }
-    #pen-cursor::after {
-        content: ''; position: absolute; top: 50%; left: 50%;
-        width: 4px; height: 4px; background: #fff;
-        border-radius: 50%; transform: translate(-50%, -50%);
-    }
-    
-    /* ===== HAND VISUALIZER ===== */
-    #hand-viz {
-        position: fixed; bottom: 220px; right: 20px;
-        width: 240px; height: 180px; z-index: 99;
-        background: rgba(0,0,0,0.6); border-radius: 12px;
-        border: 1px solid rgba(0,255,255,0.3);
-    }
-    
-    /* ===== PAGE INDICATOR ===== */
-    #page-indicator {
-        position: fixed; bottom: 20px; left: 20px;
-        z-index: 150; display: flex; gap: 8px; align-items: center;
-        background: rgba(10,10,15,0.95); backdrop-filter: blur(20px);
-        padding: 8px 15px; border-radius: 50px;
-        border: 1px solid rgba(0,255,255,0.2);
-        font-size: 13px;
-    }
-    .page-btn {
-        width: 28px; height: 28px; border-radius: 50%;
-        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-        color: #aaa; cursor: pointer; font-size: 12px;
-    }
-    .page-btn:hover { background: rgba(0,255,255,0.2); color: #0ff; }
-    
-    /* ===== TOAST NOTIFICATION ===== */
-    #toast {
-        position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
-        z-index: 1000; padding: 12px 25px; border-radius: 50px;
-        background: rgba(0,255,255,0.15); backdrop-filter: blur(20px);
-        border: 1px solid #0ff; color: #0ff;
-        opacity: 0; transition: opacity 0.3s; pointer-events: none;
-    }
-    #toast.show { opacity: 1; }
-    
-    /* ===== TUTORIAL OVERLAY ===== */
-    #tutorial {
-        position: fixed; top: 80px; right: 20px; z-index: 180;
-        background: rgba(10,10,15,0.95); backdrop-filter: blur(20px);
-        padding: 15px 20px; border-radius: 12px;
-        border: 1px solid rgba(0,255,255,0.3);
-        max-width: 280px; font-size: 12px;
         display: none;
     }
-    #tutorial.show { display: block; }
-    #tutorial h4 { color: #0ff; margin-bottom: 10px; font-size: 14px; }
-    #tutorial .gesture-row {
-        display: flex; justify-content: space-between;
-        padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+    #pen-cursor::before {
+        content: ''; position: absolute; top: 50%; left: 50%;
+        width: 3px; height: 3px; background: #fff;
+        border-radius: 50%; transform: translate(-50%, -50%);
+        box-shadow: 0 0 5px #fff;
     }
-    #tutorial .gesture-row:last-child { border: none; }
-    #tutorial .key { 
-        background: rgba(0,255,255,0.1); padding: 2px 8px; 
-        border-radius: 4px; font-family: monospace; color: #0ff;
+    #pen-cursor::after {
+        content: ''; position: absolute; inset: -8px;
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 50%;
+        animation: cursorPulse 2s ease-in-out infinite;
+    }
+    @keyframes cursorPulse {
+        0%, 100% { transform: scale(1); opacity: 0.5; }
+        50% { transform: scale(1.3); opacity: 0; }
     }
     
-    /* ===== LOADING ===== */
+    /* ===== START SCREEN ===== */
+    #start-screen {
+        position: fixed; inset: 0;
+        background: radial-gradient(circle at center, #12121f 0%, #000 100%);
+        z-index: 10000; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; text-align: center;
+        padding: 20px;
+    }
+    .logo {
+        font-size: 72px; margin-bottom: 10px;
+        filter: drop-shadow(0 0 30px var(--accent-glow));
+        animation: logoFloat 3s ease-in-out infinite;
+    }
+    @keyframes logoFloat {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+    #start-screen h1 { 
+        font-size: 42px; font-weight: 700; margin-bottom: 8px;
+        background: linear-gradient(135deg, #fff, var(--accent));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .subtitle { color: var(--text-secondary); font-size: 16px; margin-bottom: 50px; letter-spacing: 2px; }
+    
+    .feature-grid {
+        display: grid; grid-template-columns: repeat(3, 1fr);
+        gap: 12px; max-width: 700px; margin-bottom: 40px;
+    }
+    .feature {
+        background: var(--glass); backdrop-filter: blur(20px);
+        padding: 20px 15px; border-radius: 16px;
+        border: 1px solid var(--glass-border);
+        transition: transform 0.3s, border-color 0.3s;
+    }
+    .feature:hover { transform: translateY(-5px); border-color: var(--accent); }
+    .feature .icon { font-size: 28px; margin-bottom: 8px; }
+    .feature .title { font-weight: 600; font-size: 14px; color: var(--accent); margin-bottom: 4px; }
+    .feature .desc { font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
+    
+    #start-btn {
+        padding: 18px 70px; font-size: 18px; font-weight: 600;
+        background: linear-gradient(135deg, var(--accent), #b026ff);
+        border: none; border-radius: 50px;
+        color: #000; cursor: pointer; transition: all 0.3s;
+        box-shadow: 0 10px 40px rgba(0, 229, 255, 0.3);
+        letter-spacing: 1px;
+    }
+    #start-btn:hover { 
+        transform: translateY(-3px); 
+        box-shadow: 0 15px 50px rgba(0, 229, 255, 0.5); 
+    }
+    #start-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    
+    #loading-status { margin-top: 20px; display: none; }
     .spinner {
-        border: 3px solid rgba(0,255,255,0.2);
-        border-top: 3px solid #0ff;
+        border: 3px solid rgba(0,229,255,0.2);
+        border-top: 3px solid var(--accent);
         border-radius: 50%; width: 40px; height: 40px;
         animation: spin 1s linear infinite; margin: 20px auto;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     
-    .warning-box {
-        background: rgba(255,100,100,0.1); border: 1px solid #f66;
-        padding: 15px 20px; border-radius: 10px; margin-top: 20px;
-        max-width: 500px; font-size: 13px; color: #faa;
+    .server-hint {
+        margin-top: 30px; padding: 12px 20px;
+        background: rgba(255,100,100,0.1); border: 1px solid rgba(255,100,100,0.3);
+        border-radius: 10px; font-size: 12px; color: #ffb3b3;
+        max-width: 500px;
     }
-    .warning-box code { background: #222; padding: 2px 8px; border-radius: 4px; color: #0f0; }
+    .server-hint code { 
+        background: #000; padding: 3px 10px; border-radius: 4px; 
+        color: var(--success); font-family: 'SF Mono', Monaco, monospace;
+        margin: 0 3px;
+    }
+    
+    /* ===== SLIM STATUS BAR ===== */
+    #status-bar {
+        position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
+        z-index: 200;
+        background: var(--glass); backdrop-filter: blur(20px);
+        padding: 8px 20px; border-radius: 50px;
+        border: 1px solid var(--glass-border);
+        display: none; align-items: center; gap: 20px;
+        font-size: 12px;
+        box-shadow: 0 4px 30px rgba(0,0,0,0.3);
+    }
+    .status-item {
+        display: flex; align-items: center; gap: 6px;
+        color: var(--text-secondary);
+    }
+    .status-item .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+    .status-item .value { color: var(--text-primary); font-weight: 600; }
+    .status-dot {
+        width: 6px; height: 6px; border-radius: 50%;
+        background: var(--text-secondary);
+    }
+    .status-dot.active { background: var(--success); box-shadow: 0 0 8px var(--success); animation: pulse 2s infinite; }
+    .status-dot.drawing { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+    .status-dot.erasing { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    
+    .status-sep { width: 1px; height: 16px; background: var(--glass-border); }
+    
+    /* ===== FLOATING DOCK (macOS Style) ===== */
+    #dock {
+        position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%);
+        z-index: 200;
+        background: var(--glass); backdrop-filter: blur(30px);
+        padding: 8px; border-radius: 20px;
+        border: 1px solid var(--glass-border);
+        display: none; gap: 4px; align-items: center;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+        transition: opacity 0.3s, transform 0.3s;
+    }
+    #dock.hidden { opacity: 0; transform: translateX(-50%) translateY(20px); pointer-events: none; }
+    
+    .dock-item {
+        width: 44px; height: 44px; border-radius: 12px;
+        background: transparent;
+        border: none; color: var(--text-secondary);
+        cursor: pointer; font-size: 20px;
+        display: flex; align-items: center; justify-content: center;
+        position: relative; transition: all 0.2s;
+    }
+    .dock-item:hover { 
+        background: rgba(255,255,255,0.08); 
+        color: var(--text-primary);
+        transform: translateY(-3px);
+    }
+    .dock-item.active { 
+        background: linear-gradient(135deg, var(--accent), #b026ff);
+        color: #000;
+        box-shadow: 0 5px 20px var(--accent-glow);
+    }
+    .dock-item .tooltip {
+        position: absolute; bottom: calc(100% + 10px); left: 50%;
+        transform: translateX(-50%) scale(0);
+        background: #000; color: var(--text-primary);
+        padding: 5px 10px; border-radius: 6px;
+        font-size: 11px; white-space: nowrap;
+        opacity: 0; transition: all 0.2s; pointer-events: none;
+    }
+    .dock-item:hover .tooltip { transform: translateX(-50%) scale(1); opacity: 1; }
+    
+    .dock-sep { width: 1px; height: 30px; background: var(--glass-border); margin: 0 4px; }
+    
+    /* ===== COLOR PICKER PANEL ===== */
+    #color-panel {
+        position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+        z-index: 199;
+        background: var(--glass); backdrop-filter: blur(30px);
+        padding: 15px; border-radius: 20px;
+        border: 1px solid var(--glass-border);
+        display: none; gap: 10px; flex-wrap: wrap;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+        max-width: 300px; justify-content: center;
+    }
+    #color-panel.show { display: flex; animation: slideUp 0.3s; }
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+        to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    .color-btn {
+        width: 36px; height: 36px; border-radius: 50%;
+        border: 2px solid transparent; cursor: pointer;
+        transition: all 0.2s;
+    }
+    .color-btn:hover { transform: scale(1.15); }
+    .color-btn.active { border-color: #fff; box-shadow: 0 0 15px currentColor; }
+    
+    /* ===== PROPERTIES PANEL (Auto-hide) ===== */
+    #props-panel {
+        position: fixed; left: 20px; top: 50%; transform: translateY(-50%);
+        z-index: 150;
+        background: var(--glass); backdrop-filter: blur(20px);
+        padding: 20px; border-radius: 16px;
+        border: 1px solid var(--glass-border);
+        width: 220px; display: none;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        transition: transform 0.3s, opacity 0.3s;
+    }
+    #props-panel.collapsed { transform: translateY(-50%) translateX(-200px); opacity: 0; }
+    
+    .props-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 15px; padding-bottom: 10px;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    .props-title { font-size: 13px; font-weight: 600; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; }
+    .props-close {
+        background: none; border: none; color: var(--text-secondary);
+        cursor: pointer; font-size: 16px; padding: 2px 6px; border-radius: 4px;
+    }
+    .props-close:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+    
+    .prop-group { margin-bottom: 16px; }
+    .prop-label {
+        display: flex; justify-content: space-between;
+        font-size: 11px; color: var(--text-secondary);
+        text-transform: uppercase; letter-spacing: 1px;
+        margin-bottom: 6px;
+    }
+    .prop-value { color: var(--accent); font-weight: 600; }
+    
+    input[type="range"] {
+        width: 100%; height: 4px; background: rgba(255,255,255,0.1);
+        border-radius: 2px; outline: none;
+        -webkit-appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 14px; height: 14px; border-radius: 50%;
+        background: var(--accent); cursor: pointer;
+        box-shadow: 0 0 10px var(--accent-glow);
+    }
+    input[type="range"]::-moz-range-thumb {
+        width: 14px; height: 14px; border-radius: 50%;
+        background: var(--accent); cursor: pointer; border: none;
+        box-shadow: 0 0 10px var(--accent-glow);
+    }
+    
+    /* ===== TOGGLE BUTTONS ===== */
+    .toggle-btn {
+        position: fixed; z-index: 199;
+        width: 44px; height: 44px; border-radius: 50%;
+        background: var(--glass); backdrop-filter: blur(20px);
+        border: 1px solid var(--glass-border);
+        color: var(--text-secondary); cursor: pointer;
+        font-size: 18px; display: none;
+        align-items: center; justify-content: center;
+        transition: all 0.3s;
+    }
+    .toggle-btn:hover { color: var(--accent); border-color: var(--accent); }
+    
+    #toggle-props { left: 20px; top: 80px; }
+    #toggle-help { right: 20px; top: 80px; }
+    #toggle-webcam { right: 20px; bottom: 100px; }
+    
+    /* ===== WEBCAM PREVIEW ===== */
+    #webcam-container {
+        position: fixed; bottom: 20px; right: 20px;
+        z-index: 150; display: none;
+        transition: all 0.3s;
+    }
+    #webcam-container.collapsed { transform: scale(0.5); opacity: 0.3; }
+    #webcam-container.collapsed:hover { transform: scale(0.6); opacity: 0.6; }
+    
+    #webcam {
+        width: 180px; height: 135px;
+        border: 1px solid var(--glass-border);
+        border-radius: 12px; background: #000;
+        transform: scaleX(-1);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    }
+    .webcam-overlay {
+        position: absolute; top: 8px; left: 8px;
+        background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
+        padding: 3px 8px; border-radius: 10px;
+        font-size: 10px; color: var(--success);
+        display: flex; align-items: center; gap: 4px;
+    }
+    .webcam-overlay .dot {
+        width: 5px; height: 5px; border-radius: 50%;
+        background: var(--success); animation: pulse 2s infinite;
+    }
+    
+    /* ===== TUTORIAL OVERLAY ===== */
+    #tutorial-overlay {
+        position: fixed; inset: 0; z-index: 9999;
+        background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
+        display: none; align-items: center; justify-content: center;
+        animation: fadeIn 0.3s;
+    }
+    #tutorial-overlay.show { display: flex; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    
+    .tutorial-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px; padding: 40px;
+        max-width: 700px; width: 90%; max-height: 85vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .tutorial-card h2 {
+        font-size: 28px; margin-bottom: 8px;
+        background: linear-gradient(135deg, #fff, var(--accent));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .tutorial-card .subtitle { color: var(--text-secondary); margin-bottom: 25px; }
+    
+    .gesture-grid {
+        display: grid; grid-template-columns: repeat(2, 1fr);
+        gap: 12px; margin-bottom: 25px;
+    }
+    .gesture-card {
+        background: var(--glass); padding: 16px;
+        border-radius: 12px; border: 1px solid var(--glass-border);
+        display: flex; align-items: center; gap: 12px;
+    }
+    .gesture-card .emoji { font-size: 32px; }
+    .gesture-card .info .title { font-weight: 600; color: var(--accent); font-size: 14px; }
+    .gesture-card .info .desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+    
+    .shortcuts-list {
+        background: var(--glass); padding: 16px 20px;
+        border-radius: 12px; margin-bottom: 20px;
+    }
+    .shortcuts-list h4 { color: var(--accent); margin-bottom: 10px; font-size: 14px; }
+    .shortcut-row {
+        display: flex; justify-content: space-between;
+        padding: 6px 0; font-size: 13px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .shortcut-row:last-child { border: none; }
+    .key {
+        background: rgba(0,229,255,0.15); color: var(--accent);
+        padding: 2px 8px; border-radius: 4px;
+        font-family: 'SF Mono', Monaco, monospace; font-size: 11px;
+    }
+    
+    .tutorial-close {
+        padding: 12px 30px; background: var(--accent);
+        border: none; border-radius: 50px; color: #000;
+        font-weight: 600; cursor: pointer; font-size: 14px;
+        margin-top: 10px;
+    }
+    
+    /* ===== TOAST ===== */
+    #toast {
+        position: fixed; top: 80px; left: 50%; transform: translateX(-50%) translateY(-20px);
+        z-index: 1000;
+        background: var(--glass); backdrop-filter: blur(20px);
+        padding: 10px 25px; border-radius: 50px;
+        border: 1px solid var(--glass-border);
+        color: var(--text-primary); font-size: 13px;
+        opacity: 0; transition: all 0.3s; pointer-events: none;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    
+    /* ===== PAGE INDICATOR ===== */
+    #page-indicator {
+        position: fixed; bottom: 25px; left: 25px;
+        z-index: 150; display: none; align-items: center; gap: 8px;
+        background: var(--glass); backdrop-filter: blur(20px);
+        padding: 6px 12px; border-radius: 50px;
+        border: 1px solid var(--glass-border);
+        font-size: 12px;
+    }
+    .page-btn {
+        width: 26px; height: 26px; border-radius: 50%;
+        background: rgba(255,255,255,0.05); border: none;
+        color: var(--text-secondary); cursor: pointer; font-size: 11px;
+        transition: all 0.2s;
+    }
+    .page-btn:hover { background: var(--accent); color: #000; }
+    .page-text { color: var(--text-primary); font-weight: 600; min-width: 40px; text-align: center; }
+    
+    /* ===== GESTURE MODE INDICATOR ===== */
+    #mode-indicator {
+        position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+        z-index: 150;
+        padding: 8px 20px; border-radius: 50px;
+        background: var(--glass); backdrop-filter: blur(20px);
+        border: 1px solid var(--glass-border);
+        font-size: 12px; font-weight: 600;
+        opacity: 0; transition: all 0.3s;
+        pointer-events: none;
+        display: flex; align-items: center; gap: 8px;
+    }
+    #mode-indicator.show { opacity: 1; }
+    #mode-indicator.draw { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 20px var(--accent-glow); }
+    #mode-indicator.erase { border-color: var(--danger); color: var(--danger); box-shadow: 0 0 20px rgba(255,71,87,0.5); }
+    #mode-indicator.hover { border-color: var(--success); color: var(--success); }
+    #mode-indicator.idle { border-color: var(--text-secondary); color: var(--text-secondary); }
 </style>
 </head>
 <body>
 
-<!-- Background layers -->
 <div id="background"></div>
-<div id="grid-overlay" class="active"></div>
+<div id="grid-overlay"></div>
 
-<!-- Canvases -->
 <canvas id="writing-canvas"></canvas>
 <canvas id="preview-canvas"></canvas>
-
-<!-- Pen cursor -->
 <div id="pen-cursor"></div>
 
-<!-- Start screen -->
+<!-- START SCREEN -->
 <div id="start-screen">
-    <h1>✍️ Pro Writing System</h1>
-    <p class="subtitle">Ultra-Accurate Hand Tracking Writing · v3.0</p>
+    <div class="logo">✍️</div>
+    <h1>Pro Writing System</h1>
+    <p class="subtitle">v4.0 ULTIMATE · ULTRA ACCURATE TRACKING</p>
     
     <div class="feature-grid">
         <div class="feature">
             <div class="icon">🎯</div>
-            <div class="title">Kalman Filter</div>
-            <div class="desc">Smoothing 4-layer untuk hasil super halus</div>
+            <div class="title">Motion Predictor</div>
+            <div class="desc">Prediksi posisi untuk latency minimum</div>
+        </div>
+        <div class="feature">
+            <div class="icon">🌀</div>
+            <div class="title">Adaptive Filter</div>
+            <div class="desc">Smoothing otomatis sesuai kecepatan</div>
+        </div>
+        <div class="feature">
+            <div class="icon">⚡</div>
+            <div class="title">Zero Jitter</div>
+            <div class="desc">Stabilizer saat tangan diam</div>
         </div>
         <div class="feature">
             <div class="icon">🖊️</div>
-            <div class="title">Pressure Dynamic</div>
-            <div class="desc">Tebal-tipis otomatis berdasarkan kecepatan</div>
+            <div class="title">5 Tools Pro</div>
+            <div class="desc">Pen, Marker, Highlight, Eraser, Laser</div>
         </div>
         <div class="feature">
             <div class="icon">🎨</div>
-            <div class="title">5 Tools</div>
-            <div class="desc">Pen, Marker, Highlighter, Eraser, Laser</div>
+            <div class="title">Dynamic Pressure</div>
+            <div class="desc">Tebal-tipis natural seperti pena asli</div>
         </div>
         <div class="feature">
-            <div class="icon">📄</div>
-            <div class="title">Multi-Page</div>
-            <div class="desc">Auto-save + Export PNG</div>
+            <div class="icon">💾</div>
+            <div class="title">Auto-Save</div>
+            <div class="desc">Multi-page & Export PNG</div>
         </div>
     </div>
     
-    <button id="start-btn">🚀 Mulai Menulis</button>
+    <button id="start-btn">MULAI SEKARANG</button>
     
-    <div id="loading-status" style="margin-top: 20px; display: none;">
+    <div id="loading-status">
         <div class="spinner"></div>
-        <p id="status-text" style="color:#888;">Memuat...</p>
+        <p id="status-text" style="color:var(--text-secondary); font-size:13px; margin-top:10px;">Memuat sistem...</p>
     </div>
     
-    <div class="warning-box">
-        <strong>⚠️ Jalankan via localhost:</strong><br>
-        <code>python -m http.server 8000</code> lalu buka <code>http://localhost:8000</code>
+    <div class="server-hint">
+        ⚠️ Wajib jalankan via: <code>python -m http.server 8000</code><br>
+        lalu buka <code>http://localhost:8000</code>
     </div>
 </div>
 
-<!-- Top toolbar -->
-<div id="top-bar" style="display:none;">
-    <button class="tool-btn active" data-tool="pen" title="Pen (1)">✏️<span class="shortcut">1</span></button>
-    <button class="tool-btn" data-tool="marker" title="Marker (2)">🖊️<span class="shortcut">2</span></button>
-    <button class="tool-btn" data-tool="highlighter" title="Highlighter (3)">🖍️<span class="shortcut">3</span></button>
-    <button class="tool-btn" data-tool="eraser" title="Eraser (4)">🧽<span class="shortcut">4</span></button>
-    <button class="tool-btn" data-tool="laser" title="Laser (5)">🔴<span class="shortcut">5</span></button>
-    
-    <div class="separator"></div>
-    
-    <div class="color-swatch active" data-color="#ffffff" style="background:#ffffff"></div>
-    <div class="color-swatch" data-color="#00ffff" style="background:#00ffff"></div>
-    <div class="color-swatch" data-color="#ff00ff" style="background:#ff00ff"></div>
-    <div class="color-swatch" data-color="#ffff00" style="background:#ffff00"></div>
-    <div class="color-swatch" data-color="#ff4444" style="background:#ff4444"></div>
-    <div class="color-swatch" data-color="#44ff44" style="background:#44ff44"></div>
-    
-    <div class="separator"></div>
-    
-    <button class="tool-btn" id="undo-btn" title="Undo (Ctrl+Z)">↶</button>
-    <button class="tool-btn" id="redo-btn" title="Redo (Ctrl+Y)">↷</button>
-    <button class="tool-btn" id="clear-btn" title="Clear (C)">🗑️</button>
-    <button class="tool-btn" id="grid-btn" title="Grid (G)">▦</button>
-    <button class="tool-btn" id="save-btn" title="Save (S)">💾</button>
-    <button class="tool-btn" id="help-btn" title="Help (H)">?</button>
+<!-- STATUS BAR -->
+<div id="status-bar">
+    <div class="status-item">
+        <span class="status-dot active" id="hand-dot"></span>
+        <span class="value" id="hand-status">Idle</span>
+    </div>
+    <div class="status-sep"></div>
+    <div class="status-item">
+        <span class="label">Mode</span>
+        <span class="value" id="mode-value">—</span>
+    </div>
+    <div class="status-sep"></div>
+    <div class="status-item">
+        <span class="label">FPS</span>
+        <span class="value" id="fps-value">0</span>
+    </div>
+    <div class="status-sep"></div>
+    <div class="status-item">
+        <span class="label">Tool</span>
+        <span class="value" id="tool-value">Pen</span>
+    </div>
 </div>
 
-<!-- Status panel -->
-<div id="status-panel" class="side-panel" style="display:none;">
-    <div class="label">Status</div>
-    <div class="value"><span id="hand-status-indicator" class="status-indicator idle"></span><span id="hand-status-text">Idle</span></div>
-    
-    <div class="label">Mode</div>
-    <div class="value" id="mode-display">HOVER</div>
-    
-    <div class="label">FPS</div>
-    <div class="value" id="fps-display">0</div>
-    
-    <div class="label">Confidence</div>
-    <div class="value" id="confidence-display">0%</div>
-    
-    <div class="label">Pressure</div>
-    <div class="value" id="pressure-display">0.0</div>
-    
-    <div class="label">Velocity</div>
-    <div class="value" id="velocity-display">0 px/s</div>
+<!-- MODE INDICATOR -->
+<div id="mode-indicator">
+    <span id="mode-icon">✍️</span>
+    <span id="mode-label">Drawing</span>
 </div>
 
-<!-- Properties panel -->
-<div id="properties-panel" class="side-panel" style="display:none;">
-    <label>Size <span class="value-display" id="size-value">5</span></label>
-    <input type="range" id="size-slider" min="1" max="30" value="5">
+<!-- FLOATING DOCK -->
+<div id="dock">
+    <button class="dock-item active" data-tool="pen">
+        ✏️<span class="tooltip">Pen (1)</span>
+    </button>
+    <button class="dock-item" data-tool="marker">
+        🖊️<span class="tooltip">Marker (2)</span>
+    </button>
+    <button class="dock-item" data-tool="highlighter">
+        🖍️<span class="tooltip">Highlight (3)</span>
+    </button>
+    <button class="dock-item" data-tool="eraser">
+        🧽<span class="tooltip">Eraser (4)</span>
+    </button>
+    <button class="dock-item" data-tool="laser">
+        🔴<span class="tooltip">Laser (5)</span>
+    </button>
     
-    <label>Smoothing <span class="value-display" id="smooth-value">65</span></label>
-    <input type="range" id="smooth-slider" min="0" max="95" value="65">
+    <div class="dock-sep"></div>
     
-    <label>Opacity <span class="value-display" id="opacity-value">100</span></label>
-    <input type="range" id="opacity-slider" min="10" max="100" value="100">
+    <button class="dock-item" id="color-btn">
+        🎨<span class="tooltip">Color</span>
+    </button>
+    <button class="dock-item" id="props-btn">
+        ⚙️<span class="tooltip">Settings</span>
+    </button>
     
-    <label>Pressure Sensitivity <span class="value-display" id="pressure-value">50</span></label>
-    <input type="range" id="pressure-slider" min="0" max="100" value="50">
+    <div class="dock-sep"></div>
+    
+    <button class="dock-item" id="undo-btn">
+        ↶<span class="tooltip">Undo (Ctrl+Z)</span>
+    </button>
+    <button class="dock-item" id="redo-btn">
+        ↷<span class="tooltip">Redo (Ctrl+Y)</span>
+    </button>
+    <button class="dock-item" id="clear-btn">
+        🗑️<span class="tooltip">Clear (C)</span>
+    </button>
+    <button class="dock-item" id="grid-btn">
+        ▦<span class="tooltip">Grid (G)</span>
+    </button>
+    <button class="dock-item" id="save-btn">
+        💾<span class="tooltip">Save (Ctrl+S)</span>
+    </button>
 </div>
 
-<!-- Gesture indicator -->
-<div id="gesture-indicator" style="display:none;">
-    <span class="gesture-dot" id="gesture-dot"></span>
-    <span id="gesture-text">Mendeteksi tangan...</span>
+<!-- COLOR PANEL -->
+<div id="color-panel">
+    <button class="color-btn active" data-color="#ffffff" style="background:#ffffff"></button>
+    <button class="color-btn" data-color="#000000" style="background:#000000; border:1px solid #333;"></button>
+    <button class="color-btn" data-color="#ff4757" style="background:#ff4757"></button>
+    <button class="color-btn" data-color="#ff6348" style="background:#ff6348"></button>
+    <button class="color-btn" data-color="#ffa502" style="background:#ffa502"></button>
+    <button class="color-btn" data-color="#ffdd59" style="background:#ffdd59"></button>
+    <button class="color-btn" data-color="#2ed573" style="background:#2ed573"></button>
+    <button class="color-btn" data-color="#1e90ff" style="background:#1e90ff"></button>
+    <button class="color-btn" data-color="#5352ed" style="background:#5352ed"></button>
+    <button class="color-btn" data-color="#b026ff" style="background:#b026ff"></button>
+    <button class="color-btn" data-color="#ff6b9d" style="background:#ff6b9d"></button>
+    <button class="color-btn" data-color="#00e5ff" style="background:#00e5ff"></button>
 </div>
 
-<!-- Page indicator -->
-<div id="page-indicator" style="display:none;">
+<!-- PROPERTIES PANEL -->
+<div id="props-panel">
+    <div class="props-header">
+        <span class="props-title">Settings</span>
+        <button class="props-close" id="props-close">✕</button>
+    </div>
+    
+    <div class="prop-group">
+        <div class="prop-label">
+            <span>Size</span>
+            <span class="prop-value" id="size-value">5</span>
+        </div>
+        <input type="range" id="size-slider" min="1" max="30" value="5">
+    </div>
+    
+    <div class="prop-group">
+        <div class="prop-label">
+            <span>Opacity</span>
+            <span class="prop-value" id="opacity-value">100%</span>
+        </div>
+        <input type="range" id="opacity-slider" min="10" max="100" value="100">
+    </div>
+    
+    <div class="prop-group">
+        <div class="prop-label">
+            <span>Smoothing</span>
+            <span class="prop-value" id="smooth-value">65%</span>
+        </div>
+        <input type="range" id="smooth-slider" min="0" max="95" value="65">
+    </div>
+    
+    <div class="prop-group">
+        <div class="prop-label">
+            <span>Pressure</span>
+            <span class="prop-value" id="pressure-sens-value">50%</span>
+        </div>
+        <input type="range" id="pressure-sens-slider" min="0" max="100" value="50">
+    </div>
+    
+    <div class="prop-group">
+        <div class="prop-label">
+            <span>Prediction</span>
+            <span class="prop-value" id="pred-value">40%</span>
+        </div>
+        <input type="range" id="pred-slider" min="0" max="100" value="40">
+    </div>
+</div>
+
+<!-- TOGGLE BUTTONS -->
+<button class="toggle-btn" id="toggle-props" title="Settings (P)">⚙️</button>
+<button class="toggle-btn" id="toggle-help" title="Help (?)">?</button>
+<button class="toggle-btn" id="toggle-webcam" title="Toggle Webcam">📷</button>
+
+<!-- WEBCAM -->
+<div id="webcam-container">
+    <video id="webcam" autoplay playsinline muted></video>
+    <div class="webcam-overlay">
+        <span class="dot"></span>
+        <span>TRACKING</span>
+    </div>
+</div>
+
+<!-- PAGE INDICATOR -->
+<div id="page-indicator">
     <button class="page-btn" id="prev-page">◀</button>
-    <span id="page-text">1 / 1</span>
+    <span class="page-text" id="page-text">1/1</span>
     <button class="page-btn" id="next-page">▶</button>
     <button class="page-btn" id="add-page">+</button>
 </div>
 
-<!-- Hand visualizer -->
-<canvas id="hand-viz" style="display:none;"></canvas>
-
-<!-- Webcam -->
-<video id="webcam" autoplay playsinline style="display:none;"></video>
-
-<!-- Tutorial -->
-<div id="tutorial">
-    <h4>🎮 Gesture Control</h4>
-    <div class="gesture-row"><span>☝️ Pointing</span><span class="key">HOVER</span></div>
-    <div class="gesture-row"><span>✌️ Peace</span><span class="key">DRAW</span></div>
-    <div class="gesture-row"><span>🖐️ Open Palm</span><span class="key">ERASE</span></div>
-    <div class="gesture-row"><span>✊ Fist</span><span class="key">IDLE</span></div>
-    <div class="gesture-row"><span>👌 Pinch</span><span class="key">PICK COLOR</span></div>
-    <hr style="margin:10px 0; border-color:rgba(255,255,255,0.1);">
-    <h4>⌨️ Shortcuts</h4>
-    <div class="gesture-row"><span>1-5</span><span class="key">Tools</span></div>
-    <div class="gesture-row"><span>Ctrl+Z / Y</span><span class="key">Undo/Redo</span></div>
-    <div class="gesture-row"><span>C</span><span class="key">Clear</span></div>
-    <div class="gesture-row"><span>S</span><span class="key">Save</span></div>
-    <div class="gesture-row"><span>G</span><span class="key">Grid</span></div>
-    <div class="gesture-row"><span>[ / ]</span><span class="key">Size -/+</span></div>
+<!-- TUTORIAL OVERLAY -->
+<div id="tutorial-overlay">
+    <div class="tutorial-card">
+        <h2>🎮 Panduan Penggunaan</h2>
+        <p class="subtitle">Kuasai sistem dengan gesture tangan alami</p>
+        
+        <div class="gesture-grid">
+            <div class="gesture-card">
+                <div class="emoji">☝️</div>
+                <div class="info">
+                    <div class="title">Pointing</div>
+                    <div class="desc">Hover kursor tanpa menulis</div>
+                </div>
+            </div>
+            <div class="gesture-card">
+                <div class="emoji">✌️</div>
+                <div class="info">
+                    <div class="title">Peace</div>
+                    <div class="desc">Mulai menulis (Draw)</div>
+                </div>
+            </div>
+            <div class="gesture-card">
+                <div class="emoji">🖐️</div>
+                <div class="info">
+                    <div class="title">Open Palm</div>
+                    <div class="desc">Hapus stroke (Eraser)</div>
+                </div>
+            </div>
+            <div class="gesture-card">
+                <div class="emoji">✊</div>
+                <div class="info">
+                    <div class="title">Fist</div>
+                    <div class="desc">Idle (non-aktif)</div>
+                </div>
+            </div>
+            <div class="gesture-card">
+                <div class="emoji">👌</div>
+                <div class="info">
+                    <div class="title">Pinch</div>
+                    <div class="desc">Pick color dari canvas</div>
+                </div>
+            </div>
+            <div class="gesture-card">
+                <div class="emoji">🤟</div>
+                <div class="info">
+                    <div class="title">3 Fingers</div>
+                    <div class="desc">Toggle menu/properties</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="shortcuts-list">
+            <h4>⌨️ Keyboard Shortcuts</h4>
+            <div class="shortcut-row"><span>Tool 1-5</span><span class="key">1-5</span></div>
+            <div class="shortcut-row"><span>Undo / Redo</span><span class="key">Ctrl+Z / Y</span></div>
+            <div class="shortcut-row"><span>Clear Page</span><span class="key">C</span></div>
+            <div class="shortcut-row"><span>Save PNG</span><span class="key">Ctrl+S</span></div>
+            <div class="shortcut-row"><span>Toggle Grid</span><span class="key">G</span></div>
+            <div class="shortcut-row"><span>Settings Panel</span><span class="key">P</span></div>
+            <div class="shortcut-row"><span>Size Up/Down</span><span class="key">] / [</span></div>
+            <div class="shortcut-row"><span>Hide UI</span><span class="key">H</span></div>
+            <div class="shortcut-row"><span>Help</span><span class="key">?</span></div>
+        </div>
+        
+        <div style="text-align:center;">
+            <button class="tutorial-close" id="close-tutorial">Mulai Menulis →</button>
+        </div>
+    </div>
 </div>
 
-<!-- Toast -->
+<!-- TOAST -->
 <div id="toast"></div>
 
 <script>
@@ -435,26 +763,43 @@
 const CONFIG = {
     // Hand tracking
     fingerExtendThreshold: 0.82,
-    pinchThreshold: 0.07,
-    gestureBufferSize: 5,
-    minConfidence: 0.6,
+    pinchThreshold: 0.08,
+    gestureBufferSize: 7,
+    gestureConsensusRatio: 0.6,
     
-    // Smoothing - 4 layer filter
-    kalmanProcessNoise: 0.01,
-    kalmanMeasurementNoise: 0.1,
-    lowPassAlpha: 0.4,
-    velocitySmoothing: 0.5,
+    // Advanced Smoothing
+    kalmanProcessNoise: 0.008,
+    kalmanMeasurementNoise: 0.15,
+    baseLowPassAlpha: 0.65,  // Will be adaptive
     
-    // Writing
-    baseSmoothing: 0.65,
+    // Motion Prediction
+    predictionStrength: 0.4,
+    
+    // Idle Stabilization
+    idleVelocityThreshold: 15,  // px/s
+    idleFramesRequired: 8,
+    
+    // Adaptive Smoothing
+    velocitySlowThreshold: 200,   // Below = smooth
+    velocityFastThreshold: 1500,  // Above = responsive
+    
+    // Pressure
     pressureSensitivity: 0.5,
-    minStrokeWidth: 0.5,
-    maxStrokeWidth: 3.0,
+    minStrokeWidth: 0.4,
+    maxStrokeWidth: 2.5,
+    
+    // Catmull-Rom
     catmullRomSegments: 8,
+    
+    // Hand scale normalization
+    handScaleSmoothing: 0.95,
     
     // Auto-save
     autoSaveInterval: 5000,
-    storageKey: 'proWritingSystem_v3',
+    storageKey: 'proWritingSystem_v4',
+    
+    // UI Auto-hide
+    dockHideDelay: 8000,
 };
 
 // ================================================================
@@ -466,39 +811,55 @@ const STATE = {
     penSize: 5,
     opacity: 1.0,
     smoothing: 0.65,
+    prediction: 0.4,
+    pressureSensitivity: 0.5,
     
-    pages: [[]], // Array of stroke arrays
+    pages: [[]],
     currentPage: 0,
     undoStack: [],
     redoStack: [],
     
-    // Hand tracking state
-    gestureMode: 'idle', // idle, hover, draw, erase
-    lastGestureMode: 'idle',
-    gestureBuffer: [],
+    // Hand state
     handDetected: false,
     handConfidence: 0,
+    handScale: 1.0,
+    gestureMode: 'idle',
+    lastGestureMode: 'idle',
+    gestureBuffer: [],
     
     // Position tracking
     rawPos: null,
     kalmanPos: null,
     smoothedPos: null,
+    predictedPos: null,
+    finalPos: null,
     velocity: { x: 0, y: 0, magnitude: 0 },
     acceleration: { x: 0, y: 0, magnitude: 0 },
     lastPos: null,
     lastVel: { x: 0, y: 0 },
     lastTime: 0,
     
+    // Idle stabilization
+    idleCounter: 0,
+    isIdle: false,
+    frozenPos: null,
+    
     // Drawing
     isDrawing: false,
     currentStroke: null,
     
-    // Animation
+    // UI
+    uiHidden: false,
+    dockHideTimer: null,
+    colorPanelOpen: false,
+    propsPanelOpen: false,
+    
+    // FPS
     frameCount: 0,
     lastFpsTime: performance.now(),
 };
 
-// Kalman filter state
+// Kalman filter
 const kalman = {
     x: { value: 0, error: 1, Q: CONFIG.kalmanProcessNoise, R: CONFIG.kalmanMeasurementNoise },
     y: { value: 0, error: 1, Q: CONFIG.kalmanProcessNoise, R: CONFIG.kalmanMeasurementNoise },
@@ -507,14 +868,13 @@ const kalman = {
 // ================================================================
 // CANVAS SETUP
 // ================================================================
-let writingCanvas, writingCtx, previewCanvas, previewCtx, handVizCanvas, handVizCtx;
+let writingCanvas, writingCtx, previewCanvas, previewCtx;
 
 function setupCanvases() {
     writingCanvas = document.getElementById('writing-canvas');
     previewCanvas = document.getElementById('preview-canvas');
-    handVizCanvas = document.getElementById('hand-viz');
     
-    function resize() {
+    const resize = () => {
         const w = window.innerWidth, h = window.innerHeight;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         
@@ -526,18 +886,14 @@ function setupCanvases() {
             c.getContext('2d').scale(dpr, dpr);
         });
         
-        handVizCanvas.width = 240;
-        handVizCanvas.height = 180;
-        
         writingCtx = writingCanvas.getContext('2d');
         previewCtx = previewCanvas.getContext('2d');
-        handVizCtx = handVizCanvas.getContext('2d');
         
         writingCtx.lineCap = 'round';
         writingCtx.lineJoin = 'round';
         
         redrawCurrentPage();
-    }
+    };
     
     resize();
     window.addEventListener('resize', resize);
@@ -558,8 +914,6 @@ function loadScript(src) {
 
 async function loadLibraries() {
     const st = document.getElementById('status-text');
-    st.textContent = 'Memuat Three.js...';
-    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js').catch(() => {});
     st.textContent = 'Memuat MediaPipe Hands...';
     await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js');
     st.textContent = 'Memuat Camera Utils...';
@@ -569,12 +923,8 @@ async function loadLibraries() {
 // ================================================================
 // HAND TRACKING - GEOMETRIC ANALYSIS
 // ================================================================
-function distance(a, b) {
+function distance3D(a, b) {
     return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
-}
-
-function distance2D(a, b) {
-    return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
 function isFingerExtended(lm, idx) {
@@ -587,18 +937,16 @@ function isFingerExtended(lm, idx) {
     const mcp = lm[mcps[idx]];
     
     if (idx === 0) {
-        // Thumb: check angle relative to index MCP
         const indexMcp = lm[5];
         const wrist = lm[0];
-        const tipToIndex = distance(tip, indexMcp);
-        const wristToIndex = distance(wrist, indexMcp);
+        const tipToIndex = distance3D(tip, indexMcp);
+        const wristToIndex = distance3D(wrist, indexMcp);
         return tipToIndex > wristToIndex * 0.85;
     }
     
-    // Finger straightness ratio
-    const tipToMcp = distance(tip, mcp);
-    const pipToMcp = distance(pip, mcp);
-    const tipToPip = distance(tip, pip);
+    const tipToMcp = distance3D(tip, mcp);
+    const pipToMcp = distance3D(pip, mcp);
+    const tipToPip = distance3D(tip, pip);
     const straightness = tipToMcp / (pipToMcp + tipToPip);
     return straightness > CONFIG.fingerExtendThreshold;
 }
@@ -613,42 +961,47 @@ function getFingerStates(lm) {
     };
 }
 
-function getPinchDistance(lm) {
-    return distance(lm[4], lm[8]);
+function getHandScale(lm) {
+    // Use wrist to middle finger MCP distance as hand size reference
+    const wrist = lm[0];
+    const middleMcp = lm[9];
+    const size = distance3D(wrist, middleMcp);
+    
+    // Smooth the scale over time
+    STATE.handScale = STATE.handScale * CONFIG.handScaleSmoothing + 
+                     size * (1 - CONFIG.handScaleSmoothing);
+    return STATE.handScale;
 }
 
 // ================================================================
-// GESTURE RECOGNITION - STATE MACHINE
+// GESTURE RECOGNITION WITH HYSTERESIS
 // ================================================================
 function detectGesture(lm) {
     const f = getFingerStates(lm);
-    const pinch = getPinchDistance(lm);
+    const handScale = getHandScale(lm);
     
-    // Pinch detection (jempol + telunjuk bertemu)
-    if (pinch < CONFIG.pinchThreshold) {
-        return 'pinch';
-    }
+    // Adaptive pinch threshold based on hand size
+    const pinchThresh = CONFIG.pinchThreshold * handScale * 3;
+    const pinch = distance3D(lm[4], lm[8]);
     
-    // Fist - semua jari tertekuk
-    if (!f.index && !f.middle && !f.ring && !f.pinky) {
-        return 'fist';
-    }
+    // Pinch detection
+    if (pinch < pinchThresh) return 'pinch';
     
-    // Open palm - minimal 4 jari terentang
+    // Fist
+    if (!f.index && !f.middle && !f.ring && !f.pinky) return 'fist';
+    
+    // Open palm
     const extended = [f.thumb, f.index, f.middle, f.ring, f.pinky].filter(Boolean).length;
-    if (extended >= 4) {
-        return 'open_palm';
-    }
+    if (extended >= 4) return 'open_palm';
     
-    // Peace - index + middle
-    if (f.index && f.middle && !f.ring && !f.pinky) {
-        return 'peace';
-    }
+    // Peace
+    if (f.index && f.middle && !f.ring && !f.pinky) return 'peace';
     
-    // Pointing - hanya index
-    if (f.index && !f.middle && !f.ring && !f.pinky) {
-        return 'pointing';
-    }
+    // Pointing
+    if (f.index && !f.middle && !f.ring && !f.pinky) return 'pointing';
+    
+    // Three fingers (thumb + index + middle)
+    if (f.index && f.middle && (f.thumb || !f.ring)) return 'three_fingers';
     
     return 'unknown';
 }
@@ -667,51 +1020,55 @@ function smoothGesture(raw) {
         if (c > bestCount) { best = g; bestCount = c; }
     }
     
-    // Require majority consensus
-    if (bestCount >= Math.ceil(CONFIG.gestureBufferSize * 0.6)) {
+    const minRequired = Math.ceil(CONFIG.gestureBufferSize * CONFIG.gestureConsensusRatio);
+    if (bestCount >= minRequired && best !== 'unknown') {
         return best;
     }
+    
     return STATE.gestureMode === 'idle' ? 'unknown' : STATE.gestureMode;
 }
 
-function gestureToMode(gesture, currentTool) {
-    if (gesture === 'fist' || gesture === 'unknown' || gesture === 'pinch') {
-        return 'idle';
+function gestureToMode(gesture) {
+    // Hysteresis: require different conditions to enter/exit modes
+    switch (gesture) {
+        case 'peace': return 'draw';
+        case 'pointing': return 'hover';
+        case 'open_palm': return 'erase';
+        case 'three_fingers': return 'menu';
+        case 'fist':
+        case 'unknown':
+        case 'pinch':
+            return 'idle';
+        default:
+            return 'hover';
     }
-    if (gesture === 'pointing') return 'hover';
-    if (gesture === 'open_palm') return 'erase';
-    if (gesture === 'peace') return 'draw';
-    return 'hover';
 }
 
 // ================================================================
-// KALMAN FILTER - OPTIMAL SMOOTHING
+// KALMAN FILTER
 // ================================================================
 function kalmanUpdate(state, measurement) {
-    // Prediction step (assume constant position)
     const predictedValue = state.value;
     const predictedError = state.error + state.Q;
-    
-    // Update step
     const kalmanGain = predictedError / (predictedError + state.R);
     state.value = predictedValue + kalmanGain * (measurement - predictedValue);
     state.error = (1 - kalmanGain) * predictedError;
-    
     return state.value;
 }
 
 // ================================================================
-// POSITION PROCESSING - 4 LAYER FILTER
+// ADVANCED POSITION PROCESSING (v4)
 // ================================================================
 function processPosition(landmark) {
     const canvas = document.getElementById('writing-canvas');
     const now = performance.now();
+    const dpr = window.devicePixelRatio || 1;
     
-    // Convert to screen coordinates (non-mirror)
-    const rawX = (1 - landmark.x) * canvas.width / (window.devicePixelRatio || 1);
-    const rawY = landmark.y * canvas.height / (window.devicePixelRatio || 1);
+    // Convert (non-mirror)
+    const rawX = (1 - landmark.x) * canvas.width / dpr;
+    const rawY = landmark.y * canvas.height / dpr;
     
-    // Layer 1: Kalman Filter (optimal state estimation)
+    // Layer 1: Kalman Filter
     if (!STATE.kalmanPos) {
         kalman.x.value = rawX;
         kalman.y.value = rawY;
@@ -720,59 +1077,102 @@ function processPosition(landmark) {
     const kalX = kalmanUpdate(kalman.x, rawX);
     const kalY = kalmanUpdate(kalman.y, rawY);
     
-    // Layer 2: Low-pass filter (high frequency noise)
+    // Layer 2: Initialize smoothed position
     if (!STATE.smoothedPos) {
         STATE.smoothedPos = { x: kalX, y: kalY };
     }
-    const alpha = CONFIG.lowPassAlpha;
+    
+    // Layer 3: Calculate raw velocity FIRST (before smoothing)
+    let rawVelX = 0, rawVelY = 0, rawVelMag = 0;
+    if (STATE.lastPos && STATE.lastTime > 0) {
+        const dt = Math.max((now - STATE.lastTime) / 1000, 0.001);
+        rawVelX = (kalX - STATE.lastPos.x) / dt;
+        rawVelY = (kalY - STATE.lastPos.y) / dt;
+        rawVelMag = Math.hypot(rawVelX, rawVelY);
+    }
+    
+    // Layer 4: ADAPTIVE Low-pass based on velocity
+    let alpha;
+    if (rawVelMag < CONFIG.velocitySlowThreshold) {
+        alpha = STATE.smoothing; // High smoothing for slow motion
+    } else if (rawVelMag > CONFIG.velocityFastThreshold) {
+        alpha = 0.95; // Almost no smoothing for fast motion
+    } else {
+        // Linear interpolation between slow and fast
+        const t = (rawVelMag - CONFIG.velocitySlowThreshold) / 
+                  (CONFIG.velocityFastThreshold - CONFIG.velocitySlowThreshold);
+        alpha = STATE.smoothing + t * (0.95 - STATE.smoothing);
+    }
+    
     STATE.smoothedPos.x = STATE.smoothedPos.x * alpha + kalX * (1 - alpha);
     STATE.smoothedPos.y = STATE.smoothedPos.y * alpha + kalY * (1 - alpha);
     
-    // Layer 3: Velocity calculation
-    if (STATE.lastPos && STATE.lastTime > 0) {
-        const dt = Math.max((now - STATE.lastTime) / 1000, 0.001);
-        const vx = (STATE.smoothedPos.x - STATE.lastPos.x) / dt;
-        const vy = (STATE.smoothedPos.y - STATE.lastPos.y) / dt;
-        
-        // Smooth velocity
-        STATE.velocity.x = STATE.velocity.x * CONFIG.velocitySmoothing + vx * (1 - CONFIG.velocitySmoothing);
-        STATE.velocity.y = STATE.velocity.y * CONFIG.velocitySmoothing + vy * (1 - CONFIG.velocitySmoothing);
-        STATE.velocity.magnitude = Math.hypot(STATE.velocity.x, STATE.velocity.y);
-        
-        // Layer 4: Acceleration (for pressure dynamics)
-        if (STATE.lastVel) {
-            STATE.acceleration.x = (STATE.velocity.x - STATE.lastVel.x) / dt;
-            STATE.acceleration.y = (STATE.velocity.y - STATE.lastVel.y) / dt;
-            STATE.acceleration.magnitude = Math.hypot(STATE.acceleration.x, STATE.acceleration.y);
+    // Layer 5: Motion Prediction
+    if (rawVelMag > 10 && STATE.prediction > 0) {
+        const predFrames = STATE.prediction * 3; // 0-3 frames prediction
+        STATE.predictedPos = {
+            x: STATE.smoothedPos.x + rawVelX * predFrames * 0.016,
+            y: STATE.smoothedPos.y + rawVelY * predFrames * 0.016
+        };
+    } else {
+        STATE.predictedPos = { ...STATE.smoothedPos };
+    }
+    
+    // Layer 6: Idle Stabilization
+    if (rawVelMag < CONFIG.idleVelocityThreshold) {
+        STATE.idleCounter++;
+        if (STATE.idleCounter >= CONFIG.idleFramesRequired) {
+            STATE.isIdle = true;
+            if (!STATE.frozenPos) {
+                STATE.frozenPos = { ...STATE.smoothedPos };
+            }
         }
-        
-        STATE.lastVel = { x: STATE.velocity.x, y: STATE.velocity.y };
+    } else {
+        STATE.idleCounter = 0;
+        STATE.isIdle = false;
+        STATE.frozenPos = null;
+    }
+    
+    // Final position: use frozen if idle
+    STATE.finalPos = STATE.isIdle && STATE.frozenPos 
+        ? STATE.frozenPos 
+        : STATE.predictedPos;
+    
+    // Update smoothed velocity
+    STATE.velocity.x = STATE.velocity.x * 0.6 + rawVelX * 0.4;
+    STATE.velocity.y = STATE.velocity.y * 0.6 + rawVelY * 0.4;
+    STATE.velocity.magnitude = Math.hypot(STATE.velocity.x, STATE.velocity.y);
+    
+    // Acceleration
+    if (STATE.lastVel) {
+        const dt = Math.max((now - STATE.lastTime) / 1000, 0.001);
+        STATE.acceleration.x = (STATE.velocity.x - STATE.lastVel.x) / dt;
+        STATE.acceleration.y = (STATE.velocity.y - STATE.lastVel.y) / dt;
+        STATE.acceleration.magnitude = Math.hypot(STATE.acceleration.x, STATE.acceleration.y);
     }
     
     STATE.lastPos = { x: STATE.smoothedPos.x, y: STATE.smoothedPos.y };
+    STATE.lastVel = { x: STATE.velocity.x, y: STATE.velocity.y };
     STATE.lastTime = now;
     
-    return { x: STATE.smoothedPos.x, y: STATE.smoothedPos.y };
+    return STATE.finalPos;
 }
 
 // ================================================================
-// PRESSURE SIMULATION
+// PRESSURE CALCULATION
 // ================================================================
 function calculatePressure(velocity, acceleration) {
-    const sens = CONFIG.pressureSensitivity;
-    const vel = Math.min(velocity / 1000, 1); // Normalize to 0-1
+    const sens = STATE.pressureSensitivity;
+    const vel = Math.min(velocity / 1000, 1);
     const acc = Math.min(acceleration / 5000, 1);
     
-    // Inverse velocity + acceleration boost for natural feel
     const basePressure = 1 - vel * 0.7;
     const accBoost = acc * 0.3;
-    const pressure = Math.max(0.1, Math.min(1, (basePressure + accBoost) * (0.5 + sens)));
-    
-    return pressure;
+    return Math.max(0.1, Math.min(1, (basePressure + accBoost) * (0.5 + sens)));
 }
 
 // ================================================================
-// STROKE RENDERING - CATMULL-ROM SPLINE
+// CATMULL-ROM SPLINE
 // ================================================================
 function catmullRomPoint(p0, p1, p2, p3, t) {
     const t2 = t * t;
@@ -790,13 +1190,13 @@ function getToolStyle(tool, color, size, opacity, pressure) {
         case 'pen':
             return { color, size: dynamicSize, opacity, composite: 'source-over', shadow: 0 };
         case 'marker':
-            return { color, size: dynamicSize * 1.5, opacity: opacity * 0.85, composite: 'source-over', shadow: 2 };
+            return { color, size: dynamicSize * 1.5, opacity: opacity * 0.85, composite: 'source-over', shadow: 3 };
         case 'highlighter':
             return { color, size: dynamicSize * 3, opacity: 0.35, composite: 'source-over', shadow: 0 };
         case 'eraser':
             return { color: '#000000', size: size * 3, opacity: 1, composite: 'destination-out', shadow: 0 };
         case 'laser':
-            return { color, size: 4, opacity: 1, composite: 'source-over', shadow: 20, glow: true };
+            return { color, size: 4, opacity: 1, composite: 'lighter', shadow: 25, glow: true };
         default:
             return { color, size: dynamicSize, opacity, composite: 'source-over', shadow: 0 };
     }
@@ -821,7 +1221,6 @@ function renderStroke(ctx, stroke) {
         ctx.shadowBlur = 0;
     }
     
-    // Catmull-Rom spline interpolation for smooth curves
     ctx.beginPath();
     const pts = stroke.points;
     
@@ -841,7 +1240,6 @@ function renderStroke(ctx, stroke) {
             for (let t = 1; t <= segments; t++) {
                 const pt = catmullRomPoint(p0, p1, p2, p3, t / segments);
                 
-                // Pressure-based width variation
                 if (stroke.pressures && stroke.pressures[i]) {
                     const pressure = stroke.pressures[i] * 0.5 + (stroke.pressures[i + 1] || stroke.pressures[i]) * 0.5;
                     const dynamicStyle = getToolStyle(stroke.tool, stroke.color, stroke.size, stroke.opacity, pressure);
@@ -855,7 +1253,6 @@ function renderStroke(ctx, stroke) {
     
     ctx.stroke();
     
-    // Reset
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
@@ -880,7 +1277,6 @@ function startStroke(pos) {
 function continueStroke(pos, pressure) {
     if (!STATE.currentStroke) return;
     
-    // Distance check to avoid too many points
     const lastPt = STATE.currentStroke.points[STATE.currentStroke.points.length - 1];
     const dist = Math.hypot(pos.x - lastPt.x, pos.y - lastPt.y);
     if (dist < 1.5) return;
@@ -888,7 +1284,6 @@ function continueStroke(pos, pressure) {
     STATE.currentStroke.points.push({ x: pos.x, y: pos.y });
     STATE.currentStroke.pressures.push(pressure);
     
-    // Preview rendering
     renderPreview();
 }
 
@@ -902,8 +1297,6 @@ function endStroke() {
             strokeIndex: STATE.pages[STATE.currentPage].length - 1
         });
         STATE.redoStack = [];
-        
-        // Commit to main canvas
         renderStroke(writingCtx, STATE.currentStroke);
         autoSave();
     }
@@ -922,11 +1315,11 @@ function renderPreview() {
 function redrawCurrentPage() {
     if (!writingCtx) return;
     writingCtx.clearRect(0, 0, writingCanvas.width, writingCanvas.height);
-    STATE.pages[STATE.currentPage].forEach(stroke => renderStroke(writingCtx, stroke));
+    STATE.pages[STATE.currentPage].forEach(s => renderStroke(writingCtx, s));
 }
 
 // ================================================================
-// ERASER LOGIC
+// ERASER
 // ================================================================
 function eraseAtPoint(pos) {
     const strokes = STATE.pages[STATE.currentPage];
@@ -998,7 +1391,7 @@ function clearPage() {
     STATE.pages[STATE.currentPage] = [];
     redrawCurrentPage();
     autoSave();
-    showToast('🗑️ Page cleared');
+    showToast('🗑️ Halaman dibersihkan');
 }
 
 // ================================================================
@@ -1009,16 +1402,16 @@ function switchPage(idx) {
     STATE.currentPage = idx;
     redrawCurrentPage();
     updatePageIndicator();
+    showToast(`📄 Halaman ${idx + 1}`);
 }
 
 function addPage() {
     STATE.pages.push([]);
     switchPage(STATE.pages.length - 1);
-    showToast('📄 New page added');
 }
 
 function updatePageIndicator() {
-    document.getElementById('page-text').textContent = `${STATE.currentPage + 1} / ${STATE.pages.length}`;
+    document.getElementById('page-text').textContent = `${STATE.currentPage + 1}/${STATE.pages.length}`;
 }
 
 // ================================================================
@@ -1031,10 +1424,14 @@ function autoSave() {
             currentPage: STATE.currentPage,
             tool: STATE.currentTool,
             color: STATE.currentColor,
-            size: STATE.penSize
+            size: STATE.penSize,
+            opacity: STATE.opacity,
+            smoothing: STATE.smoothing,
+            prediction: STATE.prediction,
+            pressureSensitivity: STATE.pressureSensitivity
         };
         localStorage.setItem(CONFIG.storageKey, JSON.stringify(data));
-    } catch (e) { console.warn('Auto-save failed:', e); }
+    } catch (e) {}
 }
 
 function loadSaved() {
@@ -1047,12 +1444,17 @@ function loadSaved() {
             STATE.currentTool = data.tool || 'pen';
             STATE.currentColor = data.color || '#ffffff';
             STATE.penSize = data.size || 5;
+            STATE.opacity = data.opacity ?? 1.0;
+            STATE.smoothing = data.smoothing ?? 0.65;
+            STATE.prediction = data.prediction ?? 0.4;
+            STATE.pressureSensitivity = data.pressureSensitivity ?? 0.5;
+            
             redrawCurrentPage();
             updatePageIndicator();
             updateToolUI();
-            showToast('💾 Loaded saved work');
+            updatePropsUI();
         }
-    } catch (e) { console.warn('Load failed:', e); }
+    } catch (e) {}
 }
 
 function saveAsPNG() {
@@ -1066,47 +1468,10 @@ function saveAsPNG() {
     ctx.drawImage(writingCanvas, 0, 0, combined.width, combined.height);
     
     const link = document.createElement('a');
-    link.download = `writing-page${STATE.currentPage + 1}-${Date.now()}.png`;
+    link.download = `writing-p${STATE.currentPage + 1}-${Date.now()}.png`;
     link.href = combined.toDataURL('image/png');
     link.click();
-    showToast('💾 Saved as PNG');
-}
-
-// ================================================================
-// HAND VISUALIZER
-// ================================================================
-function drawHandViz(landmarks) {
-    if (!handVizCtx || !landmarks) return;
-    
-    handVizCtx.clearRect(0, 0, 240, 180);
-    
-    // Draw connections
-    const connections = [
-        [0,1],[1,2],[2,3],[3,4],  // Thumb
-        [0,5],[5,6],[6,7],[7,8],  // Index
-        [5,9],[9,10],[10,11],[11,12],  // Middle
-        [9,13],[13,14],[14,15],[15,16],  // Ring
-        [13,17],[17,18],[18,19],[19,20],  // Pinky
-        [0,17]
-    ];
-    
-    handVizCtx.strokeStyle = 'rgba(0,255,255,0.5)';
-    handVizCtx.lineWidth = 2;
-    
-    connections.forEach(([a, b]) => {
-        handVizCtx.beginPath();
-        handVizCtx.moveTo(landmarks[a].x * 240, landmarks[a].y * 180);
-        handVizCtx.lineTo(landmarks[b].x * 240, landmarks[b].y * 180);
-        handVizCtx.stroke();
-    });
-    
-    // Draw points
-    landmarks.forEach((lm, i) => {
-        handVizCtx.fillStyle = [4,8,12,16,20].includes(i) ? '#ff0' : '#0ff';
-        handVizCtx.beginPath();
-        handVizCtx.arc(lm.x * 240, lm.y * 180, 3, 0, Math.PI * 2);
-        handVizCtx.fill();
-    });
+    showToast('💾 Tersimpan sebagai PNG');
 }
 
 // ================================================================
@@ -1148,22 +1513,19 @@ async function initHandTracking() {
 // MAIN HAND RESULTS HANDLER
 // ================================================================
 function onHandResults(results) {
-    const gestureIndicator = document.getElementById('gesture-indicator');
-    const gestureDot = document.getElementById('gesture-dot');
-    const gestureText = document.getElementById('gesture-text');
     const penCursor = document.getElementById('pen-cursor');
+    const handDot = document.getElementById('hand-dot');
+    const handStatus = document.getElementById('hand-status');
+    const modeValue = document.getElementById('mode-value');
     
-    // No hand detected
     if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
         STATE.handDetected = false;
         STATE.gestureMode = 'idle';
         penCursor.style.display = 'none';
-        gestureIndicator.style.display = 'none';
-        document.getElementById('hand-status-indicator').className = 'status-indicator idle';
-        document.getElementById('hand-status-text').textContent = 'No hand';
-        STATE.handConfidence = 0;
-        document.getElementById('confidence-display').textContent = '0%';
-        
+        handDot.className = 'status-dot';
+        handStatus.textContent = 'Tidak ada tangan';
+        modeValue.textContent = '—';
+        updateModeIndicator('idle');
         if (STATE.isDrawing) endStroke();
         return;
     }
@@ -1171,38 +1533,32 @@ function onHandResults(results) {
     const landmarks = results.multiHandLandmarks[0];
     STATE.handDetected = true;
     STATE.handConfidence = results.multiHandedness?.[0]?.score || 0.9;
-    document.getElementById('confidence-display').textContent = Math.round(STATE.handConfidence * 100) + '%';
     
-    document.getElementById('hand-status-indicator').className = 'status-indicator active';
-    document.getElementById('hand-status-text').textContent = 'Tracking';
+    handDot.className = 'status-dot active';
+    handStatus.textContent = 'Tracking';
     
-    // Draw hand visualizer
-    drawHandViz(landmarks);
-    
-    // Process position through 4-layer filter
+    // Process position with advanced v4 filter
     const indexTip = landmarks[8];
     const pos = processPosition(indexTip);
     
-    // Detect gesture and smooth
+    // Gesture detection + smoothing
     const rawGesture = detectGesture(landmarks);
     const smoothedGesture = smoothGesture(rawGesture);
-    const newMode = gestureToMode(smoothedGesture, STATE.currentTool);
+    const newMode = gestureToMode(smoothedGesture);
     
-    // Handle pinch for color picking
+    // Handle menu toggle gesture
+    if (smoothedGesture === 'three_fingers' && STATE.gestureMode !== 'menu') {
+        toggleProps();
+    }
+    
+    // Handle pinch for color pick
     if (smoothedGesture === 'pinch' && STATE.gestureMode !== 'pinch') {
         pickColorAt(pos);
     }
     
     STATE.gestureMode = newMode;
-    document.getElementById('mode-display').textContent = newMode.toUpperCase();
-    
-    // Update gesture indicator
-    gestureIndicator.style.display = 'flex';
-    gestureText.textContent = `${smoothedGesture.toUpperCase()} → ${newMode.toUpperCase()}`;
-    gestureDot.className = 'gesture-dot';
-    if (newMode === 'hover') gestureDot.classList.add('hover');
-    else if (newMode === 'draw') gestureDot.classList.add('draw');
-    else if (newMode === 'erase') gestureDot.classList.add('erase');
+    modeValue.textContent = newMode.toUpperCase();
+    updateModeIndicator(newMode);
     
     // Update pen cursor
     penCursor.style.display = 'block';
@@ -1211,64 +1567,156 @@ function onHandResults(results) {
     
     const toolStyle = getToolStyle(STATE.currentTool, STATE.currentColor, STATE.penSize, STATE.opacity, 0.7);
     const cursorSize = STATE.currentTool === 'eraser' ? STATE.penSize * 3 : toolStyle.size * 2;
-    penCursor.style.width = Math.max(cursorSize, 10) + 'px';
-    penCursor.style.height = Math.max(cursorSize, 10) + 'px';
+    penCursor.style.width = Math.max(cursorSize, 12) + 'px';
+    penCursor.style.height = Math.max(cursorSize, 12) + 'px';
     penCursor.style.border = `2px solid ${STATE.currentTool === 'eraser' ? '#fff' : STATE.currentColor}`;
-    penCursor.style.boxShadow = `0 0 15px ${STATE.currentColor}`;
+    penCursor.style.background = STATE.isDrawing 
+        ? STATE.currentColor + '33' 
+        : 'transparent';
     
-    // Update status panel
-    const pressure = calculatePressure(STATE.velocity.magnitude, STATE.acceleration.magnitude);
-    document.getElementById('pressure-display').textContent = pressure.toFixed(2);
-    document.getElementById('velocity-display').textContent = Math.round(STATE.velocity.magnitude) + ' px/s';
-    
-    // Handle drawing/erasing based on mode
+    // Drawing logic
     if (newMode === 'draw') {
+        const pressure = calculatePressure(STATE.velocity.magnitude, STATE.acceleration.magnitude);
+        
         if (!STATE.isDrawing || STATE.currentStroke?.tool !== STATE.currentTool) {
             if (STATE.isDrawing) endStroke();
             startStroke(pos);
         } else {
             continueStroke(pos, pressure);
         }
+        handDot.className = 'status-dot drawing';
     } else if (newMode === 'erase') {
         if (STATE.isDrawing) endStroke();
         eraseAtPoint(pos);
+        handDot.className = 'status-dot erasing';
     } else {
-        // Hover or idle
         if (STATE.isDrawing) endStroke();
+    }
+    
+    resetDockHideTimer();
+}
+
+function updateModeIndicator(mode) {
+    const indicator = document.getElementById('mode-indicator');
+    const icon = document.getElementById('mode-icon');
+    const label = document.getElementById('mode-label');
+    
+    indicator.className = '';
+    
+    switch (mode) {
+        case 'draw':
+            indicator.classList.add('draw', 'show');
+            icon.textContent = '✍️';
+            label.textContent = 'Drawing';
+            break;
+        case 'erase':
+            indicator.classList.add('erase', 'show');
+            icon.textContent = '🧽';
+            label.textContent = 'Erasing';
+            break;
+        case 'hover':
+            indicator.classList.add('hover', 'show');
+            icon.textContent = '☝️';
+            label.textContent = 'Hover';
+            break;
+        case 'idle':
+            indicator.classList.add('idle');
+            indicator.classList.remove('show');
+            break;
     }
 }
 
 // ================================================================
-// COLOR PICKER FROM CANVAS
+// COLOR PICKER
 // ================================================================
 function pickColorAt(pos) {
     try {
         const dpr = window.devicePixelRatio || 1;
         const pixel = writingCtx.getImageData(pos.x * dpr, pos.y * dpr, 1, 1).data;
-        if (pixel[3] > 50) { // Has content
+        if (pixel[3] > 50) {
             const hex = '#' + [pixel[0], pixel[1], pixel[2]]
                 .map(x => x.toString(16).padStart(2, '0')).join('');
             STATE.currentColor = hex;
             updateToolUI();
-            showToast(`🎨 Picked ${hex}`);
+            showToast(`🎨 Warna diambil: ${hex}`);
         }
     } catch (e) {}
 }
 
 // ================================================================
-// UI UPDATES
+// UI FUNCTIONS
 // ================================================================
 function updateToolUI() {
-    document.querySelectorAll('.tool-btn[data-tool]').forEach(b => {
+    document.querySelectorAll('.dock-item[data-tool]').forEach(b => {
         b.classList.toggle('active', b.dataset.tool === STATE.currentTool);
     });
-    document.querySelectorAll('.color-swatch').forEach(s => {
-        s.classList.toggle('active', s.dataset.color === STATE.currentColor);
+    document.querySelectorAll('.color-btn').forEach(s => {
+        s.classList.toggle('active', s.dataset.color.toLowerCase() === STATE.currentColor.toLowerCase());
     });
+    document.getElementById('tool-value').textContent = 
+        STATE.currentTool.charAt(0).toUpperCase() + STATE.currentTool.slice(1);
+}
+
+function updatePropsUI() {
     document.getElementById('size-slider').value = STATE.penSize;
     document.getElementById('size-value').textContent = STATE.penSize;
     document.getElementById('opacity-slider').value = Math.round(STATE.opacity * 100);
-    document.getElementById('opacity-value').textContent = Math.round(STATE.opacity * 100);
+    document.getElementById('opacity-value').textContent = Math.round(STATE.opacity * 100) + '%';
+    document.getElementById('smooth-slider').value = Math.round(STATE.smoothing * 100);
+    document.getElementById('smooth-value').textContent = Math.round(STATE.smoothing * 100) + '%';
+    document.getElementById('pressure-sens-slider').value = Math.round(STATE.pressureSensitivity * 100);
+    document.getElementById('pressure-sens-value').textContent = Math.round(STATE.pressureSensitivity * 100) + '%';
+    document.getElementById('pred-slider').value = Math.round(STATE.prediction * 100);
+    document.getElementById('pred-value').textContent = Math.round(STATE.prediction * 100) + '%';
+}
+
+function toggleColorPanel() {
+    STATE.colorPanelOpen = !STATE.colorPanelOpen;
+    document.getElementById('color-panel').classList.toggle('show', STATE.colorPanelOpen);
+}
+
+function toggleProps() {
+    STATE.propsPanelOpen = !STATE.propsPanelOpen;
+    document.getElementById('props-panel').style.display = STATE.propsPanelOpen ? 'block' : 'none';
+    document.getElementById('props-panel').classList.toggle('collapsed', !STATE.propsPanelOpen);
+}
+
+function toggleWebcam() {
+    document.getElementById('webcam-container').classList.toggle('collapsed');
+}
+
+function toggleGrid() {
+    document.getElementById('grid-overlay').classList.toggle('active');
+}
+
+function toggleUI() {
+    STATE.uiHidden = !STATE.uiHidden;
+    const dock = document.getElementById('dock');
+    const status = document.getElementById('status-bar');
+    const pageInd = document.getElementById('page-indicator');
+    const toggles = document.querySelectorAll('.toggle-btn');
+    
+    if (STATE.uiHidden) {
+        dock.classList.add('hidden');
+        status.style.opacity = '0';
+        pageInd.style.opacity = '0';
+        toggles.forEach(t => t.style.opacity = '0');
+    } else {
+        dock.classList.remove('hidden');
+        status.style.opacity = '1';
+        pageInd.style.opacity = '1';
+        toggles.forEach(t => t.style.opacity = '1');
+    }
+}
+
+function resetDockHideTimer() {
+    clearTimeout(STATE.dockHideTimer);
+    STATE.dockHideTimer = setTimeout(() => {
+        if (!STATE.colorPanelOpen && !STATE.propsPanelOpen) {
+            // Optional auto-hide dock (disabled by default)
+            // document.getElementById('dock').classList.add('hidden');
+        }
+    }, CONFIG.dockHideDelay);
 }
 
 function showToast(msg) {
@@ -1283,58 +1731,95 @@ function showToast(msg) {
 // EVENT LISTENERS
 // ================================================================
 function setupEventListeners() {
-    // Tool buttons
-    document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
+    // Dock tools
+    document.querySelectorAll('.dock-item[data-tool]').forEach(btn => {
         btn.addEventListener('click', () => {
             STATE.currentTool = btn.dataset.tool;
             updateToolUI();
-            showToast(`🔧 ${STATE.currentTool.toUpperCase()} tool`);
+            showToast(`🔧 ${STATE.currentTool.toUpperCase()}`);
+            resetDockHideTimer();
         });
     });
     
-    // Color swatches
-    document.querySelectorAll('.color-swatch').forEach(s => {
-        s.addEventListener('click', () => {
-            STATE.currentColor = s.dataset.color;
-            updateToolUI();
-        });
-    });
-    
-    // Action buttons
+    // Dock actions
+    document.getElementById('color-btn').addEventListener('click', toggleColorPanel);
+    document.getElementById('props-btn').addEventListener('click', toggleProps);
     document.getElementById('undo-btn').addEventListener('click', undo);
     document.getElementById('redo-btn').addEventListener('click', redo);
     document.getElementById('clear-btn').addEventListener('click', clearPage);
-    document.getElementById('grid-btn').addEventListener('click', () => {
-        document.getElementById('grid-overlay').classList.toggle('active');
-    });
+    document.getElementById('grid-btn').addEventListener('click', toggleGrid);
     document.getElementById('save-btn').addEventListener('click', saveAsPNG);
-    document.getElementById('help-btn').addEventListener('click', () => {
-        document.getElementById('tutorial').classList.toggle('show');
+    
+    // Color buttons
+    document.querySelectorAll('.color-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            STATE.currentColor = btn.dataset.color;
+            updateToolUI();
+            resetDockHideTimer();
+        });
     });
     
-    // Page controls
-    document.getElementById('prev-page').addEventListener('click', () => switchPage(STATE.currentPage - 1));
-    document.getElementById('next-page').addEventListener('click', () => switchPage(STATE.currentPage + 1));
-    document.getElementById('add-page').addEventListener('click', addPage);
+    // Close color panel when clicking outside
+    document.addEventListener('click', (e) => {
+        if (STATE.colorPanelOpen && 
+            !e.target.closest('#color-panel') && 
+            !e.target.closest('#color-btn')) {
+            STATE.colorPanelOpen = false;
+            document.getElementById('color-panel').classList.remove('show');
+        }
+    });
+    
+    // Toggle buttons
+    document.getElementById('toggle-props').addEventListener('click', toggleProps);
+    document.getElementById('toggle-help').addEventListener('click', () => {
+        document.getElementById('tutorial-overlay').classList.add('show');
+    });
+    document.getElementById('toggle-webcam').addEventListener('click', toggleWebcam);
+    
+    // Props panel
+    document.getElementById('props-close').addEventListener('click', () => {
+        STATE.propsPanelOpen = false;
+        document.getElementById('props-panel').classList.add('collapsed');
+        setTimeout(() => {
+            document.getElementById('props-panel').style.display = 'none';
+        }, 300);
+    });
     
     // Sliders
     document.getElementById('size-slider').addEventListener('input', e => {
         STATE.penSize = parseInt(e.target.value);
         document.getElementById('size-value').textContent = STATE.penSize;
-    });
-    document.getElementById('smooth-slider').addEventListener('input', e => {
-        const v = parseInt(e.target.value);
-        STATE.smoothing = v / 100;
-        CONFIG.lowPassAlpha = 1 - STATE.smoothing;
-        document.getElementById('smooth-value').textContent = v;
+        autoSave();
     });
     document.getElementById('opacity-slider').addEventListener('input', e => {
         STATE.opacity = parseInt(e.target.value) / 100;
-        document.getElementById('opacity-value').textContent = e.target.value;
+        document.getElementById('opacity-value').textContent = e.target.value + '%';
+        autoSave();
     });
-    document.getElementById('pressure-slider').addEventListener('input', e => {
-        CONFIG.pressureSensitivity = parseInt(e.target.value) / 100;
-        document.getElementById('pressure-value').textContent = e.target.value;
+    document.getElementById('smooth-slider').addEventListener('input', e => {
+        STATE.smoothing = parseInt(e.target.value) / 100;
+        document.getElementById('smooth-value').textContent = e.target.value + '%';
+        autoSave();
+    });
+    document.getElementById('pressure-sens-slider').addEventListener('input', e => {
+        STATE.pressureSensitivity = parseInt(e.target.value) / 100;
+        document.getElementById('pressure-sens-value').textContent = e.target.value + '%';
+        autoSave();
+    });
+    document.getElementById('pred-slider').addEventListener('input', e => {
+        STATE.prediction = parseInt(e.target.value) / 100;
+        document.getElementById('pred-value').textContent = e.target.value + '%';
+        autoSave();
+    });
+    
+    // Pages
+    document.getElementById('prev-page').addEventListener('click', () => switchPage(STATE.currentPage - 1));
+    document.getElementById('next-page').addEventListener('click', () => switchPage(STATE.currentPage + 1));
+    document.getElementById('add-page').addEventListener('click', addPage);
+    
+    // Tutorial
+    document.getElementById('close-tutorial').addEventListener('click', () => {
+        document.getElementById('tutorial-overlay').classList.remove('show');
     });
     
     // Keyboard shortcuts
@@ -1351,20 +1836,36 @@ function setupEventListeners() {
                 case '4': STATE.currentTool = 'eraser'; break;
                 case '5': STATE.currentTool = 'laser'; break;
                 case 'c': case 'C': clearPage(); return;
-                case 'g': case 'G':
-                    document.getElementById('grid-overlay').classList.toggle('active');
-                    return;
-                case 'h': case 'H':
-                    document.getElementById('tutorial').classList.toggle('show');
+                case 'g': case 'G': toggleGrid(); return;
+                case 'p': case 'P': toggleProps(); return;
+                case 'h': case 'H': toggleUI(); return;
+                case '?': 
+                    document.getElementById('tutorial-overlay').classList.add('show');
                     return;
                 case '[':
-                    STATE.penSize = Math.max(1, STATE.penSize - 1); break;
+                    STATE.penSize = Math.max(1, STATE.penSize - 1);
+                    updatePropsUI();
+                    autoSave();
+                    return;
                 case ']':
-                    STATE.penSize = Math.min(30, STATE.penSize + 1); break;
+                    STATE.penSize = Math.min(30, STATE.penSize + 1);
+                    updatePropsUI();
+                    autoSave();
+                    return;
+                case 'Escape':
+                    document.getElementById('tutorial-overlay').classList.remove('show');
+                    if (STATE.colorPanelOpen) toggleColorPanel();
+                    if (STATE.propsPanelOpen) toggleProps();
+                    return;
+                default:
+                    return;
             }
             updateToolUI();
         }
     });
+    
+    // Mouse movement shows dock
+    document.addEventListener('mousemove', resetDockHideTimer);
     
     // Auto-save interval
     setInterval(autoSave, CONFIG.autoSaveInterval);
@@ -1377,7 +1878,7 @@ function updateFPS() {
     STATE.frameCount++;
     const now = performance.now();
     if (now - STATE.lastFpsTime >= 1000) {
-        document.getElementById('fps-display').textContent = STATE.frameCount;
+        document.getElementById('fps-value').textContent = STATE.frameCount;
         STATE.frameCount = 0;
         STATE.lastFpsTime = now;
     }
@@ -1397,44 +1898,52 @@ async function startApp() {
     
     try {
         await loadLibraries();
-        document.getElementById('status-text').textContent = 'Setup canvases...';
+        document.getElementById('status-text').textContent = 'Setup canvas...';
         setupCanvases();
         
         document.getElementById('status-text').textContent = 'Meminta izin kamera...';
         await initHandTracking();
         
-        document.getElementById('status-text').textContent = 'Memuat pekerjaan tersimpan...';
+        document.getElementById('status-text').textContent = 'Memuat data tersimpan...';
         loadSaved();
         
         screen.style.display = 'none';
         
-        ['top-bar', 'status-panel', 'properties-panel', 'gesture-indicator', 
-         'page-indicator', 'hand-viz', 'webcam'].forEach(id => {
+        ['status-bar', 'dock', 'toggle-props', 'toggle-help', 'toggle-webcam', 
+         'webcam-container', 'page-indicator'].forEach(id => {
             document.getElementById(id).style.display = '';
         });
         
+        // Dock needs flex display
+        document.getElementById('dock').style.display = 'flex';
+        document.getElementById('status-bar').style.display = 'flex';
+        document.getElementById('page-indicator').style.display = 'flex';
+        document.querySelectorAll('.toggle-btn').forEach(b => b.style.display = 'flex');
+        
         setupEventListeners();
         updateToolUI();
+        updatePropsUI();
         updatePageIndicator();
         updateFPS();
         
-        // Show tutorial briefly
-        document.getElementById('tutorial').classList.add('show');
-        setTimeout(() => document.getElementById('tutorial').classList.remove('show'), 8000);
+        // Show tutorial once
+        document.getElementById('tutorial-overlay').classList.add('show');
         
         showToast('✨ Sistem siap! Tunjukkan tangan Anda');
         
     } catch (err) {
         screen.innerHTML = `
-            <h1 style="color:#f55; font-size:36px;">⚠️ Error</h1>
-            <p style="color:#faa; max-width:500px; margin:20px;">${err.message}</p>
-            <div class="warning-box">
+            <div class="logo" style="color:#ff4757;">⚠️</div>
+            <h1 style="color:#ff4757;">Terjadi Kesalahan</h1>
+            <p style="color:#ffb3b3; max-width:500px; margin:20px; line-height:1.6;">${err.message}</p>
+            <div class="server-hint">
                 <strong>Solusi:</strong><br>
                 1. Jalankan via <code>http://localhost:8000</code><br>
                 2. Izinkan akses kamera<br>
-                3. Pastikan internet aktif untuk load library
+                3. Pastikan internet aktif untuk load library<br>
+                4. Gunakan browser modern (Chrome/Edge)
             </div>
-            <button onclick="location.reload()" style="margin-top:20px;padding:12px 30px;background:#0ff;border:none;border-radius:30px;font-weight:bold;cursor:pointer;color:#000;">🔄 Coba Lagi</button>
+            <button onclick="location.reload()" style="margin-top:25px;padding:14px 35px;background:var(--accent);border:none;border-radius:50px;font-weight:600;cursor:pointer;color:#000;font-size:15px;">🔄 Coba Lagi</button>
         `;
     }
 }
