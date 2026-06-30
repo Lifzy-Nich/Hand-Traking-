@@ -3,504 +3,371 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pro Writing System v4.0 — Ultimate</title>
+<title>Pro Writing System v4.1 — Optimized</title>
 <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     
     :root {
-        --bg-primary: #0a0a0f;
-        --bg-secondary: rgba(15, 15, 25, 0.85);
-        --glass: rgba(20, 20, 35, 0.6);
-        --glass-border: rgba(0, 255, 255, 0.15);
+        --bg: #0a0a0f;
+        --panel: rgba(20, 20, 30, 0.92);
+        --border: rgba(0, 229, 255, 0.2);
         --accent: #00e5ff;
-        --accent-glow: rgba(0, 229, 255, 0.5);
-        --text-primary: #ffffff;
-        --text-secondary: #8892b0;
+        --text: #fff;
+        --text-dim: #8892b0;
         --danger: #ff4757;
         --success: #2ed573;
     }
     
     body {
         overflow: hidden;
-        font-family: -apple-system, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
-        color: var(--text-primary);
-        background: var(--bg-primary);
+        font-family: -apple-system, 'Segoe UI', sans-serif;
+        color: var(--text);
+        background: var(--bg);
         user-select: none;
         height: 100vh;
     }
     
-    /* ===== BACKGROUND ===== */
     #background {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        position: fixed; inset: 0;
         background: 
-            radial-gradient(ellipse at 20% 30%, rgba(0, 229, 255, 0.05) 0%, transparent 50%),
+            radial-gradient(ellipse at 20% 30%, rgba(0, 229, 255, 0.04) 0%, transparent 50%),
             radial-gradient(ellipse at 80% 70%, rgba(255, 0, 255, 0.03) 0%, transparent 50%),
-            var(--bg-primary);
+            var(--bg);
         z-index: 0;
     }
     
     #grid-overlay {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        z-index: 1; pointer-events: none;
+        position: fixed; inset: 0; z-index: 1; pointer-events: none;
         background-image: 
             linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px),
             linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px);
         background-size: 40px 40px;
-        opacity: 0;
-        transition: opacity 0.4s;
+        opacity: 0; transition: opacity 0.3s;
     }
     #grid-overlay.active { opacity: 1; }
     
-    /* ===== CANVASES ===== */
-    #writing-canvas, #preview-canvas {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    }
-    #writing-canvas { z-index: 10; }
-    #preview-canvas { z-index: 11; pointer-events: none; }
+    #writing-canvas { position: fixed; inset: 0; z-index: 10; }
+    #preview-canvas { position: fixed; inset: 0; z-index: 11; pointer-events: none; }
     
-    /* ===== PEN CURSOR ===== */
+    /* Pen cursor */
     #pen-cursor {
         position: fixed; pointer-events: none; z-index: 500;
         border-radius: 50%; transform: translate(-50%, -50%);
-        transition: width 0.15s, height 0.15s, border-color 0.2s, background 0.2s;
-        mix-blend-mode: screen;
-        display: none;
+        display: none; transition: width 0.1s, height 0.1s;
     }
     #pen-cursor::before {
         content: ''; position: absolute; top: 50%; left: 50%;
         width: 3px; height: 3px; background: #fff;
         border-radius: 50%; transform: translate(-50%, -50%);
-        box-shadow: 0 0 5px #fff;
-    }
-    #pen-cursor::after {
-        content: ''; position: absolute; inset: -8px;
-        border: 1px solid rgba(255,255,255,0.2);
-        border-radius: 50%;
-        animation: cursorPulse 2s ease-in-out infinite;
-    }
-    @keyframes cursorPulse {
-        0%, 100% { transform: scale(1); opacity: 0.5; }
-        50% { transform: scale(1.3); opacity: 0; }
     }
     
-    /* ===== START SCREEN ===== */
+    /* Start screen */
     #start-screen {
         position: fixed; inset: 0;
-        background: radial-gradient(circle at center, #12121f 0%, #000 100%);
+        background: radial-gradient(circle, #12121f 0%, #000 100%);
         z-index: 10000; display: flex; flex-direction: column;
-        align-items: center; justify-content: center; text-align: center;
-        padding: 20px;
+        align-items: center; justify-content: center; padding: 20px;
     }
-    .logo {
-        font-size: 72px; margin-bottom: 10px;
-        filter: drop-shadow(0 0 30px var(--accent-glow));
-        animation: logoFloat 3s ease-in-out infinite;
-    }
-    @keyframes logoFloat {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-10px); }
-    }
-    #start-screen h1 { 
-        font-size: 42px; font-weight: 700; margin-bottom: 8px;
+    .logo { font-size: 64px; margin-bottom: 10px; }
+    #start-screen h1 {
+        font-size: 38px; margin-bottom: 8px;
         background: linear-gradient(135deg, #fff, var(--accent));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
-    .subtitle { color: var(--text-secondary); font-size: 16px; margin-bottom: 50px; letter-spacing: 2px; }
+    .subtitle { color: var(--text-dim); margin-bottom: 40px; letter-spacing: 2px; font-size: 14px; }
     
-    .feature-grid {
+    .features {
         display: grid; grid-template-columns: repeat(3, 1fr);
-        gap: 12px; max-width: 700px; margin-bottom: 40px;
+        gap: 12px; max-width: 650px; margin-bottom: 35px;
     }
     .feature {
-        background: var(--glass); backdrop-filter: blur(20px);
-        padding: 20px 15px; border-radius: 16px;
-        border: 1px solid var(--glass-border);
-        transition: transform 0.3s, border-color 0.3s;
+        background: var(--panel); padding: 18px 14px; border-radius: 14px;
+        border: 1px solid var(--border); text-align: center;
     }
-    .feature:hover { transform: translateY(-5px); border-color: var(--accent); }
-    .feature .icon { font-size: 28px; margin-bottom: 8px; }
-    .feature .title { font-weight: 600; font-size: 14px; color: var(--accent); margin-bottom: 4px; }
-    .feature .desc { font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
+    .feature .icon { font-size: 26px; margin-bottom: 6px; }
+    .feature .title { font-weight: 600; font-size: 13px; color: var(--accent); margin-bottom: 3px; }
+    .feature .desc { font-size: 11px; color: var(--text-dim); }
     
     #start-btn {
-        padding: 18px 70px; font-size: 18px; font-weight: 600;
+        padding: 16px 60px; font-size: 16px; font-weight: 600;
         background: linear-gradient(135deg, var(--accent), #b026ff);
-        border: none; border-radius: 50px;
-        color: #000; cursor: pointer; transition: all 0.3s;
+        border: none; border-radius: 50px; color: #000; cursor: pointer;
         box-shadow: 0 10px 40px rgba(0, 229, 255, 0.3);
-        letter-spacing: 1px;
+        transition: transform 0.2s;
     }
-    #start-btn:hover { 
-        transform: translateY(-3px); 
-        box-shadow: 0 15px 50px rgba(0, 229, 255, 0.5); 
-    }
-    #start-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    #start-btn:hover { transform: translateY(-2px); }
     
-    #loading-status { margin-top: 20px; display: none; }
+    .server-hint {
+        margin-top: 25px; padding: 12px 18px;
+        background: rgba(255,100,100,0.1); border: 1px solid rgba(255,100,100,0.3);
+        border-radius: 10px; font-size: 12px; color: #ffb3b3;
+    }
+    .server-hint code {
+        background: #000; padding: 2px 8px; border-radius: 4px;
+        color: var(--success); font-family: monospace;
+    }
+    
     .spinner {
-        border: 3px solid rgba(0,229,255,0.2);
-        border-top: 3px solid var(--accent);
+        border: 3px solid rgba(0,229,255,0.2); border-top-color: var(--accent);
         border-radius: 50%; width: 40px; height: 40px;
         animation: spin 1s linear infinite; margin: 20px auto;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     
-    .server-hint {
-        margin-top: 30px; padding: 12px 20px;
-        background: rgba(255,100,100,0.1); border: 1px solid rgba(255,100,100,0.3);
-        border-radius: 10px; font-size: 12px; color: #ffb3b3;
-        max-width: 500px;
-    }
-    .server-hint code { 
-        background: #000; padding: 3px 10px; border-radius: 4px; 
-        color: var(--success); font-family: 'SF Mono', Monaco, monospace;
-        margin: 0 3px;
-    }
-    
-    /* ===== SLIM STATUS BAR ===== */
+    /* Status bar */
     #status-bar {
         position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
-        z-index: 200;
-        background: var(--glass); backdrop-filter: blur(20px);
-        padding: 8px 20px; border-radius: 50px;
-        border: 1px solid var(--glass-border);
-        display: none; align-items: center; gap: 20px;
+        z-index: 200; background: var(--panel);
+        padding: 7px 18px; border-radius: 50px;
+        border: 1px solid var(--border);
+        display: none; align-items: center; gap: 18px;
         font-size: 12px;
-        box-shadow: 0 4px 30px rgba(0,0,0,0.3);
     }
-    .status-item {
-        display: flex; align-items: center; gap: 6px;
-        color: var(--text-secondary);
-    }
+    .status-item { display: flex; align-items: center; gap: 5px; color: var(--text-dim); }
     .status-item .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
-    .status-item .value { color: var(--text-primary); font-weight: 600; }
+    .status-item .value { color: var(--text); font-weight: 600; }
     .status-dot {
         width: 6px; height: 6px; border-radius: 50%;
-        background: var(--text-secondary);
+        background: var(--text-dim);
     }
-    .status-dot.active { background: var(--success); box-shadow: 0 0 8px var(--success); animation: pulse 2s infinite; }
-    .status-dot.drawing { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
-    .status-dot.erasing { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .status-dot.active { background: var(--success); }
+    .status-dot.drawing { background: var(--accent); animation: pulse 1.5s infinite; }
+    .status-dot.erasing { background: var(--danger); }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+    .sep { width: 1px; height: 14px; background: var(--border); }
     
-    .status-sep { width: 1px; height: 16px; background: var(--glass-border); }
-    
-    /* ===== FLOATING DOCK (macOS Style) ===== */
+    /* Floating dock */
     #dock {
-        position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%);
-        z-index: 200;
-        background: var(--glass); backdrop-filter: blur(30px);
-        padding: 8px; border-radius: 20px;
-        border: 1px solid var(--glass-border);
-        display: none; gap: 4px; align-items: center;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-        transition: opacity 0.3s, transform 0.3s;
+        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+        z-index: 200; background: var(--panel);
+        padding: 6px; border-radius: 18px; border: 1px solid var(--border);
+        display: none; gap: 3px; align-items: center;
     }
-    #dock.hidden { opacity: 0; transform: translateX(-50%) translateY(20px); pointer-events: none; }
-    
     .dock-item {
-        width: 44px; height: 44px; border-radius: 12px;
-        background: transparent;
-        border: none; color: var(--text-secondary);
-        cursor: pointer; font-size: 20px;
+        width: 42px; height: 42px; border-radius: 11px;
+        background: transparent; border: none; color: var(--text-dim);
+        cursor: pointer; font-size: 18px;
         display: flex; align-items: center; justify-content: center;
-        position: relative; transition: all 0.2s;
+        position: relative; transition: background 0.15s, color 0.15s;
     }
-    .dock-item:hover { 
-        background: rgba(255,255,255,0.08); 
-        color: var(--text-primary);
-        transform: translateY(-3px);
-    }
-    .dock-item.active { 
+    .dock-item:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+    .dock-item.active {
         background: linear-gradient(135deg, var(--accent), #b026ff);
         color: #000;
-        box-shadow: 0 5px 20px var(--accent-glow);
     }
-    .dock-item .tooltip {
-        position: absolute; bottom: calc(100% + 10px); left: 50%;
-        transform: translateX(-50%) scale(0);
-        background: #000; color: var(--text-primary);
-        padding: 5px 10px; border-radius: 6px;
-        font-size: 11px; white-space: nowrap;
-        opacity: 0; transition: all 0.2s; pointer-events: none;
+    .dock-item .tt {
+        position: absolute; bottom: calc(100% + 8px); left: 50%;
+        transform: translateX(-50%); background: #000; color: #fff;
+        padding: 4px 9px; border-radius: 5px; font-size: 10px;
+        white-space: nowrap; opacity: 0; pointer-events: none;
+        transition: opacity 0.15s;
     }
-    .dock-item:hover .tooltip { transform: translateX(-50%) scale(1); opacity: 1; }
+    .dock-item:hover .tt { opacity: 1; }
+    .dock-sep { width: 1px; height: 28px; background: var(--border); margin: 0 3px; }
     
-    .dock-sep { width: 1px; height: 30px; background: var(--glass-border); margin: 0 4px; }
-    
-    /* ===== COLOR PICKER PANEL ===== */
+    /* Color panel */
     #color-panel {
-        position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
-        z-index: 199;
-        background: var(--glass); backdrop-filter: blur(30px);
-        padding: 15px; border-radius: 20px;
-        border: 1px solid var(--glass-border);
-        display: none; gap: 10px; flex-wrap: wrap;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-        max-width: 300px; justify-content: center;
+        position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+        z-index: 199; background: var(--panel);
+        padding: 12px; border-radius: 16px; border: 1px solid var(--border);
+        display: none; gap: 8px; flex-wrap: wrap; max-width: 280px; justify-content: center;
     }
-    #color-panel.show { display: flex; animation: slideUp 0.3s; }
-    @keyframes slideUp {
-        from { opacity: 0; transform: translateX(-50%) translateY(10px); }
-        to { opacity: 1; transform: translateX(-50%) translateY(0); }
-    }
+    #color-panel.show { display: flex; }
     .color-btn {
-        width: 36px; height: 36px; border-radius: 50%;
+        width: 34px; height: 34px; border-radius: 50%;
         border: 2px solid transparent; cursor: pointer;
-        transition: all 0.2s;
     }
-    .color-btn:hover { transform: scale(1.15); }
-    .color-btn.active { border-color: #fff; box-shadow: 0 0 15px currentColor; }
+    .color-btn:hover { transform: scale(1.1); }
+    .color-btn.active { border-color: #fff; }
     
-    /* ===== PROPERTIES PANEL (Auto-hide) ===== */
+    /* Properties panel */
     #props-panel {
         position: fixed; left: 20px; top: 50%; transform: translateY(-50%);
-        z-index: 150;
-        background: var(--glass); backdrop-filter: blur(20px);
-        padding: 20px; border-radius: 16px;
-        border: 1px solid var(--glass-border);
-        width: 220px; display: none;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-        transition: transform 0.3s, opacity 0.3s;
+        z-index: 150; background: var(--panel);
+        padding: 18px; border-radius: 14px; border: 1px solid var(--border);
+        width: 210px; display: none;
     }
-    #props-panel.collapsed { transform: translateY(-50%) translateX(-200px); opacity: 0; }
-    
     .props-header {
         display: flex; justify-content: space-between; align-items: center;
-        margin-bottom: 15px; padding-bottom: 10px;
-        border-bottom: 1px solid var(--glass-border);
+        margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
     }
-    .props-title { font-size: 13px; font-weight: 600; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; }
+    .props-title { font-size: 12px; font-weight: 600; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; }
     .props-close {
-        background: none; border: none; color: var(--text-secondary);
-        cursor: pointer; font-size: 16px; padding: 2px 6px; border-radius: 4px;
+        background: none; border: none; color: var(--text-dim);
+        cursor: pointer; font-size: 14px; padding: 2px 6px;
     }
-    .props-close:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
-    
-    .prop-group { margin-bottom: 16px; }
+    .props-close:hover { color: var(--text); }
+    .prop-group { margin-bottom: 14px; }
     .prop-label {
         display: flex; justify-content: space-between;
-        font-size: 11px; color: var(--text-secondary);
-        text-transform: uppercase; letter-spacing: 1px;
-        margin-bottom: 6px;
+        font-size: 11px; color: var(--text-dim);
+        text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;
     }
     .prop-value { color: var(--accent); font-weight: 600; }
-    
     input[type="range"] {
         width: 100%; height: 4px; background: rgba(255,255,255,0.1);
-        border-radius: 2px; outline: none;
-        -webkit-appearance: none;
+        border-radius: 2px; outline: none; -webkit-appearance: none;
     }
     input[type="range"]::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        width: 14px; height: 14px; border-radius: 50%;
+        -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
         background: var(--accent); cursor: pointer;
-        box-shadow: 0 0 10px var(--accent-glow);
-    }
-    input[type="range"]::-moz-range-thumb {
-        width: 14px; height: 14px; border-radius: 50%;
-        background: var(--accent); cursor: pointer; border: none;
-        box-shadow: 0 0 10px var(--accent-glow);
     }
     
-    /* ===== TOGGLE BUTTONS ===== */
+    /* Toggle buttons */
     .toggle-btn {
-        position: fixed; z-index: 199;
-        width: 44px; height: 44px; border-radius: 50%;
-        background: var(--glass); backdrop-filter: blur(20px);
-        border: 1px solid var(--glass-border);
-        color: var(--text-secondary); cursor: pointer;
-        font-size: 18px; display: none;
+        position: fixed; z-index: 199; width: 40px; height: 40px;
+        border-radius: 50%; background: var(--panel);
+        border: 1px solid var(--border); color: var(--text-dim);
+        cursor: pointer; font-size: 16px; display: none;
         align-items: center; justify-content: center;
-        transition: all 0.3s;
     }
     .toggle-btn:hover { color: var(--accent); border-color: var(--accent); }
+    #toggle-props { left: 20px; top: 70px; }
+    #toggle-help { right: 20px; top: 70px; }
+    #toggle-webcam { right: 20px; bottom: 85px; }
     
-    #toggle-props { left: 20px; top: 80px; }
-    #toggle-help { right: 20px; top: 80px; }
-    #toggle-webcam { right: 20px; bottom: 100px; }
-    
-    /* ===== WEBCAM PREVIEW ===== */
-    #webcam-container {
-        position: fixed; bottom: 20px; right: 20px;
-        z-index: 150; display: none;
-        transition: all 0.3s;
-    }
-    #webcam-container.collapsed { transform: scale(0.5); opacity: 0.3; }
-    #webcam-container.collapsed:hover { transform: scale(0.6); opacity: 0.6; }
-    
+    /* Webcam */
+    #webcam-container { position: fixed; bottom: 20px; right: 20px; z-index: 150; display: none; }
     #webcam {
-        width: 180px; height: 135px;
-        border: 1px solid var(--glass-border);
-        border-radius: 12px; background: #000;
-        transform: scaleX(-1);
-        box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+        width: 160px; height: 120px; border: 1px solid var(--border);
+        border-radius: 10px; background: #000; transform: scaleX(-1);
     }
     .webcam-overlay {
-        position: absolute; top: 8px; left: 8px;
-        background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
-        padding: 3px 8px; border-radius: 10px;
-        font-size: 10px; color: var(--success);
-        display: flex; align-items: center; gap: 4px;
+        position: absolute; top: 6px; left: 6px;
+        background: rgba(0,0,0,0.7); padding: 2px 7px; border-radius: 8px;
+        font-size: 9px; color: var(--success);
+        display: flex; align-items: center; gap: 3px;
     }
     .webcam-overlay .dot {
         width: 5px; height: 5px; border-radius: 50%;
         background: var(--success); animation: pulse 2s infinite;
     }
     
-    /* ===== TUTORIAL OVERLAY ===== */
+    /* Tutorial */
     #tutorial-overlay {
         position: fixed; inset: 0; z-index: 9999;
-        background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
-        display: none; align-items: center; justify-content: center;
-        animation: fadeIn 0.3s;
+        background: rgba(0,0,0,0.85); display: none;
+        align-items: center; justify-content: center; padding: 20px;
     }
     #tutorial-overlay.show { display: flex; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    
     .tutorial-card {
-        background: var(--bg-secondary);
-        border: 1px solid var(--glass-border);
-        border-radius: 24px; padding: 40px;
-        max-width: 700px; width: 90%; max-height: 85vh;
-        overflow-y: auto;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        background: var(--panel); border: 1px solid var(--border);
+        border-radius: 20px; padding: 35px; max-width: 650px; width: 100%;
     }
     .tutorial-card h2 {
-        font-size: 28px; margin-bottom: 8px;
+        font-size: 26px; margin-bottom: 6px;
         background: linear-gradient(135deg, #fff, var(--accent));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
-    .tutorial-card .subtitle { color: var(--text-secondary); margin-bottom: 25px; }
-    
+    .tutorial-card .subtitle { color: var(--text-dim); margin-bottom: 22px; font-size: 13px; }
     .gesture-grid {
         display: grid; grid-template-columns: repeat(2, 1fr);
-        gap: 12px; margin-bottom: 25px;
+        gap: 10px; margin-bottom: 20px;
     }
     .gesture-card {
-        background: var(--glass); padding: 16px;
-        border-radius: 12px; border: 1px solid var(--glass-border);
-        display: flex; align-items: center; gap: 12px;
+        background: rgba(255,255,255,0.03); padding: 14px;
+        border-radius: 10px; border: 1px solid var(--border);
+        display: flex; align-items: center; gap: 10px;
     }
-    .gesture-card .emoji { font-size: 32px; }
-    .gesture-card .info .title { font-weight: 600; color: var(--accent); font-size: 14px; }
-    .gesture-card .info .desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
-    
+    .gesture-card .emoji { font-size: 28px; }
+    .gesture-card .info .title { font-weight: 600; color: var(--accent); font-size: 13px; }
+    .gesture-card .info .desc { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
     .shortcuts-list {
-        background: var(--glass); padding: 16px 20px;
-        border-radius: 12px; margin-bottom: 20px;
+        background: rgba(255,255,255,0.03); padding: 14px;
+        border-radius: 10px; margin-bottom: 18px;
     }
-    .shortcuts-list h4 { color: var(--accent); margin-bottom: 10px; font-size: 14px; }
+    .shortcuts-list h4 { color: var(--accent); margin-bottom: 8px; font-size: 13px; }
     .shortcut-row {
         display: flex; justify-content: space-between;
-        padding: 6px 0; font-size: 13px;
-        border-bottom: 1px solid rgba(255,255,255,0.05);
+        padding: 5px 0; font-size: 12px;
+        border-bottom: 1px solid rgba(255,255,255,0.04);
     }
     .shortcut-row:last-child { border: none; }
     .key {
         background: rgba(0,229,255,0.15); color: var(--accent);
-        padding: 2px 8px; border-radius: 4px;
-        font-family: 'SF Mono', Monaco, monospace; font-size: 11px;
+        padding: 2px 7px; border-radius: 3px; font-family: monospace; font-size: 10px;
     }
-    
     .tutorial-close {
-        padding: 12px 30px; background: var(--accent);
+        padding: 11px 28px; background: var(--accent);
         border: none; border-radius: 50px; color: #000;
-        font-weight: 600; cursor: pointer; font-size: 14px;
-        margin-top: 10px;
+        font-weight: 600; cursor: pointer; font-size: 13px;
     }
     
-    /* ===== TOAST ===== */
+    /* Toast */
     #toast {
-        position: fixed; top: 80px; left: 50%; transform: translateX(-50%) translateY(-20px);
-        z-index: 1000;
-        background: var(--glass); backdrop-filter: blur(20px);
-        padding: 10px 25px; border-radius: 50px;
-        border: 1px solid var(--glass-border);
-        color: var(--text-primary); font-size: 13px;
-        opacity: 0; transition: all 0.3s; pointer-events: none;
+        position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-15px);
+        z-index: 1000; background: var(--panel);
+        padding: 9px 22px; border-radius: 50px;
+        border: 1px solid var(--border); font-size: 12px;
+        opacity: 0; transition: all 0.25s; pointer-events: none;
     }
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     
-    /* ===== PAGE INDICATOR ===== */
+    /* Page indicator */
     #page-indicator {
-        position: fixed; bottom: 25px; left: 25px;
-        z-index: 150; display: none; align-items: center; gap: 8px;
-        background: var(--glass); backdrop-filter: blur(20px);
-        padding: 6px 12px; border-radius: 50px;
-        border: 1px solid var(--glass-border);
-        font-size: 12px;
+        position: fixed; bottom: 20px; left: 20px;
+        z-index: 150; display: none; align-items: center; gap: 6px;
+        background: var(--panel); padding: 5px 10px; border-radius: 50px;
+        border: 1px solid var(--border); font-size: 11px;
     }
     .page-btn {
-        width: 26px; height: 26px; border-radius: 50%;
+        width: 24px; height: 24px; border-radius: 50%;
         background: rgba(255,255,255,0.05); border: none;
-        color: var(--text-secondary); cursor: pointer; font-size: 11px;
-        transition: all 0.2s;
+        color: var(--text-dim); cursor: pointer; font-size: 10px;
     }
     .page-btn:hover { background: var(--accent); color: #000; }
-    .page-text { color: var(--text-primary); font-weight: 600; min-width: 40px; text-align: center; }
+    .page-text { color: var(--text); font-weight: 600; min-width: 36px; text-align: center; }
     
-    /* ===== GESTURE MODE INDICATOR ===== */
+    /* Mode indicator */
     #mode-indicator {
-        position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
-        z-index: 150;
-        padding: 8px 20px; border-radius: 50px;
-        background: var(--glass); backdrop-filter: blur(20px);
-        border: 1px solid var(--glass-border);
-        font-size: 12px; font-weight: 600;
-        opacity: 0; transition: all 0.3s;
-        pointer-events: none;
-        display: flex; align-items: center; gap: 8px;
+        position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+        z-index: 150; padding: 6px 16px; border-radius: 50px;
+        background: var(--panel); border: 1px solid var(--border);
+        font-size: 11px; font-weight: 600; opacity: 0;
+        transition: opacity 0.2s; pointer-events: none;
+        display: flex; align-items: center; gap: 6px;
     }
     #mode-indicator.show { opacity: 1; }
-    #mode-indicator.draw { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 20px var(--accent-glow); }
-    #mode-indicator.erase { border-color: var(--danger); color: var(--danger); box-shadow: 0 0 20px rgba(255,71,87,0.5); }
+    #mode-indicator.draw { border-color: var(--accent); color: var(--accent); }
+    #mode-indicator.erase { border-color: var(--danger); color: var(--danger); }
     #mode-indicator.hover { border-color: var(--success); color: var(--success); }
-    #mode-indicator.idle { border-color: var(--text-secondary); color: var(--text-secondary); }
+    
+    /* Debug - for troubleshooting */
+    #debug-panel {
+        position: fixed; bottom: 150px; right: 20px;
+        z-index: 149; background: var(--panel);
+        padding: 10px 14px; border-radius: 10px;
+        border: 1px solid var(--border); font-size: 10px;
+        font-family: monospace; display: none; min-width: 180px;
+    }
+    .debug-row { display: flex; justify-content: space-between; padding: 2px 0; color: var(--text-dim); }
+    .debug-row .val { color: var(--accent); }
 </style>
 </head>
 <body>
 
 <div id="background"></div>
 <div id="grid-overlay"></div>
-
 <canvas id="writing-canvas"></canvas>
 <canvas id="preview-canvas"></canvas>
 <div id="pen-cursor"></div>
 
-<!-- START SCREEN -->
+<!-- Start screen -->
 <div id="start-screen">
     <div class="logo">✍️</div>
     <h1>Pro Writing System</h1>
-    <p class="subtitle">v4.0 ULTIMATE · ULTRA ACCURATE TRACKING</p>
+    <p class="subtitle">v4.1 · OPTIMIZED & STABLE</p>
     
-    <div class="feature-grid">
+    <div class="features">
         <div class="feature">
             <div class="icon">🎯</div>
-            <div class="title">Motion Predictor</div>
-            <div class="desc">Prediksi posisi untuk latency minimum</div>
-        </div>
-        <div class="feature">
-            <div class="icon">🌀</div>
-            <div class="title">Adaptive Filter</div>
-            <div class="desc">Smoothing otomatis sesuai kecepatan</div>
-        </div>
-        <div class="feature">
-            <div class="icon">⚡</div>
-            <div class="title">Zero Jitter</div>
-            <div class="desc">Stabilizer saat tangan diam</div>
+            <div class="title">Accurate Tracking</div>
+            <div class="desc">Kalman + Adaptive smoothing</div>
         </div>
         <div class="feature">
             <div class="icon">🖊️</div>
-            <div class="title">5 Tools Pro</div>
+            <div class="title">5 Tools</div>
             <div class="desc">Pen, Marker, Highlight, Eraser, Laser</div>
-        </div>
-        <div class="feature">
-            <div class="icon">🎨</div>
-            <div class="title">Dynamic Pressure</div>
-            <div class="desc">Tebal-tipis natural seperti pena asli</div>
         </div>
         <div class="feature">
             <div class="icon">💾</div>
@@ -509,173 +376,99 @@
         </div>
     </div>
     
-    <button id="start-btn">MULAI SEKARANG</button>
+    <button id="start-btn">MULAI MENULIS</button>
     
-    <div id="loading-status">
+    <div id="loading-status" style="display: none;">
         <div class="spinner"></div>
-        <p id="status-text" style="color:var(--text-secondary); font-size:13px; margin-top:10px;">Memuat sistem...</p>
+        <p id="status-text" style="color: var(--text-dim); font-size: 12px;">Memuat...</p>
     </div>
     
     <div class="server-hint">
-        ⚠️ Wajib jalankan via: <code>python -m http.server 8000</code><br>
+        ⚠️ Jalankan via: <code>python -m http.server 8000</code><br>
         lalu buka <code>http://localhost:8000</code>
     </div>
 </div>
 
-<!-- STATUS BAR -->
+<!-- Status bar -->
 <div id="status-bar">
     <div class="status-item">
         <span class="status-dot active" id="hand-dot"></span>
         <span class="value" id="hand-status">Idle</span>
     </div>
-    <div class="status-sep"></div>
-    <div class="status-item">
-        <span class="label">Mode</span>
-        <span class="value" id="mode-value">—</span>
-    </div>
-    <div class="status-sep"></div>
-    <div class="status-item">
-        <span class="label">FPS</span>
-        <span class="value" id="fps-value">0</span>
-    </div>
-    <div class="status-sep"></div>
-    <div class="status-item">
-        <span class="label">Tool</span>
-        <span class="value" id="tool-value">Pen</span>
-    </div>
+    <div class="sep"></div>
+    <div class="status-item"><span class="label">Mode</span><span class="value" id="mode-value">—</span></div>
+    <div class="sep"></div>
+    <div class="status-item"><span class="label">FPS</span><span class="value" id="fps-value">0</span></div>
+    <div class="sep"></div>
+    <div class="status-item"><span class="label">Tool</span><span class="value" id="tool-value">Pen</span></div>
 </div>
 
-<!-- MODE INDICATOR -->
-<div id="mode-indicator">
-    <span id="mode-icon">✍️</span>
-    <span id="mode-label">Drawing</span>
-</div>
+<div id="mode-indicator"><span id="mode-icon">✍️</span><span id="mode-label">Drawing</span></div>
 
-<!-- FLOATING DOCK -->
+<!-- Floating dock -->
 <div id="dock">
-    <button class="dock-item active" data-tool="pen">
-        ✏️<span class="tooltip">Pen (1)</span>
-    </button>
-    <button class="dock-item" data-tool="marker">
-        🖊️<span class="tooltip">Marker (2)</span>
-    </button>
-    <button class="dock-item" data-tool="highlighter">
-        🖍️<span class="tooltip">Highlight (3)</span>
-    </button>
-    <button class="dock-item" data-tool="eraser">
-        🧽<span class="tooltip">Eraser (4)</span>
-    </button>
-    <button class="dock-item" data-tool="laser">
-        🔴<span class="tooltip">Laser (5)</span>
-    </button>
-    
+    <button class="dock-item active" data-tool="pen">✏️<span class="tt">Pen (1)</span></button>
+    <button class="dock-item" data-tool="marker">🖊️<span class="tt">Marker (2)</span></button>
+    <button class="dock-item" data-tool="highlighter">🖍️<span class="tt">Highlight (3)</span></button>
+    <button class="dock-item" data-tool="eraser">🧽<span class="tt">Eraser (4)</span></button>
+    <button class="dock-item" data-tool="laser">🔴<span class="tt">Laser (5)</span></button>
     <div class="dock-sep"></div>
-    
-    <button class="dock-item" id="color-btn">
-        🎨<span class="tooltip">Color</span>
-    </button>
-    <button class="dock-item" id="props-btn">
-        ⚙️<span class="tooltip">Settings</span>
-    </button>
-    
+    <button class="dock-item" id="color-btn">🎨<span class="tt">Color</span></button>
+    <button class="dock-item" id="props-btn">⚙️<span class="tt">Settings</span></button>
     <div class="dock-sep"></div>
-    
-    <button class="dock-item" id="undo-btn">
-        ↶<span class="tooltip">Undo (Ctrl+Z)</span>
-    </button>
-    <button class="dock-item" id="redo-btn">
-        ↷<span class="tooltip">Redo (Ctrl+Y)</span>
-    </button>
-    <button class="dock-item" id="clear-btn">
-        🗑️<span class="tooltip">Clear (C)</span>
-    </button>
-    <button class="dock-item" id="grid-btn">
-        ▦<span class="tooltip">Grid (G)</span>
-    </button>
-    <button class="dock-item" id="save-btn">
-        💾<span class="tooltip">Save (Ctrl+S)</span>
-    </button>
+    <button class="dock-item" id="undo-btn">↶<span class="tt">Undo</span></button>
+    <button class="dock-item" id="redo-btn">↷<span class="tt">Redo</span></button>
+    <button class="dock-item" id="clear-btn">🗑️<span class="tt">Clear</span></button>
+    <button class="dock-item" id="grid-btn">▦<span class="tt">Grid</span></button>
+    <button class="dock-item" id="save-btn">💾<span class="tt">Save</span></button>
 </div>
 
-<!-- COLOR PANEL -->
+<!-- Color panel -->
 <div id="color-panel">
-    <button class="color-btn active" data-color="#ffffff" style="background:#ffffff"></button>
-    <button class="color-btn" data-color="#000000" style="background:#000000; border:1px solid #333;"></button>
+    <button class="color-btn active" data-color="#ffffff" style="background:#fff"></button>
+    <button class="color-btn" data-color="#000000" style="background:#000; border:1px solid #444;"></button>
     <button class="color-btn" data-color="#ff4757" style="background:#ff4757"></button>
-    <button class="color-btn" data-color="#ff6348" style="background:#ff6348"></button>
     <button class="color-btn" data-color="#ffa502" style="background:#ffa502"></button>
     <button class="color-btn" data-color="#ffdd59" style="background:#ffdd59"></button>
     <button class="color-btn" data-color="#2ed573" style="background:#2ed573"></button>
     <button class="color-btn" data-color="#1e90ff" style="background:#1e90ff"></button>
     <button class="color-btn" data-color="#5352ed" style="background:#5352ed"></button>
     <button class="color-btn" data-color="#b026ff" style="background:#b026ff"></button>
-    <button class="color-btn" data-color="#ff6b9d" style="background:#ff6b9d"></button>
     <button class="color-btn" data-color="#00e5ff" style="background:#00e5ff"></button>
 </div>
 
-<!-- PROPERTIES PANEL -->
+<!-- Properties panel -->
 <div id="props-panel">
     <div class="props-header">
         <span class="props-title">Settings</span>
         <button class="props-close" id="props-close">✕</button>
     </div>
-    
     <div class="prop-group">
-        <div class="prop-label">
-            <span>Size</span>
-            <span class="prop-value" id="size-value">5</span>
-        </div>
+        <div class="prop-label"><span>Size</span><span class="prop-value" id="size-value">5</span></div>
         <input type="range" id="size-slider" min="1" max="30" value="5">
     </div>
-    
     <div class="prop-group">
-        <div class="prop-label">
-            <span>Opacity</span>
-            <span class="prop-value" id="opacity-value">100%</span>
-        </div>
+        <div class="prop-label"><span>Opacity</span><span class="prop-value" id="opacity-value">100%</span></div>
         <input type="range" id="opacity-slider" min="10" max="100" value="100">
     </div>
-    
     <div class="prop-group">
-        <div class="prop-label">
-            <span>Smoothing</span>
-            <span class="prop-value" id="smooth-value">65%</span>
-        </div>
-        <input type="range" id="smooth-slider" min="0" max="95" value="65">
-    </div>
-    
-    <div class="prop-group">
-        <div class="prop-label">
-            <span>Pressure</span>
-            <span class="prop-value" id="pressure-sens-value">50%</span>
-        </div>
-        <input type="range" id="pressure-sens-slider" min="0" max="100" value="50">
-    </div>
-    
-    <div class="prop-group">
-        <div class="prop-label">
-            <span>Prediction</span>
-            <span class="prop-value" id="pred-value">40%</span>
-        </div>
-        <input type="range" id="pred-slider" min="0" max="100" value="40">
+        <div class="prop-label"><span>Smoothing</span><span class="prop-value" id="smooth-value">50%</span></div>
+        <input type="range" id="smooth-slider" min="0" max="90" value="50">
     </div>
 </div>
 
-<!-- TOGGLE BUTTONS -->
-<button class="toggle-btn" id="toggle-props" title="Settings (P)">⚙️</button>
-<button class="toggle-btn" id="toggle-help" title="Help (?)">?</button>
-<button class="toggle-btn" id="toggle-webcam" title="Toggle Webcam">📷</button>
+<!-- Toggle buttons -->
+<button class="toggle-btn" id="toggle-props">⚙️</button>
+<button class="toggle-btn" id="toggle-help">?</button>
+<button class="toggle-btn" id="toggle-webcam">📷</button>
 
-<!-- WEBCAM -->
+<!-- Webcam -->
 <div id="webcam-container">
     <video id="webcam" autoplay playsinline muted></video>
-    <div class="webcam-overlay">
-        <span class="dot"></span>
-        <span>TRACKING</span>
-    </div>
+    <div class="webcam-overlay"><span class="dot"></span><span>TRACKING</span></div>
 </div>
 
-<!-- PAGE INDICATOR -->
+<!-- Page indicator -->
 <div id="page-indicator">
     <button class="page-btn" id="prev-page">◀</button>
     <span class="page-text" id="page-text">1/1</span>
@@ -683,68 +476,50 @@
     <button class="page-btn" id="add-page">+</button>
 </div>
 
-<!-- TUTORIAL OVERLAY -->
+<!-- Tutorial -->
 <div id="tutorial-overlay">
     <div class="tutorial-card">
-        <h2>🎮 Panduan Penggunaan</h2>
-        <p class="subtitle">Kuasai sistem dengan gesture tangan alami</p>
+        <h2>🎮 Cara Penggunaan</h2>
+        <p class="subtitle">Kontrol dengan gesture tangan alami</p>
         
         <div class="gesture-grid">
+            <div class="gesture-card">
+                <div class="emoji">✌️</div>
+                <div class="info">
+                    <div class="title">Peace (✌️)</div>
+                    <div class="desc">Menulis (DRAW)</div>
+                </div>
+            </div>
             <div class="gesture-card">
                 <div class="emoji">☝️</div>
                 <div class="info">
                     <div class="title">Pointing</div>
-                    <div class="desc">Hover kursor tanpa menulis</div>
-                </div>
-            </div>
-            <div class="gesture-card">
-                <div class="emoji">✌️</div>
-                <div class="info">
-                    <div class="title">Peace</div>
-                    <div class="desc">Mulai menulis (Draw)</div>
+                    <div class="desc">Lihat posisi (HOVER)</div>
                 </div>
             </div>
             <div class="gesture-card">
                 <div class="emoji">🖐️</div>
                 <div class="info">
                     <div class="title">Open Palm</div>
-                    <div class="desc">Hapus stroke (Eraser)</div>
+                    <div class="desc">Hapus (ERASE)</div>
                 </div>
             </div>
             <div class="gesture-card">
                 <div class="emoji">✊</div>
                 <div class="info">
                     <div class="title">Fist</div>
-                    <div class="desc">Idle (non-aktif)</div>
-                </div>
-            </div>
-            <div class="gesture-card">
-                <div class="emoji">👌</div>
-                <div class="info">
-                    <div class="title">Pinch</div>
-                    <div class="desc">Pick color dari canvas</div>
-                </div>
-            </div>
-            <div class="gesture-card">
-                <div class="emoji">🤟</div>
-                <div class="info">
-                    <div class="title">3 Fingers</div>
-                    <div class="desc">Toggle menu/properties</div>
+                    <div class="desc">Non-aktif (IDLE)</div>
                 </div>
             </div>
         </div>
         
         <div class="shortcuts-list">
-            <h4>⌨️ Keyboard Shortcuts</h4>
+            <h4>⌨️ Keyboard</h4>
             <div class="shortcut-row"><span>Tool 1-5</span><span class="key">1-5</span></div>
             <div class="shortcut-row"><span>Undo / Redo</span><span class="key">Ctrl+Z / Y</span></div>
-            <div class="shortcut-row"><span>Clear Page</span><span class="key">C</span></div>
             <div class="shortcut-row"><span>Save PNG</span><span class="key">Ctrl+S</span></div>
-            <div class="shortcut-row"><span>Toggle Grid</span><span class="key">G</span></div>
-            <div class="shortcut-row"><span>Settings Panel</span><span class="key">P</span></div>
-            <div class="shortcut-row"><span>Size Up/Down</span><span class="key">] / [</span></div>
-            <div class="shortcut-row"><span>Hide UI</span><span class="key">H</span></div>
-            <div class="shortcut-row"><span>Help</span><span class="key">?</span></div>
+            <div class="shortcut-row"><span>Clear / Grid</span><span class="key">C / G</span></div>
+            <div class="shortcut-row"><span>Size ±</span><span class="key">] / [</span></div>
         </div>
         
         <div style="text-align:center;">
@@ -753,7 +528,15 @@
     </div>
 </div>
 
-<!-- TOAST -->
+<!-- Debug panel (hidden by default, toggle with D) -->
+<div id="debug-panel">
+    <div class="debug-row"><span>Gesture:</span><span class="val" id="dbg-gesture">-</span></div>
+    <div class="debug-row"><span>Mode:</span><span class="val" id="dbg-mode">-</span></div>
+    <div class="debug-row"><span>Fingers:</span><span class="val" id="dbg-fingers">-</span></div>
+    <div class="debug-row"><span>Vel:</span><span class="val" id="dbg-vel">-</span></div>
+    <div class="debug-row"><span>Drawing:</span><span class="val" id="dbg-drawing">-</span></div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -761,124 +544,73 @@
 // CONFIGURATION
 // ================================================================
 const CONFIG = {
-    // Hand tracking
-    fingerExtendThreshold: 0.82,
-    pinchThreshold: 0.08,
-    gestureBufferSize: 7,
-    gestureConsensusRatio: 0.6,
-    
-    // Advanced Smoothing
-    kalmanProcessNoise: 0.008,
-    kalmanMeasurementNoise: 0.15,
-    baseLowPassAlpha: 0.65,  // Will be adaptive
-    
-    // Motion Prediction
-    predictionStrength: 0.4,
-    
-    // Idle Stabilization
-    idleVelocityThreshold: 15,  // px/s
-    idleFramesRequired: 8,
-    
-    // Adaptive Smoothing
-    velocitySlowThreshold: 200,   // Below = smooth
-    velocityFastThreshold: 1500,  // Above = responsive
-    
-    // Pressure
-    pressureSensitivity: 0.5,
+    fingerThreshold: 0.82,
+    gestureBuffer: 5,
+    gestureConsensus: 0.5,  // Relaxed from 0.6 to 0.5
+    kalmanQ: 0.01,
+    kalmanR: 0.15,
+    smoothing: 0.5,
     minStrokeWidth: 0.4,
     maxStrokeWidth: 2.5,
-    
-    // Catmull-Rom
-    catmullRomSegments: 8,
-    
-    // Hand scale normalization
-    handScaleSmoothing: 0.95,
-    
-    // Auto-save
-    autoSaveInterval: 5000,
-    storageKey: 'proWritingSystem_v4',
-    
-    // UI Auto-hide
-    dockHideDelay: 8000,
+    splineSegments: 4,  // Reduced from 8 for performance
+    autoSaveMs: 5000,
+    storageKey: 'pws_v41',
 };
 
 // ================================================================
 // STATE
 // ================================================================
 const STATE = {
-    currentTool: 'pen',
-    currentColor: '#ffffff',
-    penSize: 5,
+    tool: 'pen',
+    color: '#ffffff',
+    size: 5,
     opacity: 1.0,
-    smoothing: 0.65,
-    prediction: 0.4,
-    pressureSensitivity: 0.5,
+    smoothing: 0.5,
     
     pages: [[]],
-    currentPage: 0,
+    pageIdx: 0,
     undoStack: [],
     redoStack: [],
     
-    // Hand state
+    // Hand tracking
     handDetected: false,
-    handConfidence: 0,
-    handScale: 1.0,
-    gestureMode: 'idle',
-    lastGestureMode: 'idle',
-    gestureBuffer: [],
+    mode: 'idle',
+    gestureBuf: [],
     
-    // Position tracking
-    rawPos: null,
-    kalmanPos: null,
-    smoothedPos: null,
-    predictedPos: null,
-    finalPos: null,
-    velocity: { x: 0, y: 0, magnitude: 0 },
-    acceleration: { x: 0, y: 0, magnitude: 0 },
+    // Position
+    kalman: { x: { v: 0, e: 1 }, y: { v: 0, e: 1 } },
+    smoothPos: null,
     lastPos: null,
-    lastVel: { x: 0, y: 0 },
     lastTime: 0,
-    
-    // Idle stabilization
-    idleCounter: 0,
-    isIdle: false,
-    frozenPos: null,
+    velocity: 0,
     
     // Drawing
-    isDrawing: false,
-    currentStroke: null,
+    drawing: false,
+    stroke: null,
     
     // UI
-    uiHidden: false,
-    dockHideTimer: null,
-    colorPanelOpen: false,
-    propsPanelOpen: false,
+    colorOpen: false,
+    propsOpen: false,
     
     // FPS
-    frameCount: 0,
-    lastFpsTime: performance.now(),
-};
-
-// Kalman filter
-const kalman = {
-    x: { value: 0, error: 1, Q: CONFIG.kalmanProcessNoise, R: CONFIG.kalmanMeasurementNoise },
-    y: { value: 0, error: 1, Q: CONFIG.kalmanProcessNoise, R: CONFIG.kalmanMeasurementNoise },
+    frames: 0,
+    lastFps: performance.now(),
 };
 
 // ================================================================
-// CANVAS SETUP
+// CANVAS
 // ================================================================
-let writingCanvas, writingCtx, previewCanvas, previewCtx;
+let writeCanvas, writeCtx, prevCanvas, prevCtx;
 
-function setupCanvases() {
-    writingCanvas = document.getElementById('writing-canvas');
-    previewCanvas = document.getElementById('preview-canvas');
+function setupCanvas() {
+    writeCanvas = document.getElementById('writing-canvas');
+    prevCanvas = document.getElementById('preview-canvas');
     
     const resize = () => {
-        const w = window.innerWidth, h = window.innerHeight;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = window.innerWidth, h = window.innerHeight;
         
-        [writingCanvas, previewCanvas].forEach(c => {
+        [writeCanvas, prevCanvas].forEach(c => {
             c.width = w * dpr;
             c.height = h * dpr;
             c.style.width = w + 'px';
@@ -886,13 +618,12 @@ function setupCanvases() {
             c.getContext('2d').scale(dpr, dpr);
         });
         
-        writingCtx = writingCanvas.getContext('2d');
-        previewCtx = previewCanvas.getContext('2d');
+        writeCtx = writeCanvas.getContext('2d');
+        prevCtx = prevCanvas.getContext('2d');
+        writeCtx.lineCap = 'round';
+        writeCtx.lineJoin = 'round';
         
-        writingCtx.lineCap = 'round';
-        writingCtx.lineJoin = 'round';
-        
-        redrawCurrentPage();
+        redrawPage();
     };
     
     resize();
@@ -900,323 +631,208 @@ function setupCanvases() {
 }
 
 // ================================================================
-// SCRIPT LOADER
+// LIBRARY LOADER
 // ================================================================
 function loadScript(src) {
-    return new Promise((resolve, reject) => {
+    return new Promise((res, rej) => {
         const s = document.createElement('script');
         s.src = src;
-        s.onload = resolve;
-        s.onerror = () => reject(new Error('Gagal memuat: ' + src));
+        s.onload = res;
+        s.onerror = () => rej(new Error('Gagal load: ' + src));
         document.head.appendChild(s);
     });
 }
 
-async function loadLibraries() {
+async function loadLibs() {
     const st = document.getElementById('status-text');
-    st.textContent = 'Memuat MediaPipe Hands...';
+    st.textContent = 'Loading MediaPipe...';
     await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js');
-    st.textContent = 'Memuat Camera Utils...';
+    st.textContent = 'Loading Camera...';
     await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js');
 }
 
 // ================================================================
-// HAND TRACKING - GEOMETRIC ANALYSIS
+// HAND TRACKING
 // ================================================================
-function distance3D(a, b) {
+function dist3(a, b) {
     return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 }
 
-function isFingerExtended(lm, idx) {
+function fingerExtended(lm, idx) {
     const tips = [4, 8, 12, 16, 20];
     const pips = [3, 6, 10, 14, 18];
     const mcps = [2, 5, 9, 13, 17];
     
-    const tip = lm[tips[idx]];
-    const pip = lm[pips[idx]];
-    const mcp = lm[mcps[idx]];
+    const tip = lm[tips[idx]], pip = lm[pips[idx]], mcp = lm[mcps[idx]];
     
     if (idx === 0) {
-        const indexMcp = lm[5];
-        const wrist = lm[0];
-        const tipToIndex = distance3D(tip, indexMcp);
-        const wristToIndex = distance3D(wrist, indexMcp);
-        return tipToIndex > wristToIndex * 0.85;
+        // Thumb
+        const tipIdx = dist3(tip, lm[5]);
+        const wristIdx = dist3(lm[0], lm[5]);
+        return tipIdx > wristIdx * 0.85;
     }
     
-    const tipToMcp = distance3D(tip, mcp);
-    const pipToMcp = distance3D(pip, mcp);
-    const tipToPip = distance3D(tip, pip);
-    const straightness = tipToMcp / (pipToMcp + tipToPip);
-    return straightness > CONFIG.fingerExtendThreshold;
+    const tipMcp = dist3(tip, mcp);
+    const pipMcp = dist3(pip, mcp);
+    const tipPip = dist3(tip, pip);
+    
+    return (tipMcp / (pipMcp + tipPip)) > CONFIG.fingerThreshold;
 }
 
-function getFingerStates(lm) {
+function getFingers(lm) {
     return {
-        thumb: isFingerExtended(lm, 0),
-        index: isFingerExtended(lm, 1),
-        middle: isFingerExtended(lm, 2),
-        ring: isFingerExtended(lm, 3),
-        pinky: isFingerExtended(lm, 4)
+        t: fingerExtended(lm, 0),
+        i: fingerExtended(lm, 1),
+        m: fingerExtended(lm, 2),
+        r: fingerExtended(lm, 3),
+        p: fingerExtended(lm, 4)
     };
 }
 
-function getHandScale(lm) {
-    // Use wrist to middle finger MCP distance as hand size reference
-    const wrist = lm[0];
-    const middleMcp = lm[9];
-    const size = distance3D(wrist, middleMcp);
-    
-    // Smooth the scale over time
-    STATE.handScale = STATE.handScale * CONFIG.handScaleSmoothing + 
-                     size * (1 - CONFIG.handScaleSmoothing);
-    return STATE.handScale;
-}
-
-// ================================================================
-// GESTURE RECOGNITION WITH HYSTERESIS
-// ================================================================
+// FIXED: More forgiving gesture detection
 function detectGesture(lm) {
-    const f = getFingerStates(lm);
-    const handScale = getHandScale(lm);
+    const f = getFingers(lm);
+    const extCount = [f.t, f.i, f.m, f.r, f.p].filter(Boolean).length;
     
-    // Adaptive pinch threshold based on hand size
-    const pinchThresh = CONFIG.pinchThreshold * handScale * 3;
-    const pinch = distance3D(lm[4], lm[8]);
+    // FIST: all closed
+    if (!f.i && !f.m && !f.r && !f.p) return 'fist';
     
-    // Pinch detection
-    if (pinch < pinchThresh) return 'pinch';
+    // OPEN PALM: 4+ fingers extended
+    if (extCount >= 4) return 'open_palm';
     
-    // Fist
-    if (!f.index && !f.middle && !f.ring && !f.pinky) return 'fist';
+    // PEACE: index + middle extended (most important for drawing)
+    // RELAXED: doesn't matter about ring/pinky strict state
+    if (f.i && f.m) {
+        // If ring or pinky also extended, still peace if i+m are dominant
+        if (!f.r || !f.p) return 'peace';
+        // If all 4 extended but user clearly trying peace (common case)
+        return 'peace';
+    }
     
-    // Open palm
-    const extended = [f.thumb, f.index, f.middle, f.ring, f.pinky].filter(Boolean).length;
-    if (extended >= 4) return 'open_palm';
+    // POINTING: only index
+    if (f.i && !f.m && !f.r && !f.p) return 'pointing';
     
-    // Peace
-    if (f.index && f.middle && !f.ring && !f.pinky) return 'peace';
-    
-    // Pointing
-    if (f.index && !f.middle && !f.ring && !f.pinky) return 'pointing';
-    
-    // Three fingers (thumb + index + middle)
-    if (f.index && f.middle && (f.thumb || !f.ring)) return 'three_fingers';
+    // Fallback: if index is extended, assume hover
+    if (f.i) return 'pointing';
     
     return 'unknown';
 }
 
 function smoothGesture(raw) {
-    STATE.gestureBuffer.push(raw);
-    if (STATE.gestureBuffer.length > CONFIG.gestureBufferSize) {
-        STATE.gestureBuffer.shift();
-    }
+    STATE.gestureBuf.push(raw);
+    if (STATE.gestureBuf.length > CONFIG.gestureBuffer) STATE.gestureBuf.shift();
     
     const counts = {};
-    STATE.gestureBuffer.forEach(g => counts[g] = (counts[g] || 0) + 1);
+    STATE.gestureBuf.forEach(g => counts[g] = (counts[g] || 0) + 1);
     
-    let best = raw, bestCount = 0;
+    let best = raw, max = 0;
     for (const [g, c] of Object.entries(counts)) {
-        if (c > bestCount) { best = g; bestCount = c; }
+        if (c > max) { best = g; max = c; }
     }
     
-    const minRequired = Math.ceil(CONFIG.gestureBufferSize * CONFIG.gestureConsensusRatio);
-    if (bestCount >= minRequired && best !== 'unknown') {
-        return best;
-    }
+    // Relaxed consensus: 50% instead of 60%
+    const needed = Math.ceil(CONFIG.gestureBuffer * CONFIG.gestureConsensus);
+    if (max >= needed && best !== 'unknown') return best;
     
-    return STATE.gestureMode === 'idle' ? 'unknown' : STATE.gestureMode;
+    return STATE.mode === 'idle' ? 'unknown' : STATE.mode;
 }
 
-function gestureToMode(gesture) {
-    // Hysteresis: require different conditions to enter/exit modes
-    switch (gesture) {
-        case 'peace': return 'draw';
-        case 'pointing': return 'hover';
-        case 'open_palm': return 'erase';
-        case 'three_fingers': return 'menu';
-        case 'fist':
-        case 'unknown':
-        case 'pinch':
-            return 'idle';
-        default:
-            return 'hover';
-    }
+function gestureToMode(g) {
+    if (g === 'peace') return 'draw';
+    if (g === 'open_palm') return 'erase';
+    if (g === 'pointing') return 'hover';
+    return 'idle';
 }
 
 // ================================================================
 // KALMAN FILTER
 // ================================================================
-function kalmanUpdate(state, measurement) {
-    const predictedValue = state.value;
-    const predictedError = state.error + state.Q;
-    const kalmanGain = predictedError / (predictedError + state.R);
-    state.value = predictedValue + kalmanGain * (measurement - predictedValue);
-    state.error = (1 - kalmanGain) * predictedError;
-    return state.value;
+function kalman(k, m) {
+    const pe = k.e + CONFIG.kalmanQ;
+    const gain = pe / (pe + CONFIG.kalmanR);
+    k.v = k.v + gain * (m - k.v);
+    k.e = (1 - gain) * pe;
+    return k.v;
 }
 
 // ================================================================
-// ADVANCED POSITION PROCESSING (v4)
+// POSITION PROCESSING
 // ================================================================
-function processPosition(landmark) {
-    const canvas = document.getElementById('writing-canvas');
-    const now = performance.now();
+function processPos(lm) {
+    const canvas = writeCanvas;
     const dpr = window.devicePixelRatio || 1;
+    const now = performance.now();
     
     // Convert (non-mirror)
-    const rawX = (1 - landmark.x) * canvas.width / dpr;
-    const rawY = landmark.y * canvas.height / dpr;
+    const rawX = (1 - lm.x) * canvas.width / dpr;
+    const rawY = lm.y * canvas.height / dpr;
     
-    // Layer 1: Kalman Filter
-    if (!STATE.kalmanPos) {
-        kalman.x.value = rawX;
-        kalman.y.value = rawY;
-        STATE.kalmanPos = { x: rawX, y: rawY };
-    }
-    const kalX = kalmanUpdate(kalman.x, rawX);
-    const kalY = kalmanUpdate(kalman.y, rawY);
-    
-    // Layer 2: Initialize smoothed position
-    if (!STATE.smoothedPos) {
-        STATE.smoothedPos = { x: kalX, y: kalY };
+    // Initialize
+    if (!STATE.smoothPos) {
+        STATE.kalman.x.v = rawX;
+        STATE.kalman.y.v = rawY;
+        STATE.smoothPos = { x: rawX, y: rawY };
     }
     
-    // Layer 3: Calculate raw velocity FIRST (before smoothing)
-    let rawVelX = 0, rawVelY = 0, rawVelMag = 0;
+    // Kalman
+    const kx = kalman(STATE.kalman.x, rawX);
+    const ky = kalman(STATE.kalman.y, rawY);
+    
+    // Calculate velocity
+    let vel = 0;
     if (STATE.lastPos && STATE.lastTime > 0) {
         const dt = Math.max((now - STATE.lastTime) / 1000, 0.001);
-        rawVelX = (kalX - STATE.lastPos.x) / dt;
-        rawVelY = (kalY - STATE.lastPos.y) / dt;
-        rawVelMag = Math.hypot(rawVelX, rawVelY);
+        const dx = kx - STATE.lastPos.x;
+        const dy = ky - STATE.lastPos.y;
+        vel = Math.hypot(dx, dy) / dt;
+        STATE.velocity = STATE.velocity * 0.7 + vel * 0.3;
     }
     
-    // Layer 4: ADAPTIVE Low-pass based on velocity
-    let alpha;
-    if (rawVelMag < CONFIG.velocitySlowThreshold) {
-        alpha = STATE.smoothing; // High smoothing for slow motion
-    } else if (rawVelMag > CONFIG.velocityFastThreshold) {
-        alpha = 0.95; // Almost no smoothing for fast motion
-    } else {
-        // Linear interpolation between slow and fast
-        const t = (rawVelMag - CONFIG.velocitySlowThreshold) / 
-                  (CONFIG.velocityFastThreshold - CONFIG.velocitySlowThreshold);
-        alpha = STATE.smoothing + t * (0.95 - STATE.smoothing);
-    }
+    // Adaptive smoothing
+    let alpha = STATE.smoothing;
+    if (STATE.velocity > 1500) alpha = 0.9;  // Fast = responsive
+    else if (STATE.velocity < 100) alpha = 0.3;  // Slow = smooth
     
-    STATE.smoothedPos.x = STATE.smoothedPos.x * alpha + kalX * (1 - alpha);
-    STATE.smoothedPos.y = STATE.smoothedPos.y * alpha + kalY * (1 - alpha);
+    STATE.smoothPos.x = STATE.smoothPos.x * alpha + kx * (1 - alpha);
+    STATE.smoothPos.y = STATE.smoothPos.y * alpha + ky * (1 - alpha);
     
-    // Layer 5: Motion Prediction
-    if (rawVelMag > 10 && STATE.prediction > 0) {
-        const predFrames = STATE.prediction * 3; // 0-3 frames prediction
-        STATE.predictedPos = {
-            x: STATE.smoothedPos.x + rawVelX * predFrames * 0.016,
-            y: STATE.smoothedPos.y + rawVelY * predFrames * 0.016
-        };
-    } else {
-        STATE.predictedPos = { ...STATE.smoothedPos };
-    }
-    
-    // Layer 6: Idle Stabilization
-    if (rawVelMag < CONFIG.idleVelocityThreshold) {
-        STATE.idleCounter++;
-        if (STATE.idleCounter >= CONFIG.idleFramesRequired) {
-            STATE.isIdle = true;
-            if (!STATE.frozenPos) {
-                STATE.frozenPos = { ...STATE.smoothedPos };
-            }
-        }
-    } else {
-        STATE.idleCounter = 0;
-        STATE.isIdle = false;
-        STATE.frozenPos = null;
-    }
-    
-    // Final position: use frozen if idle
-    STATE.finalPos = STATE.isIdle && STATE.frozenPos 
-        ? STATE.frozenPos 
-        : STATE.predictedPos;
-    
-    // Update smoothed velocity
-    STATE.velocity.x = STATE.velocity.x * 0.6 + rawVelX * 0.4;
-    STATE.velocity.y = STATE.velocity.y * 0.6 + rawVelY * 0.4;
-    STATE.velocity.magnitude = Math.hypot(STATE.velocity.x, STATE.velocity.y);
-    
-    // Acceleration
-    if (STATE.lastVel) {
-        const dt = Math.max((now - STATE.lastTime) / 1000, 0.001);
-        STATE.acceleration.x = (STATE.velocity.x - STATE.lastVel.x) / dt;
-        STATE.acceleration.y = (STATE.velocity.y - STATE.lastVel.y) / dt;
-        STATE.acceleration.magnitude = Math.hypot(STATE.acceleration.x, STATE.acceleration.y);
-    }
-    
-    STATE.lastPos = { x: STATE.smoothedPos.x, y: STATE.smoothedPos.y };
-    STATE.lastVel = { x: STATE.velocity.x, y: STATE.velocity.y };
+    STATE.lastPos = { x: STATE.smoothPos.x, y: STATE.smoothPos.y };
     STATE.lastTime = now;
     
-    return STATE.finalPos;
+    return STATE.smoothPos;
 }
 
 // ================================================================
-// PRESSURE CALCULATION
+// STROKE RENDERING (Optimized)
 // ================================================================
-function calculatePressure(velocity, acceleration) {
-    const sens = STATE.pressureSensitivity;
-    const vel = Math.min(velocity / 1000, 1);
-    const acc = Math.min(acceleration / 5000, 1);
-    
-    const basePressure = 1 - vel * 0.7;
-    const accBoost = acc * 0.3;
-    return Math.max(0.1, Math.min(1, (basePressure + accBoost) * (0.5 + sens)));
-}
-
-// ================================================================
-// CATMULL-ROM SPLINE
-// ================================================================
-function catmullRomPoint(p0, p1, p2, p3, t) {
-    const t2 = t * t;
-    const t3 = t2 * t;
-    return {
-        x: 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
-        y: 0.5 * ((2 * p1.y) + (-p0.y + p2.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3)
-    };
-}
-
-function getToolStyle(tool, color, size, opacity, pressure) {
-    const dynamicSize = size * (CONFIG.minStrokeWidth + pressure * (CONFIG.maxStrokeWidth - CONFIG.minStrokeWidth));
+function toolStyle(tool, color, size, opacity, pressure) {
+    const dyn = size * (CONFIG.minStrokeWidth + pressure * (CONFIG.maxStrokeWidth - CONFIG.minStrokeWidth));
     
     switch (tool) {
-        case 'pen':
-            return { color, size: dynamicSize, opacity, composite: 'source-over', shadow: 0 };
-        case 'marker':
-            return { color, size: dynamicSize * 1.5, opacity: opacity * 0.85, composite: 'source-over', shadow: 3 };
-        case 'highlighter':
-            return { color, size: dynamicSize * 3, opacity: 0.35, composite: 'source-over', shadow: 0 };
-        case 'eraser':
-            return { color: '#000000', size: size * 3, opacity: 1, composite: 'destination-out', shadow: 0 };
-        case 'laser':
-            return { color, size: 4, opacity: 1, composite: 'lighter', shadow: 25, glow: true };
-        default:
-            return { color, size: dynamicSize, opacity, composite: 'source-over', shadow: 0 };
+        case 'pen': return { c: color, s: dyn, o: opacity, comp: 'source-over', blur: 0 };
+        case 'marker': return { c: color, s: dyn * 1.5, o: opacity * 0.85, comp: 'source-over', blur: 2 };
+        case 'highlighter': return { c: color, s: dyn * 3, o: 0.35, comp: 'source-over', blur: 0 };
+        case 'eraser': return { c: '#000', s: size * 3, o: 1, comp: 'destination-out', blur: 0 };
+        case 'laser': return { c: color, s: 4, o: 1, comp: 'lighter', blur: 15 };
+        default: return { c: color, s: dyn, o: opacity, comp: 'source-over', blur: 0 };
     }
 }
 
 function renderStroke(ctx, stroke) {
     if (stroke.points.length < 2) return;
     
-    const style = getToolStyle(stroke.tool, stroke.color, stroke.size, stroke.opacity, 0.7);
+    const style = toolStyle(stroke.tool, stroke.color, stroke.size, stroke.opacity, 0.7);
     
-    ctx.globalCompositeOperation = style.composite;
-    ctx.globalAlpha = style.opacity;
-    ctx.strokeStyle = style.color;
-    ctx.lineWidth = style.size;
+    ctx.globalCompositeOperation = style.comp;
+    ctx.globalAlpha = style.o;
+    ctx.strokeStyle = style.c;
+    ctx.lineWidth = style.s;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     
-    if (style.shadow > 0) {
-        ctx.shadowBlur = style.shadow;
-        ctx.shadowColor = style.color;
+    if (style.blur > 0) {
+        ctx.shadowBlur = style.blur;
+        ctx.shadowColor = style.c;
     } else {
         ctx.shadowBlur = 0;
     }
@@ -1224,31 +840,23 @@ function renderStroke(ctx, stroke) {
     ctx.beginPath();
     const pts = stroke.points;
     
+    // Optimized rendering - use quadratic curves instead of catmull-rom for speed
     if (pts.length === 2) {
         ctx.moveTo(pts[0].x, pts[0].y);
         ctx.lineTo(pts[1].x, pts[1].y);
     } else {
         ctx.moveTo(pts[0].x, pts[0].y);
         
-        for (let i = 0; i < pts.length - 1; i++) {
-            const p0 = pts[i === 0 ? 0 : i - 1];
-            const p1 = pts[i];
-            const p2 = pts[i + 1];
-            const p3 = pts[i + 2 < pts.length ? i + 2 : i + 1];
-            
-            const segments = CONFIG.catmullRomSegments;
-            for (let t = 1; t <= segments; t++) {
-                const pt = catmullRomPoint(p0, p1, p2, p3, t / segments);
-                
-                if (stroke.pressures && stroke.pressures[i]) {
-                    const pressure = stroke.pressures[i] * 0.5 + (stroke.pressures[i + 1] || stroke.pressures[i]) * 0.5;
-                    const dynamicStyle = getToolStyle(stroke.tool, stroke.color, stroke.size, stroke.opacity, pressure);
-                    ctx.lineWidth = dynamicStyle.size;
-                }
-                
-                ctx.lineTo(pt.x, pt.y);
-            }
+        // Quadratic bezier through midpoints (much faster than catmull-rom)
+        for (let i = 1; i < pts.length - 1; i++) {
+            const midX = (pts[i].x + pts[i+1].x) / 2;
+            const midY = (pts[i].y + pts[i+1].y) / 2;
+            ctx.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
         }
+        
+        // Last segment
+        const last = pts[pts.length - 1];
+        ctx.lineTo(last.x, last.y);
     }
     
     ctx.stroke();
@@ -1262,76 +870,75 @@ function renderStroke(ctx, stroke) {
 // STROKE MANAGEMENT
 // ================================================================
 function startStroke(pos) {
-    STATE.currentStroke = {
-        tool: STATE.currentTool,
-        color: STATE.currentColor,
-        size: STATE.penSize,
+    STATE.stroke = {
+        tool: STATE.tool,
+        color: STATE.color,
+        size: STATE.size,
         opacity: STATE.opacity,
         points: [{ x: pos.x, y: pos.y }],
-        pressures: [0.7],
-        timestamp: Date.now()
+        time: Date.now()
     };
-    STATE.isDrawing = true;
+    STATE.drawing = true;
 }
 
-function continueStroke(pos, pressure) {
-    if (!STATE.currentStroke) return;
+function continueStroke(pos) {
+    if (!STATE.stroke) return;
     
-    const lastPt = STATE.currentStroke.points[STATE.currentStroke.points.length - 1];
-    const dist = Math.hypot(pos.x - lastPt.x, pos.y - lastPt.y);
-    if (dist < 1.5) return;
+    const last = STATE.stroke.points[STATE.stroke.points.length - 1];
+    const d = Math.hypot(pos.x - last.x, pos.y - last.y);
+    if (d < 1) return;  // Skip if too close
     
-    STATE.currentStroke.points.push({ x: pos.x, y: pos.y });
-    STATE.currentStroke.pressures.push(pressure);
-    
+    STATE.stroke.points.push({ x: pos.x, y: pos.y });
     renderPreview();
 }
 
 function endStroke() {
-    if (!STATE.currentStroke) return;
-    if (STATE.currentStroke.points.length >= 2) {
-        STATE.pages[STATE.currentPage].push(STATE.currentStroke);
+    if (!STATE.stroke) return;
+    
+    if (STATE.stroke.points.length >= 2) {
+        STATE.pages[STATE.pageIdx].push(STATE.stroke);
         STATE.undoStack.push({
-            action: 'add',
-            page: STATE.currentPage,
-            strokeIndex: STATE.pages[STATE.currentPage].length - 1
+            type: 'add',
+            page: STATE.pageIdx,
+            idx: STATE.pages[STATE.pageIdx].length - 1
         });
         STATE.redoStack = [];
-        renderStroke(writingCtx, STATE.currentStroke);
-        autoSave();
+        
+        // CRITICAL: Render to main canvas
+        renderStroke(writeCtx, STATE.stroke);
+        save();
     }
-    STATE.currentStroke = null;
-    STATE.isDrawing = false;
-    previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+    
+    STATE.stroke = null;
+    STATE.drawing = false;
+    prevCtx.clearRect(0, 0, prevCanvas.width, prevCanvas.height);
 }
 
 function renderPreview() {
-    previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-    if (STATE.currentStroke) {
-        renderStroke(previewCtx, STATE.currentStroke);
-    }
+    prevCtx.clearRect(0, 0, prevCanvas.width, prevCanvas.height);
+    if (STATE.stroke) renderStroke(prevCtx, STATE.stroke);
 }
 
-function redrawCurrentPage() {
-    if (!writingCtx) return;
-    writingCtx.clearRect(0, 0, writingCanvas.width, writingCanvas.height);
-    STATE.pages[STATE.currentPage].forEach(s => renderStroke(writingCtx, s));
+function redrawPage() {
+    if (!writeCtx) return;
+    writeCtx.clearRect(0, 0, writeCanvas.width, writeCanvas.height);
+    STATE.pages[STATE.pageIdx].forEach(s => renderStroke(writeCtx, s));
 }
 
 // ================================================================
 // ERASER
 // ================================================================
-function eraseAtPoint(pos) {
-    const strokes = STATE.pages[STATE.currentPage];
-    const eraseRadius = STATE.penSize * 2;
+function eraseAt(pos) {
+    const strokes = STATE.pages[STATE.pageIdx];
+    const r = STATE.size * 2;
     let erased = false;
     
     for (let i = strokes.length - 1; i >= 0; i--) {
-        const stroke = strokes[i];
-        if (stroke.tool === 'eraser') continue;
+        const s = strokes[i];
+        if (s.tool === 'eraser') continue;
         
-        for (const pt of stroke.points) {
-            if (Math.hypot(pt.x - pos.x, pt.y - pos.y) < eraseRadius) {
+        for (const p of s.points) {
+            if (Math.hypot(p.x - pos.x, p.y - pos.y) < r) {
                 strokes.splice(i, 1);
                 erased = true;
                 break;
@@ -1340,69 +947,65 @@ function eraseAtPoint(pos) {
     }
     
     if (erased) {
-        redrawCurrentPage();
-        autoSave();
+        redrawPage();
+        save();
     }
 }
 
 // ================================================================
-// UNDO / REDO
+// UNDO/REDO
 // ================================================================
 function undo() {
-    if (STATE.undoStack.length === 0) return;
-    const action = STATE.undoStack.pop();
+    if (!STATE.undoStack.length) return;
+    const a = STATE.undoStack.pop();
     
-    if (action.action === 'add') {
-        const stroke = STATE.pages[action.page].pop();
-        STATE.redoStack.push({ action: 'add', page: action.page, stroke });
-    } else if (action.action === 'clear') {
-        STATE.pages[action.page] = action.strokes;
-        STATE.redoStack.push({ action: 'clear', page: action.page });
+    if (a.type === 'add') {
+        const s = STATE.pages[a.page].pop();
+        STATE.redoStack.push({ type: 'add', page: a.page, stroke: s });
+    } else if (a.type === 'clear') {
+        STATE.pages[a.page] = a.strokes;
+        STATE.redoStack.push({ type: 'clear', page: a.page });
     }
     
-    redrawCurrentPage();
-    showToast('↶ Undo');
+    redrawPage();
+    toast('↶ Undo');
 }
 
 function redo() {
-    if (STATE.redoStack.length === 0) return;
-    const action = STATE.redoStack.pop();
+    if (!STATE.redoStack.length) return;
+    const a = STATE.redoStack.pop();
     
-    if (action.action === 'add') {
-        STATE.pages[action.page].push(action.stroke);
-        STATE.undoStack.push({ action: 'add', page: action.page, strokeIndex: STATE.pages[action.page].length - 1 });
-    } else if (action.action === 'clear') {
-        STATE.undoStack.push({ action: 'clear', page: action.page, strokes: STATE.pages[action.page].slice() });
-        STATE.pages[action.page] = [];
+    if (a.type === 'add') {
+        STATE.pages[a.page].push(a.stroke);
+        STATE.undoStack.push({ type: 'add', page: a.page, idx: STATE.pages[a.page].length - 1 });
+    } else if (a.type === 'clear') {
+        STATE.undoStack.push({ type: 'clear', page: a.page, strokes: STATE.pages[a.page].slice() });
+        STATE.pages[a.page] = [];
     }
     
-    redrawCurrentPage();
-    showToast('↷ Redo');
+    redrawPage();
+    toast('↷ Redo');
 }
 
 function clearPage() {
-    if (STATE.pages[STATE.currentPage].length === 0) return;
-    STATE.undoStack.push({
-        action: 'clear',
-        page: STATE.currentPage,
-        strokes: STATE.pages[STATE.currentPage].slice()
-    });
+    if (!STATE.pages[STATE.pageIdx].length) return;
+    STATE.undoStack.push({ type: 'clear', page: STATE.pageIdx, strokes: STATE.pages[STATE.pageIdx].slice() });
     STATE.redoStack = [];
-    STATE.pages[STATE.currentPage] = [];
-    redrawCurrentPage();
-    autoSave();
-    showToast('🗑️ Halaman dibersihkan');
+    STATE.pages[STATE.pageIdx] = [];
+    redrawPage();
+    save();
+    toast('🗑️ Clear');
 }
 
 // ================================================================
-// PAGE MANAGEMENT
+// PAGES
 // ================================================================
-function switchPage(idx) {
-    if (idx < 0 || idx >= STATE.pages.length) return;
-    STATE.currentPage = idx;
-    redrawCurrentPage();
-    updatePageIndicator();
-    showToast(`📄 Halaman ${idx + 1}`);
+function switchPage(i) {
+    if (i < 0 || i >= STATE.pages.length) return;
+    STATE.pageIdx = i;
+    redrawPage();
+    updatePage();
+    toast(`📄 Page ${i + 1}`);
 }
 
 function addPage() {
@@ -1410,97 +1013,79 @@ function addPage() {
     switchPage(STATE.pages.length - 1);
 }
 
-function updatePageIndicator() {
-    document.getElementById('page-text').textContent = `${STATE.currentPage + 1}/${STATE.pages.length}`;
+function updatePage() {
+    document.getElementById('page-text').textContent = `${STATE.pageIdx + 1}/${STATE.pages.length}`;
 }
 
 // ================================================================
-// SAVE / LOAD
+// SAVE/LOAD
 // ================================================================
-function autoSave() {
+function save() {
     try {
-        const data = {
-            pages: STATE.pages,
-            currentPage: STATE.currentPage,
-            tool: STATE.currentTool,
-            color: STATE.currentColor,
-            size: STATE.penSize,
-            opacity: STATE.opacity,
-            smoothing: STATE.smoothing,
-            prediction: STATE.prediction,
-            pressureSensitivity: STATE.pressureSensitivity
-        };
-        localStorage.setItem(CONFIG.storageKey, JSON.stringify(data));
+        localStorage.setItem(CONFIG.storageKey, JSON.stringify({
+            pages: STATE.pages, pageIdx: STATE.pageIdx,
+            tool: STATE.tool, color: STATE.color, size: STATE.size
+        }));
     } catch (e) {}
 }
 
-function loadSaved() {
+function load() {
     try {
-        const saved = localStorage.getItem(CONFIG.storageKey);
-        if (saved) {
-            const data = JSON.parse(saved);
-            STATE.pages = data.pages || [[]];
-            STATE.currentPage = data.currentPage || 0;
-            STATE.currentTool = data.tool || 'pen';
-            STATE.currentColor = data.color || '#ffffff';
-            STATE.penSize = data.size || 5;
-            STATE.opacity = data.opacity ?? 1.0;
-            STATE.smoothing = data.smoothing ?? 0.65;
-            STATE.prediction = data.prediction ?? 0.4;
-            STATE.pressureSensitivity = data.pressureSensitivity ?? 0.5;
-            
-            redrawCurrentPage();
-            updatePageIndicator();
+        const d = JSON.parse(localStorage.getItem(CONFIG.storageKey) || '{}');
+        if (d.pages) {
+            STATE.pages = d.pages;
+            STATE.pageIdx = d.pageIdx || 0;
+            STATE.tool = d.tool || 'pen';
+            STATE.color = d.color || '#ffffff';
+            STATE.size = d.size || 5;
+            redrawPage();
+            updatePage();
             updateToolUI();
-            updatePropsUI();
         }
     } catch (e) {}
 }
 
-function saveAsPNG() {
-    const combined = document.createElement('canvas');
-    combined.width = window.innerWidth;
-    combined.height = window.innerHeight;
-    const ctx = combined.getContext('2d');
-    
+function savePNG() {
+    const c = document.createElement('canvas');
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+    const ctx = c.getContext('2d');
     ctx.fillStyle = '#0a0a0f';
-    ctx.fillRect(0, 0, combined.width, combined.height);
-    ctx.drawImage(writingCanvas, 0, 0, combined.width, combined.height);
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(writeCanvas, 0, 0, c.width, c.height);
     
-    const link = document.createElement('a');
-    link.download = `writing-p${STATE.currentPage + 1}-${Date.now()}.png`;
-    link.href = combined.toDataURL('image/png');
-    link.click();
-    showToast('💾 Tersimpan sebagai PNG');
+    const a = document.createElement('a');
+    a.download = `writing-${Date.now()}.png`;
+    a.href = c.toDataURL('image/png');
+    a.click();
+    toast('💾 Saved');
 }
 
 // ================================================================
-// MEDIAPIPE HANDS
+// MEDIAPIPE INIT
 // ================================================================
-async function initHandTracking() {
+async function initTracking() {
     const video = document.getElementById('webcam');
     
-    if (!window.isSecureContext) {
-        throw new Error('Butuh HTTPS atau localhost!');
-    }
+    if (!window.isSecureContext) throw new Error('Butuh HTTPS/localhost!');
     
     const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480, facingMode: 'user', frameRate: 60 }
+        video: { width: 640, height: 480, facingMode: 'user' }
     });
     video.srcObject = stream;
     
     const hands = new Hands({
-        locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
+        locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
     });
     
     hands.setOptions({
         maxNumHands: 1,
         modelComplexity: 1,
-        minDetectionConfidence: 0.75,
-        minTrackingConfidence: 0.75
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.6
     });
     
-    hands.onResults(onHandResults);
+    hands.onResults(onResults);
     
     const cam = new Camera(video, {
         onFrame: async () => { await hands.send({ image: video }); },
@@ -1510,311 +1095,239 @@ async function initHandTracking() {
 }
 
 // ================================================================
-// MAIN HAND RESULTS HANDLER
+// MAIN HAND RESULTS - FIXED & OPTIMIZED
 // ================================================================
-function onHandResults(results) {
-    const penCursor = document.getElementById('pen-cursor');
-    const handDot = document.getElementById('hand-dot');
-    const handStatus = document.getElementById('hand-status');
-    const modeValue = document.getElementById('mode-value');
+function onResults(results) {
+    const cursor = document.getElementById('pen-cursor');
+    const dot = document.getElementById('hand-dot');
+    const statusEl = document.getElementById('hand-status');
+    const modeEl = document.getElementById('mode-value');
     
-    if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+    // NO HAND
+    if (!results.multiHandLandmarks || !results.multiHandLandmarks.length) {
         STATE.handDetected = false;
-        STATE.gestureMode = 'idle';
-        penCursor.style.display = 'none';
-        handDot.className = 'status-dot';
-        handStatus.textContent = 'Tidak ada tangan';
-        modeValue.textContent = '—';
+        STATE.mode = 'idle';
+        cursor.style.display = 'none';
+        dot.className = 'status-dot';
+        statusEl.textContent = 'No hand';
+        modeEl.textContent = '—';
         updateModeIndicator('idle');
-        if (STATE.isDrawing) endStroke();
+        if (STATE.drawing) endStroke();
+        updateDebug('none', 'idle', '-', 0);
         return;
     }
     
-    const landmarks = results.multiHandLandmarks[0];
     STATE.handDetected = true;
-    STATE.handConfidence = results.multiHandedness?.[0]?.score || 0.9;
+    const lm = results.multiHandLandmarks[0];
+    dot.className = 'status-dot active';
+    statusEl.textContent = 'Tracking';
     
-    handDot.className = 'status-dot active';
-    handStatus.textContent = 'Tracking';
+    // Get position
+    const pos = processPos(lm[8]);
     
-    // Process position with advanced v4 filter
-    const indexTip = landmarks[8];
-    const pos = processPosition(indexTip);
+    // Detect gesture
+    const raw = detectGesture(lm);
+    const smoothed = smoothGesture(raw);
+    const newMode = gestureToMode(smoothed);
     
-    // Gesture detection + smoothing
-    const rawGesture = detectGesture(landmarks);
-    const smoothedGesture = smoothGesture(rawGesture);
-    const newMode = gestureToMode(smoothedGesture);
-    
-    // Handle menu toggle gesture
-    if (smoothedGesture === 'three_fingers' && STATE.gestureMode !== 'menu') {
-        toggleProps();
-    }
-    
-    // Handle pinch for color pick
-    if (smoothedGesture === 'pinch' && STATE.gestureMode !== 'pinch') {
-        pickColorAt(pos);
-    }
-    
-    STATE.gestureMode = newMode;
-    modeValue.textContent = newMode.toUpperCase();
+    STATE.mode = newMode;
+    modeEl.textContent = newMode.toUpperCase();
     updateModeIndicator(newMode);
     
-    // Update pen cursor
-    penCursor.style.display = 'block';
-    penCursor.style.left = pos.x + 'px';
-    penCursor.style.top = pos.y + 'px';
+    // Update cursor
+    cursor.style.display = 'block';
+    cursor.style.left = pos.x + 'px';
+    cursor.style.top = pos.y + 'px';
     
-    const toolStyle = getToolStyle(STATE.currentTool, STATE.currentColor, STATE.penSize, STATE.opacity, 0.7);
-    const cursorSize = STATE.currentTool === 'eraser' ? STATE.penSize * 3 : toolStyle.size * 2;
-    penCursor.style.width = Math.max(cursorSize, 12) + 'px';
-    penCursor.style.height = Math.max(cursorSize, 12) + 'px';
-    penCursor.style.border = `2px solid ${STATE.currentTool === 'eraser' ? '#fff' : STATE.currentColor}`;
-    penCursor.style.background = STATE.isDrawing 
-        ? STATE.currentColor + '33' 
-        : 'transparent';
+    const style = toolStyle(STATE.tool, STATE.color, STATE.size, STATE.opacity, 0.7);
+    const cursorSize = STATE.tool === 'eraser' ? STATE.size * 3 : Math.max(style.s * 2, 12);
+    cursor.style.width = cursorSize + 'px';
+    cursor.style.height = cursorSize + 'px';
+    cursor.style.border = `2px solid ${STATE.tool === 'eraser' ? '#fff' : STATE.color}`;
+    cursor.style.background = STATE.drawing ? STATE.color + '33' : 'transparent';
     
-    // Drawing logic
+    // FINGER DEBUG
+    const f = getFingers(lm);
+    const fingerStr = `${f.i?'I':'-'}${f.m?'M':'-'}${f.r?'R':'-'}${f.p?'P':'-'}`;
+    
+    // MODE ACTIONS - CRITICAL FIX
     if (newMode === 'draw') {
-        const pressure = calculatePressure(STATE.velocity.magnitude, STATE.acceleration.magnitude);
-        
-        if (!STATE.isDrawing || STATE.currentStroke?.tool !== STATE.currentTool) {
-            if (STATE.isDrawing) endStroke();
+        // START or CONTINUE drawing
+        if (!STATE.drawing) {
             startStroke(pos);
         } else {
-            continueStroke(pos, pressure);
+            continueStroke(pos);
         }
-        handDot.className = 'status-dot drawing';
+        dot.className = 'status-dot drawing';
     } else if (newMode === 'erase') {
-        if (STATE.isDrawing) endStroke();
-        eraseAtPoint(pos);
-        handDot.className = 'status-dot erasing';
+        if (STATE.drawing) endStroke();
+        eraseAt(pos);
+        dot.className = 'status-dot erasing';
     } else {
-        if (STATE.isDrawing) endStroke();
+        // hover, idle - end any drawing
+        if (STATE.drawing) endStroke();
     }
     
-    resetDockHideTimer();
+    updateDebug(raw, newMode, fingerStr, STATE.velocity);
 }
 
+// ================================================================
+// UI HELPERS
+// ================================================================
 function updateModeIndicator(mode) {
-    const indicator = document.getElementById('mode-indicator');
+    const el = document.getElementById('mode-indicator');
     const icon = document.getElementById('mode-icon');
     const label = document.getElementById('mode-label');
     
-    indicator.className = '';
+    el.className = '';
     
-    switch (mode) {
-        case 'draw':
-            indicator.classList.add('draw', 'show');
-            icon.textContent = '✍️';
-            label.textContent = 'Drawing';
-            break;
-        case 'erase':
-            indicator.classList.add('erase', 'show');
-            icon.textContent = '🧽';
-            label.textContent = 'Erasing';
-            break;
-        case 'hover':
-            indicator.classList.add('hover', 'show');
-            icon.textContent = '☝️';
-            label.textContent = 'Hover';
-            break;
-        case 'idle':
-            indicator.classList.add('idle');
-            indicator.classList.remove('show');
-            break;
+    if (mode === 'draw') {
+        el.classList.add('draw', 'show');
+        icon.textContent = '✍️';
+        label.textContent = 'Drawing';
+    } else if (mode === 'erase') {
+        el.classList.add('erase', 'show');
+        icon.textContent = '🧽';
+        label.textContent = 'Erasing';
+    } else if (mode === 'hover') {
+        el.classList.add('hover', 'show');
+        icon.textContent = '☝️';
+        label.textContent = 'Hover';
+    } else {
+        el.classList.remove('show');
     }
 }
 
-// ================================================================
-// COLOR PICKER
-// ================================================================
-function pickColorAt(pos) {
-    try {
-        const dpr = window.devicePixelRatio || 1;
-        const pixel = writingCtx.getImageData(pos.x * dpr, pos.y * dpr, 1, 1).data;
-        if (pixel[3] > 50) {
-            const hex = '#' + [pixel[0], pixel[1], pixel[2]]
-                .map(x => x.toString(16).padStart(2, '0')).join('');
-            STATE.currentColor = hex;
-            updateToolUI();
-            showToast(`🎨 Warna diambil: ${hex}`);
-        }
-    } catch (e) {}
+function updateDebug(gesture, mode, fingers, vel) {
+    const panel = document.getElementById('debug-panel');
+    if (panel.style.display !== 'block') return;
+    
+    document.getElementById('dbg-gesture').textContent = gesture;
+    document.getElementById('dbg-mode').textContent = mode;
+    document.getElementById('dbg-fingers').textContent = fingers;
+    document.getElementById('dbg-vel').textContent = Math.round(vel) + 'px/s';
+    document.getElementById('dbg-drawing').textContent = STATE.drawing ? 'YES' : 'no';
 }
 
-// ================================================================
-// UI FUNCTIONS
-// ================================================================
 function updateToolUI() {
     document.querySelectorAll('.dock-item[data-tool]').forEach(b => {
-        b.classList.toggle('active', b.dataset.tool === STATE.currentTool);
+        b.classList.toggle('active', b.dataset.tool === STATE.tool);
     });
     document.querySelectorAll('.color-btn').forEach(s => {
-        s.classList.toggle('active', s.dataset.color.toLowerCase() === STATE.currentColor.toLowerCase());
+        s.classList.toggle('active', s.dataset.color.toLowerCase() === STATE.color.toLowerCase());
     });
-    document.getElementById('tool-value').textContent = 
-        STATE.currentTool.charAt(0).toUpperCase() + STATE.currentTool.slice(1);
+    document.getElementById('tool-value').textContent = STATE.tool.charAt(0).toUpperCase() + STATE.tool.slice(1);
 }
 
 function updatePropsUI() {
-    document.getElementById('size-slider').value = STATE.penSize;
-    document.getElementById('size-value').textContent = STATE.penSize;
+    document.getElementById('size-slider').value = STATE.size;
+    document.getElementById('size-value').textContent = STATE.size;
     document.getElementById('opacity-slider').value = Math.round(STATE.opacity * 100);
     document.getElementById('opacity-value').textContent = Math.round(STATE.opacity * 100) + '%';
     document.getElementById('smooth-slider').value = Math.round(STATE.smoothing * 100);
     document.getElementById('smooth-value').textContent = Math.round(STATE.smoothing * 100) + '%';
-    document.getElementById('pressure-sens-slider').value = Math.round(STATE.pressureSensitivity * 100);
-    document.getElementById('pressure-sens-value').textContent = Math.round(STATE.pressureSensitivity * 100) + '%';
-    document.getElementById('pred-slider').value = Math.round(STATE.prediction * 100);
-    document.getElementById('pred-value').textContent = Math.round(STATE.prediction * 100) + '%';
 }
 
-function toggleColorPanel() {
-    STATE.colorPanelOpen = !STATE.colorPanelOpen;
-    document.getElementById('color-panel').classList.toggle('show', STATE.colorPanelOpen);
+function toggleColor() {
+    STATE.colorOpen = !STATE.colorOpen;
+    document.getElementById('color-panel').classList.toggle('show', STATE.colorOpen);
 }
 
 function toggleProps() {
-    STATE.propsPanelOpen = !STATE.propsPanelOpen;
-    document.getElementById('props-panel').style.display = STATE.propsPanelOpen ? 'block' : 'none';
-    document.getElementById('props-panel').classList.toggle('collapsed', !STATE.propsPanelOpen);
+    STATE.propsOpen = !STATE.propsOpen;
+    document.getElementById('props-panel').style.display = STATE.propsOpen ? 'block' : 'none';
 }
 
 function toggleWebcam() {
-    document.getElementById('webcam-container').classList.toggle('collapsed');
+    document.getElementById('webcam-container').style.display = 
+        document.getElementById('webcam-container').style.display === 'none' ? 'block' : 'none';
 }
 
 function toggleGrid() {
     document.getElementById('grid-overlay').classList.toggle('active');
 }
 
-function toggleUI() {
-    STATE.uiHidden = !STATE.uiHidden;
-    const dock = document.getElementById('dock');
-    const status = document.getElementById('status-bar');
-    const pageInd = document.getElementById('page-indicator');
-    const toggles = document.querySelectorAll('.toggle-btn');
-    
-    if (STATE.uiHidden) {
-        dock.classList.add('hidden');
-        status.style.opacity = '0';
-        pageInd.style.opacity = '0';
-        toggles.forEach(t => t.style.opacity = '0');
-    } else {
-        dock.classList.remove('hidden');
-        status.style.opacity = '1';
-        pageInd.style.opacity = '1';
-        toggles.forEach(t => t.style.opacity = '1');
-    }
+function toggleDebug() {
+    const p = document.getElementById('debug-panel');
+    p.style.display = p.style.display === 'block' ? 'none' : 'block';
 }
 
-function resetDockHideTimer() {
-    clearTimeout(STATE.dockHideTimer);
-    STATE.dockHideTimer = setTimeout(() => {
-        if (!STATE.colorPanelOpen && !STATE.propsPanelOpen) {
-            // Optional auto-hide dock (disabled by default)
-            // document.getElementById('dock').classList.add('hidden');
-        }
-    }, CONFIG.dockHideDelay);
-}
-
-function showToast(msg) {
+function toast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg;
     t.classList.add('show');
-    clearTimeout(t._timer);
-    t._timer = setTimeout(() => t.classList.remove('show'), 2000);
+    clearTimeout(t._tt);
+    t._tt = setTimeout(() => t.classList.remove('show'), 1800);
 }
 
 // ================================================================
 // EVENT LISTENERS
 // ================================================================
-function setupEventListeners() {
-    // Dock tools
-    document.querySelectorAll('.dock-item[data-tool]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            STATE.currentTool = btn.dataset.tool;
+function setupEvents() {
+    // Tools
+    document.querySelectorAll('.dock-item[data-tool]').forEach(b => {
+        b.addEventListener('click', () => {
+            STATE.tool = b.dataset.tool;
             updateToolUI();
-            showToast(`🔧 ${STATE.currentTool.toUpperCase()}`);
-            resetDockHideTimer();
+            toast(`🔧 ${STATE.tool}`);
         });
     });
     
-    // Dock actions
-    document.getElementById('color-btn').addEventListener('click', toggleColorPanel);
+    // Actions
+    document.getElementById('color-btn').addEventListener('click', toggleColor);
     document.getElementById('props-btn').addEventListener('click', toggleProps);
     document.getElementById('undo-btn').addEventListener('click', undo);
     document.getElementById('redo-btn').addEventListener('click', redo);
     document.getElementById('clear-btn').addEventListener('click', clearPage);
     document.getElementById('grid-btn').addEventListener('click', toggleGrid);
-    document.getElementById('save-btn').addEventListener('click', saveAsPNG);
+    document.getElementById('save-btn').addEventListener('click', savePNG);
     
-    // Color buttons
-    document.querySelectorAll('.color-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            STATE.currentColor = btn.dataset.color;
+    // Colors
+    document.querySelectorAll('.color-btn').forEach(b => {
+        b.addEventListener('click', () => {
+            STATE.color = b.dataset.color;
             updateToolUI();
-            resetDockHideTimer();
         });
     });
     
-    // Close color panel when clicking outside
-    document.addEventListener('click', (e) => {
-        if (STATE.colorPanelOpen && 
-            !e.target.closest('#color-panel') && 
-            !e.target.closest('#color-btn')) {
-            STATE.colorPanelOpen = false;
+    // Click outside color panel closes it
+    document.addEventListener('click', e => {
+        if (STATE.colorOpen && !e.target.closest('#color-panel') && !e.target.closest('#color-btn')) {
+            STATE.colorOpen = false;
             document.getElementById('color-panel').classList.remove('show');
         }
     });
     
-    // Toggle buttons
+    // Toggles
     document.getElementById('toggle-props').addEventListener('click', toggleProps);
     document.getElementById('toggle-help').addEventListener('click', () => {
         document.getElementById('tutorial-overlay').classList.add('show');
     });
     document.getElementById('toggle-webcam').addEventListener('click', toggleWebcam);
     
-    // Props panel
+    // Props close
     document.getElementById('props-close').addEventListener('click', () => {
-        STATE.propsPanelOpen = false;
-        document.getElementById('props-panel').classList.add('collapsed');
-        setTimeout(() => {
-            document.getElementById('props-panel').style.display = 'none';
-        }, 300);
+        STATE.propsOpen = false;
+        document.getElementById('props-panel').style.display = 'none';
     });
     
     // Sliders
     document.getElementById('size-slider').addEventListener('input', e => {
-        STATE.penSize = parseInt(e.target.value);
-        document.getElementById('size-value').textContent = STATE.penSize;
-        autoSave();
+        STATE.size = parseInt(e.target.value);
+        document.getElementById('size-value').textContent = STATE.size;
     });
     document.getElementById('opacity-slider').addEventListener('input', e => {
         STATE.opacity = parseInt(e.target.value) / 100;
         document.getElementById('opacity-value').textContent = e.target.value + '%';
-        autoSave();
     });
     document.getElementById('smooth-slider').addEventListener('input', e => {
         STATE.smoothing = parseInt(e.target.value) / 100;
         document.getElementById('smooth-value').textContent = e.target.value + '%';
-        autoSave();
-    });
-    document.getElementById('pressure-sens-slider').addEventListener('input', e => {
-        STATE.pressureSensitivity = parseInt(e.target.value) / 100;
-        document.getElementById('pressure-sens-value').textContent = e.target.value + '%';
-        autoSave();
-    });
-    document.getElementById('pred-slider').addEventListener('input', e => {
-        STATE.prediction = parseInt(e.target.value) / 100;
-        document.getElementById('pred-value').textContent = e.target.value + '%';
-        autoSave();
     });
     
     // Pages
-    document.getElementById('prev-page').addEventListener('click', () => switchPage(STATE.currentPage - 1));
-    document.getElementById('next-page').addEventListener('click', () => switchPage(STATE.currentPage + 1));
+    document.getElementById('prev-page').addEventListener('click', () => switchPage(STATE.pageIdx - 1));
+    document.getElementById('next-page').addEventListener('click', () => switchPage(STATE.pageIdx + 1));
     document.getElementById('add-page').addEventListener('click', addPage);
     
     // Tutorial
@@ -1822,73 +1335,58 @@ function setupEventListeners() {
         document.getElementById('tutorial-overlay').classList.remove('show');
     });
     
-    // Keyboard shortcuts
+    // Keyboard
     document.addEventListener('keydown', e => {
         if (e.ctrlKey || e.metaKey) {
             if (e.key === 'z') { e.preventDefault(); undo(); }
             else if (e.key === 'y') { e.preventDefault(); redo(); }
-            else if (e.key === 's') { e.preventDefault(); saveAsPNG(); }
+            else if (e.key === 's') { e.preventDefault(); savePNG(); }
         } else {
             switch (e.key) {
-                case '1': STATE.currentTool = 'pen'; break;
-                case '2': STATE.currentTool = 'marker'; break;
-                case '3': STATE.currentTool = 'highlighter'; break;
-                case '4': STATE.currentTool = 'eraser'; break;
-                case '5': STATE.currentTool = 'laser'; break;
+                case '1': STATE.tool = 'pen'; break;
+                case '2': STATE.tool = 'marker'; break;
+                case '3': STATE.tool = 'highlighter'; break;
+                case '4': STATE.tool = 'eraser'; break;
+                case '5': STATE.tool = 'laser'; break;
                 case 'c': case 'C': clearPage(); return;
                 case 'g': case 'G': toggleGrid(); return;
                 case 'p': case 'P': toggleProps(); return;
-                case 'h': case 'H': toggleUI(); return;
-                case '?': 
-                    document.getElementById('tutorial-overlay').classList.add('show');
-                    return;
-                case '[':
-                    STATE.penSize = Math.max(1, STATE.penSize - 1);
-                    updatePropsUI();
-                    autoSave();
-                    return;
-                case ']':
-                    STATE.penSize = Math.min(30, STATE.penSize + 1);
-                    updatePropsUI();
-                    autoSave();
-                    return;
+                case 'd': case 'D': toggleDebug(); return;
+                case '?': document.getElementById('tutorial-overlay').classList.add('show'); return;
+                case '[': STATE.size = Math.max(1, STATE.size - 1); updatePropsUI(); return;
+                case ']': STATE.size = Math.min(30, STATE.size + 1); updatePropsUI(); return;
                 case 'Escape':
                     document.getElementById('tutorial-overlay').classList.remove('show');
-                    if (STATE.colorPanelOpen) toggleColorPanel();
-                    if (STATE.propsPanelOpen) toggleProps();
+                    if (STATE.colorOpen) toggleColor();
+                    if (STATE.propsOpen) toggleProps();
                     return;
-                default:
-                    return;
+                default: return;
             }
             updateToolUI();
         }
     });
     
-    // Mouse movement shows dock
-    document.addEventListener('mousemove', resetDockHideTimer);
-    
-    // Auto-save interval
-    setInterval(autoSave, CONFIG.autoSaveInterval);
+    setInterval(save, CONFIG.autoSaveMs);
 }
 
 // ================================================================
-// FPS COUNTER
+// FPS
 // ================================================================
 function updateFPS() {
-    STATE.frameCount++;
+    STATE.frames++;
     const now = performance.now();
-    if (now - STATE.lastFpsTime >= 1000) {
-        document.getElementById('fps-value').textContent = STATE.frameCount;
-        STATE.frameCount = 0;
-        STATE.lastFpsTime = now;
+    if (now - STATE.lastFps >= 1000) {
+        document.getElementById('fps-value').textContent = STATE.frames;
+        STATE.frames = 0;
+        STATE.lastFps = now;
     }
     requestAnimationFrame(updateFPS);
 }
 
 // ================================================================
-// START APP
+// START
 // ================================================================
-async function startApp() {
+async function start() {
     const btn = document.getElementById('start-btn');
     const screen = document.getElementById('start-screen');
     const loading = document.getElementById('loading-status');
@@ -1897,58 +1395,54 @@ async function startApp() {
     loading.style.display = 'block';
     
     try {
-        await loadLibraries();
+        await loadLibs();
         document.getElementById('status-text').textContent = 'Setup canvas...';
-        setupCanvases();
+        setupCanvas();
         
-        document.getElementById('status-text').textContent = 'Meminta izin kamera...';
-        await initHandTracking();
+        document.getElementById('status-text').textContent = 'Requesting camera...';
+        await initTracking();
         
-        document.getElementById('status-text').textContent = 'Memuat data tersimpan...';
-        loadSaved();
+        document.getElementById('status-text').textContent = 'Loading data...';
+        load();
         
         screen.style.display = 'none';
         
-        ['status-bar', 'dock', 'toggle-props', 'toggle-help', 'toggle-webcam', 
+        // Show UI
+        ['status-bar', 'dock', 'toggle-props', 'toggle-help', 'toggle-webcam',
          'webcam-container', 'page-indicator'].forEach(id => {
-            document.getElementById(id).style.display = '';
+            const el = document.getElementById(id);
+            el.style.display = id === 'dock' || id === 'status-bar' || id === 'page-indicator' ? 'flex' : 'block';
         });
-        
-        // Dock needs flex display
-        document.getElementById('dock').style.display = 'flex';
-        document.getElementById('status-bar').style.display = 'flex';
-        document.getElementById('page-indicator').style.display = 'flex';
         document.querySelectorAll('.toggle-btn').forEach(b => b.style.display = 'flex');
         
-        setupEventListeners();
+        setupEvents();
         updateToolUI();
         updatePropsUI();
-        updatePageIndicator();
+        updatePage();
         updateFPS();
         
-        // Show tutorial once
+        // Show tutorial
         document.getElementById('tutorial-overlay').classList.add('show');
         
-        showToast('✨ Sistem siap! Tunjukkan tangan Anda');
+        toast('✨ Ready! Show your hand');
         
     } catch (err) {
         screen.innerHTML = `
             <div class="logo" style="color:#ff4757;">⚠️</div>
-            <h1 style="color:#ff4757;">Terjadi Kesalahan</h1>
-            <p style="color:#ffb3b3; max-width:500px; margin:20px; line-height:1.6;">${err.message}</p>
+            <h1 style="color:#ff4757;">Error</h1>
+            <p style="color:#ffb3b3; max-width:500px; margin:20px;">${err.message}</p>
             <div class="server-hint">
                 <strong>Solusi:</strong><br>
                 1. Jalankan via <code>http://localhost:8000</code><br>
-                2. Izinkan akses kamera<br>
-                3. Pastikan internet aktif untuk load library<br>
-                4. Gunakan browser modern (Chrome/Edge)
+                2. Izinkan kamera<br>
+                3. Internet aktif untuk load library
             </div>
-            <button onclick="location.reload()" style="margin-top:25px;padding:14px 35px;background:var(--accent);border:none;border-radius:50px;font-weight:600;cursor:pointer;color:#000;font-size:15px;">🔄 Coba Lagi</button>
+            <button onclick="location.reload()" style="margin-top:25px;padding:14px 35px;background:var(--accent);border:none;border-radius:50px;font-weight:600;cursor:pointer;color:#000;">🔄 Retry</button>
         `;
     }
 }
 
-document.getElementById('start-btn').addEventListener('click', startApp);
+document.getElementById('start-btn').addEventListener('click', start);
 </script>
 </body>
 </html>
