@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Particle System - Fixed Hand Tracking</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #000; font-family: 'Arial', sans-serif; color: #fff; }
+        #canvas3d { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        
+        #webcam { 
+            position: fixed; bottom: 20px; right: 20px; width: 280px; height: 210px; 
+            border: 2px solid rgba(0,255,255,0.5); border-radius: 10px; 
+            z-index: 100; transform: scaleX(-1); background: #111;
+        }
+        
+        #start-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, #1a1a2e 0%, #000 100%);
+            z-index: 10000; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; text-align: center; padding: 20px;
+        }
+        #start-screen h1 { font-size: 36px; margin-bottom: 20px; color: #0ff; }
+        #start-btn {
+            margin-top: 30px; padding: 18px 50px; font-size: 20px; font-weight: bold;
+            background: linear-gradient(135deg, #0ff, #f0f); border: none; border-radius: 50px;
+            color: #000; cursor: pointer; transition: all 0.3s; box-shadow: 0 0 30px rgba(0,255,255,0.5);
+        }
+        #start-btn:hover { transform: scale(1.05); }
+        #start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .warning-box {
+            background: rgba(255,100,100,0.1); border: 1px solid #f66;
+            padding: 15px 20px; border-radius: 10px; margin-top: 20px;
+            max-width: 600px; font-size: 13px; color: #faa;
+        }
+        .warning-box code { background: #222; padding: 2px 8px; border-radius: 4px; color: #0f0; }
+        
+        #info-panel {
+            position: fixed; top: 20px; left: 20px; z-index: 100;
+            background: rgba(0,0,0,0.8); padding: 15px 20px; border-radius: 10px;
+            border: 1px solid rgba(0,255,255,0.3); font-size: 14px; min-width: 280px;
+        }
+        #info-panel h3 { margin-bottom: 8px; color: #0ff; }
+        #info-panel p { margin: 4px 0; color: #aaa; }
+        
+        /* Debug Panel - Tampilan state jari */
+        #debug-panel {
+            position: fixed; bottom: 20px; left: 20px; z-index: 100;
+            background: rgba(0,0,0,0.9); padding: 15px; border-radius: 10px;
+            border: 1px solid rgba(0,255,255,0.3); font-size: 12px;
+            font-family: monospace; min-width: 250px;
+        }
+        .finger-status {
+            display: flex; justify-content: space-between;
+            padding: 3px 0; border-bottom: 1px solid #222;
+        }
+        .finger-extended { color: #0f0; }
+        .finger-curled { color: #f55; }
+        
+        #gesture-indicator {
+            position: fixed; top: 20px; right: 320px; padding: 15px 25px;
+            border-radius: 10px; font-size: 18px; font-weight: bold;
+            z-index: 100; display: none; transition: all 0.3s;
+        }
+        .gesture-open { background: rgba(0,255,0,0.2); color: #0f0; border: 2px solid #0f0; }
+        .gesture-closed { background: rgba(255,0,0,0.2); color: #f00; border: 2px solid #f00; }
+        .gesture-peace { background: rgba(255,0,255,0.2); color: #f0f; border: 2px solid #f0f; }
+        .gesture-point { background: rgba(255,255,0,0.2); color: #ff0; border: 2px solid #ff0; }
+        
+        .loading-spinner {
+            border: 4px solid rgba(0,255,255,0.2); border-top: 4px solid #0ff;
+            border-radius: 50%; width: 50px; height: 50px;
+            animation: spin 1s linear infinite; margin: 20px auto;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div id="start-screen">
+    <h1>🎮 3D Particle System</h1>
+    <h2 style="color:#f0f; margin-bottom:20px;">Hand Gesture Control - FIXED v2</h2>
+    <p style="color:#aaa; max-width:600px;">Tracking gestur tangan yang jauh lebih akurat dengan deteksi jarak Euclidean dan smoothing buffer.</p>
+    <button id="start-btn">🚀 Mulai</button>
+    <div id="loading-status" style="margin-top: 20px; display: none;">
+        <div class="loading-spinner"></div>
+        <p id="status-text">Memuat library...</p>
+    </div>
+    <div class="warning-box">
+        <strong>⚠️ WAJIB:</strong> Buka via <code>http://localhost:8000</code><br>
+        <code>python -m http.server 8000</code>
+    </div>
+</div>
+
+<canvas id="canvas3d"></canvas>
+<video id="webcam" autoplay playsinline></video>
+
+<div id="info-panel" style="display:none;">
+    <h3>🎮 Kontrol Gestur</h3>
+    <p>🖐️ <strong>Open Palm</strong> → Mengembang</p>
+    <p>✊ <strong>Fist</strong> → Bola</p>
+    <p>☝️ <strong>Pointing</strong> → "hello, world"</p>
+    <p>✌️ <strong>Peace</strong> → "I'm Qwen"</p>
+    <hr style="margin: 8px 0; border-color: rgba(0,255,255,0.2);">
+    <p>Gestur: <span id="current-gesture" style="color:#0ff; font-weight:bold;">-</span></p>
+    <p>Confidence: <span id="confidence">-</span></p>
+    <p>FPS: <span id="fps-counter">0</span></p>
+</div>
+
+<div id="debug-panel" style="display:none;">
+    <div style="color:#0ff; margin-bottom:8px; font-weight:bold;">🔍 Debug Fingers</div>
+    <div class="finger-status"><span>👍 Jempol:</span><span id="f-thumb" class="finger-curled">-</span></div>
+    <div class="finger-status"><span>☝️ Telunjuk:</span><span id="f-index" class="finger-curled">-</span></div>
+    <div class="finger-status"><span>🖕 Tengah:</span><span id="f-middle" class="finger-curled">-</span></div>
+    <div class="finger-status"><span>💍 Manis:</span><span id="f-ring" class="finger-curled">-</span></div>
+    <div class="finger-status"><span>🤙 Kelingking:</span><span id="f-pinky" class="finger-curled">-</span></div>
+    <div style="margin-top:8px; padding-top:8px; border-top:1px solid #333;">
+        <div>Tangan: <span id="handedness" style="color:#ff0;">-</span></div>
+        <div>Raw: <span id="raw-gesture" style="color:#888;">-</span></div>
+    </div>
+</div>
+
+<div id="gesture-indicator"></div>
+
+<script>
+// ============================================================
+// SCRIPT LOADER
+// ============================================================
+function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.crossOrigin = 'anonymous';
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`Gagal memuat: ${src}`));
+        document.head.appendChild(script);
+    });
+}
+
+async function loadLibraries() {
+    const statusText = document.getElementById('status-text');
+    statusText.textContent = 'Memuat Three.js...';
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
+    statusText.textContent = 'Memuat MediaPipe...';
+    await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js');
+    statusText.textContent = 'Memuat Camera Utils...';
+    await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js');
+}
+
+// ============================================================
+// KONFIGURASI
+// ============================================================
+const CONFIG = {
+    particleCount: 5000,
+    particleSize: 3.0,
+    lerpSpeed: 0.03,
+    sphereRadius: 5,
+    textScale: 8,
+    rotationSpeed: 0.005,
+    fingerExtendThreshold: 0.85,
+    gestureBufferSize: 7,
+    colors: {
+        sphere: [0.0, 1.0, 1.0],
+        expanded: [1.0, 0.3, 0.8],
+        text1: [1.0, 1.0, 0.0],
+        text2: [0.3, 1.0, 0.5]
+    }
+};
+
+let scene, camera, renderer, particles;
+let targetPositions, expandedPositions, spherePositions;
+let textPositions1 = [], textPositions2 = [];
+let currentMode = 'sphere';
+let textRotationY = 0;
+let frameCount = 0, lastTime = performance.now();
+const gestureBuffer = [];
+
+// ============================================================
+// 🎯 DETEKSI JARI BERBASIS JARAK EUCLIDEAN (ROBUST!)
+// ============================================================
+function getDistance(a, b) {
+    return Math.sqrt(
+        (a.x - b.x) ** 2 + 
+        (a.y - b.y) ** 2 + 
+        (a.z - b.z) ** 2
+    );
+}
+
+function isFingerExtended(landmarks, fingerIndex) {
+    const tips = [4, 8, 12, 16, 20];
+    const pips = [3, 6, 10, 14, 18];
+    const mcps = [2, 5, 9, 13, 17];
+    
+    const tip = landmarks[tips[fingerIndex]];
+    const pip = landmarks[pips[fingerIndex]];
+    const mcp = landmarks[mcps[fingerIndex]];
+    
+    if (fingerIndex === 0) {
+        // Jempol: hitung jarak TIP ke INDEX_MCP (pangkal telunjuk)
+        // Jempol terentang = jarak lebih jauh dari telapak
+        const indexMcp = landmarks[5];
+        const wrist = landmarks[0];
+        const tipToIndexMcp = getDistance(tip, indexMcp);
+        const wristToIndexMcp = getDistance(wrist, indexMcp);
+        // Ratio: jempol terentang jika lebih jauh dari lebar telapak
+        return tipToIndexMcp > wristToIndexMcp * 0.9;
+    }
+    
+    // 4 jari lain: ukur "kelurusan" jari
+    const tipToMcp = getDistance(tip, mcp);
+    const pipToMcp = getDistance(pip, mcp);
+    const tipToPip = getDistance(tip, pip);
+    
+    // Jika jari lurus: tipToMcp ≈ pipToMcp + tipToPip
+    // Jika jari tertekuk: tipToMcp jauh lebih kecil
+    const straightness = tipToMcp / (pipToMcp + tipToPip);
+    return straightness > CONFIG.fingerExtendThreshold;
+}
+
+function getFingerStates(landmarks) {
+    return {
+        thumb: isFingerExtended(landmarks, 0),
+        index: isFingerExtended(landmarks, 1),
+        middle: isFingerExtended(landmarks, 2),
+        ring: isFingerExtended(landmarks, 3),
+        pinky: isFingerExtended(landmarks, 4)
+    };
+}
+
+// ============================================================
+// 🎯 DETEKSI GESTUR SPESIFIK (BUKAN HANYA HITUNG JARI)
+// ============================================================
+function detectRawGesture(landmarks) {
+    const f = getFingerStates(landmarks);
+    
+    // PEACE (✌️): index + middle terentang, ring + pinky tertekuk
+    if (f.index && f.middle && !f.ring && !f.pinky) {
+        return 'peace';
+    }
+    
+    // POINTING (☝️): hanya index yang terentang
+    if (f.index && !f.middle && !f.ring && !f.pinky) {
+        return 'pointing';
+    }
+    
+    // FIST (✊): semua jari tertekuk (jempol boleh apa saja)
+    if (!f.index && !f.middle && !f.ring && !f.pinky) {
+        return 'fist';
+    }
+    
+    // OPEN PALM (🖐️): minimal 4 jari terentang
+    const extendedCount = [f.thumb, f.index, f.middle, f.ring, f.pinky].filter(Boolean).length;
+    if (extendedCount >= 4) {
+        return 'open';
+    }
+    
+    return 'unknown';
+}
+
+// ============================================================
+// 🎯 SMOOTHING DENGAN VOTING BUFFER
+// ============================================================
+function smoothGesture(newGesture) {
+    gestureBuffer.push(newGesture);
+    if (gestureBuffer.length > CONFIG.gestureBufferSize) {
+        gestureBuffer.shift();
+    }
+    
+    // Voting: ambil yang paling sering muncul
+    const counts = {};
+    gestureBuffer.forEach(g => counts[g] = (counts[g] || 0) + 1);
+    
+    let bestGesture = newGesture;
+    let bestCount = 0;
+    Object.entries(counts).forEach(([g, c]) => {
+        if (c > bestCount) {
+            bestCount = c;
+            bestGesture = g;
+        }
+    });
+    
+    // Hanya kembalikan gestur jika muncul minimal 3x dari 7 frame
+    const confidence = Math.round((bestCount / CONFIG.gestureBufferSize) * 100);
+    if (bestCount >= 3 && bestGesture !== 'unknown') {
+        return { gesture: bestGesture, confidence };
+    }
+    
+    return { gesture: newGesture, confidence: Math.round((1 / CONFIG.gestureBufferSize) * 100) };
+}
+
+// ============================================================
+// THREE.JS
+// ============================================================
+function initThreeJS() {
+    scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x000000, 0.02);
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 30;
+
+    renderer = new THREE.WebGLRenderer({ 
+        canvas: document.getElementById('canvas3d'), 
+        antialias: true, alpha: true 
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    createParticleSystem();
+    generateAllPositions();
+    targetPositions = spherePositions;
+    window.addEventListener('resize', onWindowResize);
+}
+
+function createParticleSystem() {
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(CONFIG.particleCount * 3);
+    const colors = new Float32Array(CONFIG.particleCount * 3);
+    const sizes = new Float32Array(CONFIG.particleCount);
+
+    for (let i = 0; i < CONFIG.particleCount; i++) {
+        const i3 = i * 3;
+        positions[i3] = (Math.random() - 0.5) * 20;
+        positions[i3 + 1] = (Math.random() - 0.5) * 20;
+        positions[i3 + 2] = (Math.random() - 0.5) * 20;
+        colors[i3] = 0; colors[i3 + 1] = 1; colors[i3 + 2] = 1;
+        sizes[i] = CONFIG.particleSize;
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+    const material = new THREE.ShaderMaterial({
+        uniforms: {
+            uTime: { value: 0 },
+            uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) }
+        },
+        vertexShader: `
+            attribute float size;
+            attribute vec3 color;
+            varying vec3 vColor;
+            varying float vAlpha;
+            uniform float uTime;
+            uniform float uPixelRatio;
+            void main() {
+                vColor = color;
+                vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                vAlpha = clamp(1.0 - length(mvPosition.xyz) / 50.0, 0.3, 1.0);
+                gl_PointSize = size * uPixelRatio * (8.0 / -mvPosition.z);
+                gl_PointSize += sin(uTime * 2.0 + position.x) * 0.5;
+                gl_Position = projectionMatrix * mvPosition;
+            }
+        `,
+        fragmentShader: `
+            varying vec3 vColor;
+            varying float vAlpha;
+            void main() {
+                float dist = length(gl_PointCoord - vec2(0.5));
+                if (dist > 0.5) discard;
+                float alpha = 1.0 - smoothstep(0.2, 0.5, dist);
+                vec3 glow = vColor * (1.0 + 0.5 * (1.0 - dist * 2.0));
+                gl_FragColor = vec4(glow, alpha * vAlpha);
+            }
+        `,
+        transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+    });
+
+    particles = new THREE.Points(geometry, material);
+    scene.add(particles);
+}
+
+function generateAllPositions() {
+    spherePositions = new Float32Array(CONFIG.particleCount * 3);
+    for (let i = 0; i < CONFIG.particleCount; i++) {
+        const i3 = i * 3;
+        const phi = Math.acos(1 - 2 * (i + 0.5) / CONFIG.particleCount);
+        const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+        spherePositions[i3] = CONFIG.sphereRadius * Math.sin(phi) * Math.cos(theta);
+        spherePositions[i3 + 1] = CONFIG.sphereRadius * Math.sin(phi) * Math.sin(theta);
+        spherePositions[i3 + 2] = CONFIG.sphereRadius * Math.cos(phi);
+    }
+    
+    expandedPositions = new Float32Array(CONFIG.particleCount * 3);
+    for (let i = 0; i < CONFIG.particleCount; i++) {
+        const i3 = i * 3;
+        const r = 15 + Math.random() * 20;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        expandedPositions[i3] = r * Math.sin(phi) * Math.cos(theta);
+        expandedPositions[i3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+        expandedPositions[i3 + 2] = r * Math.cos(phi);
+    }
+    
+    textPositions1 = getTextPositions("hello, world", CONFIG.textScale);
+    textPositions2 = getTextPositions("I'm Qwen", CONFIG.textScale);
+}
+
+function getTextPositions(text, scale) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 512; canvas.height = 128;
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 72px Arial';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+    
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const pixels = imageData.data;
+    const points = [];
+    
+    for (let y = 0; y < canvas.height; y += 2) {
+        for (let x = 0; x < canvas.width; x += 2) {
+            if (pixels[(y * canvas.width + x) * 4] > 128) {
+                points.push({
+                    x: (x - canvas.width / 2) / canvas.width * scale,
+                    y: -(y - canvas.height / 2) / canvas.height * scale * 0.5,
+                    z: (Math.random() - 0.5) * 0.5
+                });
+            }
+        }
+    }
+    
+    const result = new Float32Array(CONFIG.particleCount * 3);
+    for (let i = 0; i < CONFIG.particleCount; i++) {
+        const i3 = i * 3;
+        if (points.length > 0) {
+            const p = points[Math.floor(Math.random() * points.length)];
+            result[i3] = p.x + (Math.random() - 0.5) * 0.1;
+            result[i3 + 1] = p.y + (Math.random() - 0.5) * 0.1;
+            result[i3 + 2] = p.z + (Math.random() - 0.5) * 0.3;
+        }
+    }
+    return result;
+}
+
+// ============================================================
+// MEDIAPIPE HANDS
+// ============================================================
+async function initHandDetection() {
+    const video = document.getElementById('webcam');
+    
+    if (!window.isSecureContext) {
+        throw new Error('Butuh HTTPS atau localhost untuk akses kamera!');
+    }
+    
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { width: 640, height: 480, facingMode: 'user' } 
+    });
+    video.srcObject = stream;
+    
+    const hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+
+    hands.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.5
+    });
+
+    hands.onResults(onHandResults);
+
+    const cam = new Camera(video, {
+        onFrame: async () => { await hands.send({ image: video }); },
+        width: 640, height: 480
+    });
+    cam.start();
+}
+
+// ============================================================
+// 🎯 HANDLING HASIL DETEKSI - VERSI FIXED
+// ============================================================
+function onHandResults(results) {
+    const indicator = document.getElementById('gesture-indicator');
+    const gestureEl = document.getElementById('current-gesture');
+    const confidenceEl = document.getElementById('confidence');
+    const rawEl = document.getElementById('raw-gesture');
+    const handednessEl = document.getElementById('handedness');
+    
+    if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+        indicator.style.display = 'none';
+        gestureEl.textContent = 'Tidak terdeteksi';
+        gestureEl.style.color = '#888';
+        handednessEl.textContent = '-';
+        resetFingerDisplay();
+        gestureBuffer.length = 0;
+        return;
+    }
+    
+    const landmarks = results.multiHandLandmarks[0];
+    
+    // Ambil handedness dari MediaPipe
+    if (results.multiHandedness && results.multiHandedness.length > 0) {
+        handednessEl.textContent = results.multiHandedness[0].label;
+    }
+    
+    // Deteksi gestur mentah
+    const rawGesture = detectRawGesture(landmarks);
+    rawEl.textContent = rawGesture;
+    
+    // Smoothing dengan voting
+    const { gesture, confidence } = smoothGesture(rawGesture);
+    confidenceEl.textContent = `${confidence}%`;
+    
+    // Update debug panel
+    const f = getFingerStates(landmarks);
+    updateFingerDisplay(f);
+    
+    // Mapping gestur ke mode
+    indicator.style.display = 'block';
+    
+    switch(gesture) {
+        case 'peace':
+            currentMode = 'text2';
+            targetPositions = textPositions2;
+            indicator.className = 'gesture-indicator gesture-peace';
+            indicator.textContent = '✌️ PEACE → "I\'m Qwen"';
+            gestureEl.textContent = 'PEACE (✌️)';
+            gestureEl.style.color = '#f0f';
+            break;
+            
+        case 'pointing':
+            currentMode = 'text1';
+            targetPositions = textPositions1;
+            indicator.className = 'gesture-indicator gesture-point';
+            indicator.textContent = '☝️ POINTING → "hello, world"';
+            gestureEl.textContent = 'POINTING (☝️)';
+            gestureEl.style.color = '#ff0';
+            break;
+            
+        case 'open':
+            currentMode = 'expanded';
+            targetPositions = expandedPositions;
+            indicator.className = 'gesture-indicator gesture-open';
+            indicator.textContent = '🖐️ OPEN → Mengembang';
+            gestureEl.textContent = 'OPEN PALM (🖐️)';
+            gestureEl.style.color = '#0f0';
+            break;
+            
+        case 'fist':
+            currentMode = 'sphere';
+            targetPositions = spherePositions;
+            indicator.className = 'gesture-indicator gesture-closed';
+            indicator.textContent = '✊ FIST → Bola';
+            gestureEl.textContent = 'FIST (✊)';
+            gestureEl.style.color = '#f00';
+            break;
+            
+        default:
+            indicator.style.display = 'none';
+            gestureEl.textContent = 'Unknown';
+            gestureEl.style.color = '#888';
+    }
+}
+
+function updateFingerDisplay(f) {
+    const names = ['thumb', 'index', 'middle', 'ring', 'pinky'];
+    const ids = ['f-thumb', 'f-index', 'f-middle', 'f-ring', 'f-pinky'];
+    
+    names.forEach((name, i) => {
+        const el = document.getElementById(ids[i]);
+        if (f[name]) {
+            el.textContent = '✓ EXTENDED';
+            el.className = 'finger-extended';
+        } else {
+            el.textContent = '✗ CURLED';
+            el.className = 'finger-curled';
+        }
+    });
+}
+
+function resetFingerDisplay() {
+    ['f-thumb', 'f-index', 'f-middle', 'f-ring', 'f-pinky'].forEach(id => {
+        const el = document.getElementById(id);
+        el.textContent = '-';
+        el.className = 'finger-curled';
+    });
+    document.getElementById('raw-gesture').textContent = '-';
+}
+
+// ============================================================
+// ANIMATION
+// ============================================================
+function updateParticles(time) {
+    const posAttr = particles.geometry.attributes.position;
+    const colAttr = particles.geometry.attributes.color;
+    const posArray = posAttr.array;
+    const colArray = colAttr.array;
+    
+    const colors = {
+        sphere: CONFIG.colors.sphere,
+        expanded: CONFIG.colors.expanded,
+        text1: CONFIG.colors.text1,
+        text2: CONFIG.colors.text2
+    };
+    const targetColor = colors[currentMode];
+
+    for (let i = 0; i < CONFIG.particleCount; i++) {
+        const i3 = i * 3;
+        let tx, ty, tz;
+        
+        if (currentMode === 'text1' || currentMode === 'text2') {
+            const srcPos = currentMode === 'text1' ? textPositions1 : textPositions2;
+            const rawX = srcPos[i3], rawY = srcPos[i3 + 1], rawZ = srcPos[i3 + 2];
+            const cosY = Math.cos(textRotationY), sinY = Math.sin(textRotationY);
+            tx = rawX * cosY - rawZ * sinY;
+            ty = rawY + Math.sin(time * 2 + rawX * 2) * 0.1;
+            tz = rawX * sinY + rawZ * cosY;
+        } else {
+            tx = targetPositions[i3];
+            ty = targetPositions[i3 + 1];
+            tz = targetPositions[i3 + 2];
+        }
+        
+        posArray[i3] += (tx - posArray[i3]) * CONFIG.lerpSpeed;
+        posArray[i3 + 1] += (ty - posArray[i3 + 1]) * CONFIG.lerpSpeed;
+        posArray[i3 + 2] += (tz - posArray[i3 + 2]) * CONFIG.lerpSpeed;
+        
+        colArray[i3] += (targetColor[0] - colArray[i3]) * CONFIG.lerpSpeed;
+        colArray[i3 + 1] += (targetColor[1] - colArray[i3 + 1]) * CONFIG.lerpSpeed;
+        colArray[i3 + 2] += (targetColor[2] - colArray[i3 + 2]) * CONFIG.lerpSpeed;
+    }
+    posAttr.needsUpdate = true;
+    colAttr.needsUpdate = true;
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    const time = performance.now() * 0.001;
+    particles.material.uniforms.uTime.value = time;
+    updateParticles(time);
+    
+    if (currentMode === 'text1' || currentMode === 'text2') {
+        textRotationY += CONFIG.rotationSpeed;
+        if (textRotationY > Math.PI * 2) textRotationY -= Math.PI * 2;
+    }
+    
+    if (currentMode === 'sphere' || currentMode === 'expanded') {
+        particles.rotation.y += 0.001;
+        particles.rotation.x = Math.sin(time * 0.2) * 0.1;
+    } else {
+        particles.rotation.y *= 0.95;
+        particles.rotation.x *= 0.95;
+    }
+    
+    frameCount++;
+    if (time * 1000 - lastTime >= 1000) {
+        document.getElementById('fps-counter').textContent = frameCount;
+        frameCount = 0; lastTime = time * 1000;
+    }
+    renderer.render(scene, camera);
+}
+
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// ============================================================
+// START APP
+// ============================================================
+async function startApp() {
+    const btn = document.getElementById('start-btn');
+    const screen = document.getElementById('start-screen');
+    const loading = document.getElementById('loading-status');
+    
+    btn.style.display = 'none';
+    loading.style.display = 'block';
+    
+    try {
+        await loadLibraries();
+        document.getElementById('status-text').textContent = 'Inisialisasi 3D...';
+        initThreeJS();
+        document.getElementById('status-text').textContent = 'Meminta izin kamera...';
+        await initHandDetection();
+        
+        screen.style.display = 'none';
+        document.getElementById('info-panel').style.display = 'block';
+        document.getElementById('debug-panel').style.display = 'block';
+        animate();
+    } catch (err) {
+        screen.innerHTML = `
+            <h1 style="color:#f55">⚠️ Error</h1>
+            <p style="color:#faa; max-width:600px;">${err.message}</p>
+            <div class="warning-box">Pastikan membuka via <code>http://localhost:8000</code></div>
+            <button onclick="location.reload()" style="margin-top:20px;padding:12px 30px;background:#0ff;border:none;border-radius:30px;font-weight:bold;cursor:pointer;">🔄 Coba Lagi</button>
+        `;
+    }
+}
+
+document.getElementById('start-btn').addEventListener('click', startApp);
+</script>
+</body>
+</html>
