@@ -3,185 +3,138 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pro Writing v5.0 — Ultra Optimized</title>
+<title>Pro Writing v5.1 — Fixed</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-    overflow: hidden; font-family: -apple-system, sans-serif;
-    background: #0a0a0f; color: #fff; user-select: none;
-}
-#bg { position: fixed; inset: 0; background: radial-gradient(ellipse at 30% 40%, #0f1624 0%, #0a0a0f 70%); z-index: 0; }
-#grid { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0; transition: opacity 0.3s;
-    background-image: linear-gradient(rgba(0,229,255,0.05) 1px, transparent 1px),
-                      linear-gradient(90deg, rgba(0,229,255,0.05) 1px, transparent 1px);
-    background-size: 50px 50px; }
-#grid.on { opacity: 1; }
-canvas { position: fixed; inset: 0; }
-#main { z-index: 10; }
-#prev { z-index: 11; pointer-events: none; }
-#cursor { position: fixed; pointer-events: none; z-index: 500; border-radius: 50%;
-    transform: translate(-50%, -50%); display: none; border: 2px solid #0ff;
-    transition: width 0.08s, height 0.08s; }
-#cursor::after { content: ''; position: absolute; inset: 50%; width: 3px; height: 3px;
-    background: #fff; border-radius: 50%; transform: translate(-50%, -50%); }
-
-/* Start screen */
-#start { position: fixed; inset: 0; background: #0a0a0f; z-index: 9999;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-#start h1 { font-size: 38px; margin: 10px 0; color: #0ff; }
-#start p { color: #8892b0; margin-bottom: 30px; }
-.feat { display: flex; gap: 12px; margin-bottom: 30px; flex-wrap: wrap; justify-content: center; }
-.feat div { background: #151520; padding: 14px 18px; border-radius: 10px; border: 1px solid #1f2937; min-width: 140px; text-align: center; }
-.feat .i { font-size: 22px; margin-bottom: 5px; }
-.feat .t { color: #0ff; font-weight: 600; font-size: 13px; }
-.feat .d { color: #8892b0; font-size: 11px; margin-top: 3px; }
-#go { padding: 14px 50px; font-size: 15px; font-weight: 600;
-    background: #0ff; border: none; border-radius: 30px; color: #000; cursor: pointer; }
-#go:hover { background: #00d4eb; }
-.hint { margin-top: 20px; padding: 10px 15px; background: #1a0a0a; border: 1px solid #5c1a1a;
-    border-radius: 8px; font-size: 12px; color: #ff8080; max-width: 500px; text-align: center; }
-.hint code { background: #000; padding: 2px 8px; border-radius: 3px; color: #0f0; font-family: monospace; }
-.spin { border: 3px solid #1f2937; border-top-color: #0ff; border-radius: 50%;
-    width: 35px; height: 35px; animation: sp 0.8s linear infinite; margin: 15px auto; }
-@keyframes sp { to { transform: rotate(360deg); } }
-
-/* Status bar */
-#bar { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 200;
-    background: #151520; padding: 6px 15px; border-radius: 20px; border: 1px solid #1f2937;
-    display: none; align-items: center; gap: 14px; font-size: 11px; }
-.si { display: flex; align-items: center; gap: 5px; color: #8892b0; }
-.si .l { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; }
-.si .v { color: #fff; font-weight: 600; }
-.dot { width: 6px; height: 6px; border-radius: 50%; background: #666; }
-.dot.on { background: #2ed573; }
-.dot.drw { background: #0ff; animation: pu 1.5s infinite; }
-.dot.ers { background: #ff4757; }
-@keyframes pu { 50% { opacity: 0.4; } }
-.sep { width: 1px; height: 14px; background: #1f2937; }
-
-/* Dock */
-#dock { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 200;
-    background: #151520; padding: 5px; border-radius: 15px; border: 1px solid #1f2937;
-    display: none; gap: 3px; align-items: center; }
-.di { width: 40px; height: 40px; border-radius: 10px; background: transparent;
-    border: none; color: #8892b0; cursor: pointer; font-size: 17px;
-    display: flex; align-items: center; justify-content: center; position: relative; }
-.di:hover { background: #1f2937; color: #fff; }
-.di.on { background: #0ff; color: #000; }
-.di .tp { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
-    background: #000; padding: 3px 7px; border-radius: 4px; font-size: 10px;
-    white-space: nowrap; opacity: 0; pointer-events: none; margin-bottom: 6px;
-    transition: opacity 0.15s; }
-.di:hover .tp { opacity: 1; }
-.ds { width: 1px; height: 26px; background: #1f2937; margin: 0 3px; }
-
-/* Color panel */
-#cpan { position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%);
-    z-index: 199; background: #151520; padding: 10px; border-radius: 13px;
-    border: 1px solid #1f2937; display: none; gap: 6px; flex-wrap: wrap;
-    max-width: 260px; justify-content: center; }
-#cpan.on { display: flex; }
-.cb { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent;
-    cursor: pointer; }
-.cb:hover { border-color: #666; }
-.cb.on { border-color: #fff; }
-
-/* Settings panel */
-#span { position: fixed; left: 15px; top: 50%; transform: translateY(-50%);
-    z-index: 150; background: #151520; padding: 15px; border-radius: 12px;
-    border: 1px solid #1f2937; width: 200px; display: none; }
-.sh { display: flex; justify-content: space-between; margin-bottom: 12px;
-    padding-bottom: 8px; border-bottom: 1px solid #1f2937; }
-.st { font-size: 11px; font-weight: 600; color: #0ff; letter-spacing: 1px; text-transform: uppercase; }
-.sc { background: none; border: none; color: #8892b0; cursor: pointer; font-size: 13px; }
-.pg { margin-bottom: 12px; }
-.pl { display: flex; justify-content: space-between; font-size: 10px; color: #8892b0;
-    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
-.pv { color: #0ff; font-weight: 600; }
-input[type="range"] { width: 100%; height: 3px; background: #1f2937; border-radius: 2px;
-    outline: none; -webkit-appearance: none; }
-input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 13px;
-    height: 13px; border-radius: 50%; background: #0ff; cursor: pointer; }
-
-/* Toggle buttons */
-.tg { position: fixed; z-index: 199; width: 36px; height: 36px; border-radius: 50%;
-    background: #151520; border: 1px solid #1f2937; color: #8892b0; cursor: pointer;
-    font-size: 15px; display: none; align-items: center; justify-content: center; }
-.tg:hover { color: #0ff; border-color: #0ff; }
-#tp { left: 15px; top: 60px; }
-#th { right: 15px; top: 60px; }
-#tw { right: 15px; bottom: 75px; }
-
-/* Webcam */
-#wc { position: fixed; bottom: 18px; right: 15px; z-index: 150; display: none; }
-#cam { width: 140px; height: 105px; border: 1px solid #1f2937; border-radius: 8px;
-    background: #000; transform: scaleX(-1); }
-.ov { position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.7);
-    padding: 2px 6px; border-radius: 6px; font-size: 9px; color: #2ed573;
-    display: flex; align-items: center; gap: 3px; }
-.od { width: 4px; height: 4px; border-radius: 50%; background: #2ed573; animation: pu 2s infinite; }
-
-/* Page indicator */
-#pi { position: fixed; bottom: 18px; left: 15px; z-index: 150; display: none;
-    align-items: center; gap: 5px; background: #151520; padding: 4px 9px;
-    border-radius: 15px; border: 1px solid #1f2937; font-size: 11px; }
-.pb { width: 22px; height: 22px; border-radius: 50%; background: #1f2937; border: none;
-    color: #8892b0; cursor: pointer; font-size: 10px; }
-.pb:hover { background: #0ff; color: #000; }
-.pt { color: #fff; font-weight: 600; min-width: 32px; text-align: center; }
-
-/* Mode indicator */
-#mi { position: fixed; top: 52px; left: 50%; transform: translateX(-50%); z-index: 150;
-    padding: 5px 13px; border-radius: 15px; background: #151520;
-    border: 1px solid #1f2937; font-size: 11px; font-weight: 600;
-    opacity: 0; transition: opacity 0.2s; pointer-events: none;
-    display: flex; align-items: center; gap: 5px; }
-#mi.on { opacity: 1; }
-#mi.drw { border-color: #0ff; color: #0ff; }
-#mi.ers { border-color: #ff4757; color: #ff4757; }
-#mi.hvr { border-color: #2ed573; color: #2ed573; }
-
-/* Tutorial */
-#tut { position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.85);
-    display: none; align-items: center; justify-content: center; padding: 20px; }
-#tut.on { display: flex; }
-.tc { background: #151520; border: 1px solid #1f2937; border-radius: 16px;
-    padding: 30px; max-width: 600px; width: 100%; }
-.tc h2 { font-size: 24px; color: #0ff; margin-bottom: 5px; }
-.tc .sub { color: #8892b0; margin-bottom: 20px; font-size: 12px; }
-.gg { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 18px; }
-.gc { background: #0f0f18; padding: 12px; border-radius: 8px; border: 1px solid #1f2937;
-    display: flex; align-items: center; gap: 10px; }
-.gc .em { font-size: 26px; }
-.gc .ti { font-weight: 600; color: #0ff; font-size: 13px; }
-.gc .de { font-size: 11px; color: #8892b0; margin-top: 2px; }
-.sl { background: #0f0f18; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
-.sl h4 { color: #0ff; margin-bottom: 6px; font-size: 12px; }
-.sr { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px;
-    border-bottom: 1px solid #1a1a28; }
-.sr:last-child { border: none; }
-.ky { background: rgba(0,229,255,0.15); color: #0ff; padding: 1px 6px;
-    border-radius: 3px; font-family: monospace; font-size: 10px; }
-.tx { padding: 10px 25px; background: #0ff; border: none; border-radius: 25px;
-    color: #000; font-weight: 600; cursor: pointer; font-size: 13px; }
-
-/* Toast */
-#toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%) translateY(-10px);
-    z-index: 1000; background: #151520; padding: 7px 18px; border-radius: 20px;
-    border: 1px solid #1f2937; font-size: 12px; opacity: 0;
-    transition: all 0.25s; pointer-events: none; }
-#toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-/* Debug */
-#dbg { position: fixed; top: 12px; right: 15px; z-index: 149; background: #0f0f18;
-    padding: 8px 12px; border-radius: 8px; border: 1px solid #1f2937;
-    font-size: 10px; font-family: monospace; display: none; min-width: 170px; }
-.dr { display: flex; justify-content: space-between; padding: 2px 0; color: #8892b0; }
-.dr .vl { color: #0ff; }
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow:hidden;font-family:-apple-system,sans-serif;background:#0a0a0f;color:#fff;user-select:none}
+#bg{position:fixed;inset:0;background:radial-gradient(ellipse at 30% 40%,#0f1624 0%,#0a0a0f 70%);z-index:0}
+#grid{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:0;transition:opacity .3s;
+    background-image:linear-gradient(rgba(0,229,255,.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,229,255,.05) 1px,transparent 1px);background-size:50px 50px}
+#grid.on{opacity:1}
+canvas{position:fixed;inset:0}
+#main{z-index:10}#prev{z-index:11;pointer-events:none}
+#cursor{position:fixed;pointer-events:none;z-index:500;border-radius:50%;
+    transform:translate(-50%,-50%);display:none;border:2px solid #0ff;transition:width .08s,height .08s}
+#cursor::after{content:'';position:absolute;inset:50%;width:3px;height:3px;
+    background:#fff;border-radius:50%;transform:translate(-50%,-50%)}
+#start{position:fixed;inset:0;background:#0a0a0f;z-index:9999;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+#start h1{font-size:38px;margin:10px 0;color:#0ff}
+#start p{color:#8892b0;margin-bottom:30px}
+.feat{display:flex;gap:12px;margin-bottom:30px;flex-wrap:wrap;justify-content:center}
+.feat div{background:#151520;padding:14px 18px;border-radius:10px;border:1px solid #1f2937;min-width:140px;text-align:center}
+.feat .i{font-size:22px;margin-bottom:5px}
+.feat .t{color:#0ff;font-weight:600;font-size:13px}
+.feat .d{color:#8892b0;font-size:11px;margin-top:3px}
+#go{padding:14px 50px;font-size:15px;font-weight:600;background:#0ff;border:none;border-radius:30px;color:#000;cursor:pointer}
+#go:hover{background:#00d4eb}
+.hint{margin-top:20px;padding:10px 15px;background:#1a0a0a;border:1px solid #5c1a1a;
+    border-radius:8px;font-size:12px;color:#ff8080;max-width:500px;text-align:center}
+.hint code{background:#000;padding:2px 8px;border-radius:3px;color:#0f0;font-family:monospace}
+.spin{border:3px solid #1f2937;border-top-color:#0ff;border-radius:50%;
+    width:35px;height:35px;animation:sp .8s linear infinite;margin:15px auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+#bar{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:200;
+    background:#151520;padding:6px 15px;border-radius:20px;border:1px solid #1f2937;
+    display:none;align-items:center;gap:14px;font-size:11px}
+.si{display:flex;align-items:center;gap:5px;color:#8892b0}
+.si .l{font-size:9px;text-transform:uppercase;letter-spacing:1px}
+.si .v{color:#fff;font-weight:600}
+.dot{width:6px;height:6px;border-radius:50%;background:#666}
+.dot.on{background:#2ed573}.dot.drw{background:#0ff;animation:pu 1.5s infinite}.dot.ers{background:#ff4757}
+@keyframes pu{50%{opacity:.4}}
+.sep{width:1px;height:14px;background:#1f2937}
+#dock{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:200;
+    background:#151520;padding:5px;border-radius:15px;border:1px solid #1f2937;
+    display:none;gap:3px;align-items:center}
+.di{width:40px;height:40px;border-radius:10px;background:transparent;
+    border:none;color:#8892b0;cursor:pointer;font-size:17px;
+    display:flex;align-items:center;justify-content:center;position:relative}
+.di:hover{background:#1f2937;color:#fff}.di.on{background:#0ff;color:#000}
+.di .tp{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);
+    background:#000;padding:3px 7px;border-radius:4px;font-size:10px;
+    white-space:nowrap;opacity:0;pointer-events:none;margin-bottom:6px;transition:opacity .15s}
+.di:hover .tp{opacity:1}
+.ds{width:1px;height:26px;background:#1f2937;margin:0 3px}
+#cpan{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);
+    z-index:199;background:#151520;padding:10px;border-radius:13px;
+    border:1px solid #1f2937;display:none;gap:6px;flex-wrap:wrap;max-width:260px;justify-content:center}
+#cpan.on{display:flex}
+.cb{width:30px;height:30px;border-radius:50%;border:2px solid transparent;cursor:pointer}
+.cb:hover{border-color:#666}.cb.on{border-color:#fff}
+#span{position:fixed;left:15px;top:50%;transform:translateY(-50%);
+    z-index:150;background:#151520;padding:15px;border-radius:12px;
+    border:1px solid #1f2937;width:200px;display:none}
+.sh{display:flex;justify-content:space-between;margin-bottom:12px;
+    padding-bottom:8px;border-bottom:1px solid #1f2937}
+.st{font-size:11px;font-weight:600;color:#0ff;letter-spacing:1px;text-transform:uppercase}
+.sc{background:none;border:none;color:#8892b0;cursor:pointer;font-size:13px}
+.pg{margin-bottom:12px}
+.pl{display:flex;justify-content:space-between;font-size:10px;color:#8892b0;
+    text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.pv{color:#0ff;font-weight:600}
+input[type=range]{width:100%;height:3px;background:#1f2937;border-radius:2px;outline:none;-webkit-appearance:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#0ff;cursor:pointer}
+.tg{position:fixed;z-index:199;width:36px;height:36px;border-radius:50%;
+    background:#151520;border:1px solid #1f2937;color:#8892b0;cursor:pointer;
+    font-size:15px;display:none;align-items:center;justify-content:center}
+.tg:hover{color:#0ff;border-color:#0ff}
+#tp{left:15px;top:60px}#th{right:15px;top:60px}#tw{right:15px;bottom:75px}
+#wc{position:fixed;bottom:18px;right:15px;z-index:150;display:none}
+#cam{width:140px;height:105px;border:1px solid #1f2937;border-radius:8px;
+    background:#000;transform:scaleX(-1)}
+.ov{position:absolute;top:5px;left:5px;background:rgba(0,0,0,.7);
+    padding:2px 6px;border-radius:6px;font-size:9px;color:#2ed573;
+    display:flex;align-items:center;gap:3px}
+.od{width:4px;height:4px;border-radius:50%;background:#2ed573;animation:pu 2s infinite}
+#pi{position:fixed;bottom:18px;left:15px;z-index:150;display:none;
+    align-items:center;gap:5px;background:#151520;padding:4px 9px;
+    border-radius:15px;border:1px solid #1f2937;font-size:11px}
+.pb{width:22px;height:22px;border-radius:50%;background:#1f2937;border:none;
+    color:#8892b0;cursor:pointer;font-size:10px}
+.pb:hover{background:#0ff;color:#000}
+.pt{color:#fff;font-weight:600;min-width:32px;text-align:center}
+#mi{position:fixed;top:52px;left:50%;transform:translateX(-50%);z-index:150;
+    padding:5px 13px;border-radius:15px;background:#151520;
+    border:1px solid #1f2937;font-size:11px;font-weight:600;
+    opacity:0;transition:opacity .2s;pointer-events:none;
+    display:flex;align-items:center;gap:5px}
+#mi.on{opacity:1}
+#mi.drw{border-color:#0ff;color:#0ff}
+#mi.ers{border-color:#ff4757;color:#ff4757}
+#mi.hvr{border-color:#2ed573;color:#2ed573}
+#tut{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);
+    display:none;align-items:center;justify-content:center;padding:20px}
+#tut.on{display:flex}
+.tc{background:#151520;border:1px solid #1f2937;border-radius:16px;
+    padding:30px;max-width:600px;width:100%}
+.tc h2{font-size:24px;color:#0ff;margin-bottom:5px}
+.tc .sub{color:#8892b0;margin-bottom:20px;font-size:12px}
+.gg{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:18px}
+.gc{background:#0f0f18;padding:12px;border-radius:8px;border:1px solid #1f2937;
+    display:flex;align-items:center;gap:10px}
+.gc .em{font-size:26px}
+.gc .ti{font-weight:600;color:#0ff;font-size:13px}
+.gc .de{font-size:11px;color:#8892b0;margin-top:2px}
+.sl{background:#0f0f18;padding:12px;border-radius:8px;margin-bottom:15px}
+.sl h4{color:#0ff;margin-bottom:6px;font-size:12px}
+.sr{display:flex;justify-content:space-between;padding:4px 0;font-size:11px;border-bottom:1px solid #1a1a28}
+.sr:last-child{border:none}
+.ky{background:rgba(0,229,255,.15);color:#0ff;padding:1px 6px;border-radius:3px;font-family:monospace;font-size:10px}
+.tx{padding:10px 25px;background:#0ff;border:none;border-radius:25px;color:#000;font-weight:600;cursor:pointer;font-size:13px}
+#toast{position:fixed;top:60px;left:50%;transform:translateX(-50%) translateY(-10px);
+    z-index:1000;background:#151520;padding:7px 18px;border-radius:20px;
+    border:1px solid #1f2937;font-size:12px;opacity:0;transition:all .25s;pointer-events:none}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+#dbg{position:fixed;top:12px;right:15px;z-index:149;background:#0f0f18;
+    padding:8px 12px;border-radius:8px;border:1px solid #1f2937;
+    font-size:10px;font-family:monospace;display:none;min-width:180px}
+.dr{display:flex;justify-content:space-between;padding:2px 0;color:#8892b0}
+.dr .vl{color:#0ff}
 </style>
 </head>
 <body>
-
 <div id="bg"></div>
 <div id="grid"></div>
 <canvas id="main"></canvas>
@@ -189,16 +142,16 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 13p
 <div id="cursor"></div>
 
 <div id="start">
-    <div style="font-size:60px;">✍️</div>
+    <div style="font-size:60px">✍️</div>
     <h1>Pro Writing System</h1>
-    <p>v5.0 · ULTRA OPTIMIZED · 60 FPS</p>
+    <p>v5.1 · BUG FIXED · 60 FPS</p>
     <div class="feat">
         <div><div class="i">⚡</div><div class="t">60 FPS</div><div class="d">Ultra ringan</div></div>
-        <div><div class="i">🎯</div><div class="t">Smart Track</div><div class="d">Angle-based AI</div></div>
+        <div><div class="i">🎯</div><div class="t">Smart Track</div><div class="d">FIXED detection</div></div>
         <div><div class="i">🖊️</div><div class="t">5 Tools</div><div class="d">Pen, Marker, dll</div></div>
     </div>
     <button id="go">MULAI MENULIS</button>
-    <div id="ld" style="display:none;"><div class="spin"></div><p id="lt" style="color:#8892b0;font-size:12px;">Loading...</p></div>
+    <div id="ld" style="display:none"><div class="spin"></div><p id="lt" style="color:#8892b0;font-size:12px">Loading...</p></div>
     <div class="hint">Jalankan via: <code>python -m http.server 8000</code> → buka <code>localhost:8000</code></div>
 </div>
 
@@ -233,7 +186,7 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 13p
 
 <div id="cpan">
     <button class="cb on" data-color="#ffffff" style="background:#fff"></button>
-    <button class="cb" data-color="#000000" style="background:#000;border:1px solid #444;"></button>
+    <button class="cb" data-color="#000000" style="background:#000;border:1px solid #444"></button>
     <button class="cb" data-color="#ff4757" style="background:#ff4757"></button>
     <button class="cb" data-color="#ffa502" style="background:#ffa502"></button>
     <button class="cb" data-color="#ffdd59" style="background:#ffdd59"></button>
@@ -285,7 +238,7 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 13p
             <div class="sr"><span>Save PNG</span><span class="ky">Ctrl+S</span></div>
             <div class="sr"><span>Debug Panel</span><span class="ky">D</span></div>
         </div>
-        <div style="text-align:center;">
+        <div style="text-align:center">
             <button class="tx" id="tx">Mulai Menulis →</button>
         </div>
     </div>
@@ -295,47 +248,51 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 13p
     <div class="dr"><span>Gesture:</span><span class="vl" id="dg">-</span></div>
     <div class="dr"><span>Mode:</span><span class="vl" id="dm">-</span></div>
     <div class="dr"><span>Fingers:</span><span class="vl" id="df">-</span></div>
+    <div class="dr"><span>Thumb:</span><span class="vl" id="dt">-</span></div>
     <div class="dr"><span>Velocity:</span><span class="vl" id="dv">-</span></div>
-    <div class="dr"><span>Hand Size:</span><span class="vl" id="dh">-</span></div>
     <div class="dr"><span>Drawing:</span><span class="vl" id="dd">no</span></div>
 </div>
 
 <div id="toast"></div>
 
 <script>
-// ============== CONFIG ==============
+// =====================================================
+// KONFIGURASI
+// =====================================================
 const CFG = {
-    fingerAngle: 160,       // derajat: jari lurus jika sudut > ini
     gestureBuf: 5,
     consensus: 0.6,
     smooth: 0.4,
-    minW: 0.4, maxW: 2.5,
-    saveKey: 'pws_v5',
+    saveKey: 'pws_v51',
     saveMs: 5000,
-    skipFrames: 1,          // process detection setiap N frame
+    skipFrames: 1,
 };
 
-// ============== STATE ==============
+// =====================================================
+// STATE
+// =====================================================
 const S = {
     tool: 'pen', color: '#ffffff', size: 5, opacity: 1, smooth: 0.4,
     pages: [[]], pg: 0, undo: [], redo: [],
-    hand: false, mode: 'idle', gbuf: [],
+    hand: false, mode: 'idle', gbuf: [], lastGest: 'unknown',
     kx: { v: 0, e: 1 }, ky: { v: 0, e: 1 },
     sp: null, lp: null, lt: 0, vel: 0,
     drw: false, str: null,
     col: false, pro: false, dbg: false,
     fr: 0, lf: performance.now(),
-    skip: 0, lastHandScale: 1,
+    skip: 0,
 };
 
-// ============== CANVAS ==============
+// =====================================================
+// CANVAS SETUP
+// =====================================================
 let mc, mx, pc, px;
 
 function setupCanvas() {
     mc = document.getElementById('main');
     pc = document.getElementById('prev');
     const rz = () => {
-        const dpr = Math.min(window.devicePixelRatio || 1, 1.5); // Max 1.5 untuk performa
+        const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
         const w = window.innerWidth, h = window.innerHeight;
         [mc, pc].forEach(c => {
             c.width = w * dpr; c.height = h * dpr;
@@ -350,7 +307,9 @@ function setupCanvas() {
     window.addEventListener('resize', rz);
 }
 
-// ============== LIB LOADER ==============
+// =====================================================
+// LIBRARY LOADER
+// =====================================================
 function loadScript(src) {
     return new Promise((r, j) => {
         const s = document.createElement('script');
@@ -368,47 +327,58 @@ async function loadLibs() {
     await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js');
 }
 
-// ============== SMART FINGER DETECTION (ANGLE-BASED) ==============
-// Menggunakan sudut antar joint, bukan hanya distance ratio
-// Lebih akurat di berbagai orientasi tangan
+// =====================================================
+// ✅ FINGER DETECTION - FIXED VERSION
+// Landmark MediaPipe yang BENAR:
+// Thumb: CMC=1, MCP=2, IP=3, TIP=4
+// Index: MCP=5, PIP=6, DIP=7, TIP=8
+// Middle: MCP=9, PIP=10, DIP=11, TIP=12
+// Ring: MCP=13, PIP=14, DIP=15, TIP=16
+// Pinky: MCP=17, PIP=18, DIP=19, TIP=20
+// =====================================================
+const LANDMARKS = {
+    tips: [4, 8, 12, 16, 20],
+    dips: [3, 7, 11, 15, 19],  // ← FIXED! Sebelumnya [3,6,10,14,18]
+    pips: [2, 6, 10, 14, 18],  // ← FIXED! Sebelumnya [2,5,9,13,17]
+    mcps: [1, 5, 9, 13, 17],   // ← FIXED! Sebelumnya [1,4,8,12,16]
+};
 
-function angle3D(a, b, c) {
-    // Sudut di titik b, antara vektor ba dan bc
-    const ba = { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
-    const bc = { x: c.x - b.x, y: c.y - b.y, z: c.z - b.z };
-    const dot = ba.x * bc.x + ba.y * bc.y + ba.z * bc.z;
-    const mba = Math.hypot(ba.x, ba.y, ba.z);
-    const mbc = Math.hypot(bc.x, bc.y, bc.z);
-    if (mba === 0 || mbc === 0) return 0;
-    const cos = Math.max(-1, Math.min(1, dot / (mba * mbc)));
-    return Math.acos(cos) * 180 / Math.PI;
+function dist3(a, b) {
+    return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 }
 
 function fingerExtended(lm, idx) {
-    // Jari-jari: MCP -> PIP -> DIP -> TIP
-    const tips = [4, 8, 12, 16, 20];
-    const dips = [3, 6, 10, 14, 18];
-    const pips = [2, 5, 9, 13, 17];
-    const mcps = [1, 4, 8, 12, 16]; // index sebelumnya (untuk mcp)
+    const tip = lm[LANDMARKS.tips[idx]];
+    const dip = lm[LANDMARKS.dips[idx]];
+    const pip = lm[LANDMARKS.pips[idx]];
+    const mcp = lm[LANDMARKS.mcps[idx]];
     
+    // === JEMPOL: Logika khusus ===
     if (idx === 0) {
-        // Jempol: cek sudut di IP joint (landmark 3)
-        // MCP(2) - IP(3) - TIP(4)
-        const ang = angle3D(lm[2], lm[3], lm[4]);
-        return ang > 140;
+        // Bandingkan jarak tip ke index_mcp(5) vs ip(3) ke index_mcp
+        // Jempol terentang = tip lebih jauh dari telapak
+        const tipDist = dist3(tip, lm[5]);   // Tip ke INDEX_MCP
+        const ipDist = dist3(dip, lm[5]);    // IP ke INDEX_MCP
+        return tipDist > ipDist * 1.15;
     }
     
-    // Jari lain: cek 2 sudut
-    const tip = tips[idx], dip = dips[idx], pip = pips[idx];
-    // MCP mapping untuk jari 1-4
-    const mcpMap = [0, 5, 9, 13, 17];
-    const mcp = mcpMap[idx];
+    // === JARI LAIN: Hybrid method (distance + position) ===
+    // Method 1: Distance ratio - tip ke MCP vs total panjang jari
+    const tipToMcp = dist3(tip, mcp);
+    const pipToMcp = dist3(pip, mcp);
+    const tipToPip = dist3(tip, pip);
+    const totalLen = pipToMcp + tipToPip;
     
-    const ang1 = angle3D(lm[mcp], lm[pip], lm[dip]); // Sudut di PIP
-    const ang2 = angle3D(lm[pip], lm[dip], lm[tip]); // Sudut di DIP
+    if (totalLen === 0) return false;
+    const ratio = tipToMcp / totalLen;
     
-    // Jari lurus jika kedua sudut > 160°
-    return ang1 > CFG.fingerAngle && ang2 > CFG.fingerAngle - 20;
+    // Jari lurus jika ratio > 0.85 (tip jauh dari MCP)
+    if (ratio > 0.85) return true;
+    if (ratio < 0.7) return false;
+    
+    // Method 2: Fallback - posisi Y (untuk tangan tegak)
+    // Tip lebih tinggi (Y lebih kecil) dari PIP = terentang
+    return tip.y < pip.y - 0.02;
 }
 
 function getFingers(lm) {
@@ -421,38 +391,39 @@ function getFingers(lm) {
     };
 }
 
-// ============== SMART GESTURE DETECTION ==============
+// =====================================================
+// GESTURE DETECTION - ROBUST
+// =====================================================
 function detectGesture(lm) {
     const f = getFingers(lm);
-    const ext = [f.t, f.i, f.m, f.r, f.p].filter(Boolean).length;
+    const extCount = [f.t, f.i, f.m, f.r, f.p].filter(Boolean).length;
     
-    // Hitung spread jari (untuk deteksi palm terbuka)
-    const spread = Math.hypot(lm[8].x - lm[20].x, lm[8].y - lm[20].y);
-    const handSize = Math.hypot(lm[0].x - lm[9].x, lm[0].y - lm[9].y);
-    const spreadRatio = spread / (handSize || 0.01);
-    
-    // FIST: semua jari closed (kecuali mungkin jempol)
+    // FIST: semua jari 4 (non-thumb) closed
     if (!f.i && !f.m && !f.r && !f.p) return 'fist';
     
-    // OPEN PALM: 4-5 jari terentang + spread lebar
-    if (ext >= 4 && spreadRatio > 0.5) return 'open_palm';
-    
-    // PEACE: index + middle terentang (prioritas tinggi)
+    // PEACE: index + middle extended, ring + pinky closed (prioritas tinggi)
     if (f.i && f.m && !f.r && !f.p) return 'peace';
-    if (f.i && f.m && (f.r || f.p)) {
-        // Jika ring/pinky sedikit terentang, cek apakah i+m dominan
-        const imExt = (lm[8].y < lm[6].y) && (lm[12].y < lm[10].y);
-        if (imExt) return 'peace';
-    }
     
-    // POINTING: hanya index
+    // POINTING: hanya index yang extended
     if (f.i && !f.m && !f.r && !f.p) return 'pointing';
     
-    // Fallback: jika index terentang, anggap pointing
-    if (f.i) return 'pointing';
+    // OPEN PALM: 4+ jari extended
+    if (extCount >= 4) return 'open_palm';
     
-    // 3-4 jari tapi tidak spread
-    if (ext >= 3) return 'open_palm';
+    // Fallbacks untuk kasus borderline
+    if (f.i && f.m) {
+        // Index + middle extended, yang lain ambiguous
+        // Jika pinky/ring tidak fully extended, masih peace
+        if (!f.p) return 'peace';
+    }
+    
+    if (f.i && !f.m) {
+        // Hanya index
+        return 'pointing';
+    }
+    
+    // 3 jari extended - bisa peace atau pointing
+    if (extCount === 3 && f.i && f.m) return 'peace';
     
     return 'unknown';
 }
@@ -469,12 +440,18 @@ function smoothGesture(raw) {
         if (c > max) { best = g; max = c; }
     }
     
-    // Hysteresis: butuh consensus lebih tinggi untuk ganti mode
     const needed = Math.ceil(CFG.gestureBuf * CFG.consensus);
-    if (max >= needed && best !== 'unknown') return best;
+    if (max >= needed && best !== 'unknown') {
+        S.lastGest = best;
+        return best;
+    }
     
-    // Jika mode sebelumnya bukan idle, pertahankan
-    return S.mode === 'idle' ? 'unknown' : best;
+    // Hysteresis: pertahankan gesture sebelumnya jika masih masuk akal
+    if (S.lastGest !== 'unknown' && S.lastGest !== 'fist') {
+        return S.lastGest;
+    }
+    
+    return raw;
 }
 
 function toMode(g) {
@@ -484,7 +461,9 @@ function toMode(g) {
     return 'idle';
 }
 
-// ============== KALMAN FILTER (LIGHTWEIGHT) ==============
+// =====================================================
+// KALMAN FILTER
+// =====================================================
 function kalman(k, m) {
     const Q = 0.01, R = 0.15;
     const pe = k.e + Q;
@@ -494,12 +473,13 @@ function kalman(k, m) {
     return k.v;
 }
 
-// ============== POSITION PROCESSING ==============
+// =====================================================
+// POSITION PROCESSING
+// =====================================================
 function processPos(lm) {
     const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     const now = performance.now();
     
-    // Non-mirror transform
     const rawX = (1 - lm.x) * mc.width / dpr;
     const rawY = lm.y * mc.height / dpr;
     
@@ -518,7 +498,6 @@ function processPos(lm) {
         S.vel = S.vel * 0.7 + vel * 0.3;
     }
     
-    // Adaptive smoothing: lebih smooth saat pelan, responsif saat cepat
     let a = S.smooth;
     if (S.vel > 1500) a = 0.85;
     else if (S.vel < 100) a = 0.25;
@@ -532,16 +511,17 @@ function processPos(lm) {
     return S.sp;
 }
 
-// ============== STROKE RENDERING (OPTIMIZED) ==============
+// =====================================================
+// STROKE RENDERING
+// =====================================================
 function toolStyle(tool, color, size, opacity) {
-    const dyn = size;
     switch (tool) {
-        case 'pen': return { c: color, s: dyn, o: opacity, comp: 'source-over' };
-        case 'marker': return { c: color, s: dyn * 1.5, o: opacity * 0.85, comp: 'source-over' };
-        case 'highlighter': return { c: color, s: dyn * 3, o: 0.35, comp: 'source-over' };
+        case 'pen': return { c: color, s: size, o: opacity, comp: 'source-over' };
+        case 'marker': return { c: color, s: size * 1.5, o: opacity * 0.85, comp: 'source-over' };
+        case 'highlighter': return { c: color, s: size * 3, o: 0.35, comp: 'source-over' };
         case 'eraser': return { c: '#000', s: size * 3, o: 1, comp: 'destination-out' };
         case 'laser': return { c: color, s: 4, o: 1, comp: 'lighter' };
-        default: return { c: color, s: dyn, o: opacity, comp: 'source-over' };
+        default: return { c: color, s: size, o: opacity, comp: 'source-over' };
     }
 }
 
@@ -555,7 +535,6 @@ function renderStroke(ctx, stroke) {
     ctx.lineWidth = style.s;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    // NO SHADOW BLUR untuk performa!
     
     ctx.beginPath();
     const p = stroke.pts;
@@ -565,7 +544,6 @@ function renderStroke(ctx, stroke) {
         ctx.lineTo(p[1].x, p[1].y);
     } else {
         ctx.moveTo(p[0].x, p[0].y);
-        // Quadratic bezier melalui midpoint (cepat dan halus)
         for (let i = 1; i < p.length - 1; i++) {
             const mx = (p[i].x + p[i+1].x) / 2;
             const my = (p[i].y + p[i+1].y) / 2;
@@ -579,7 +557,9 @@ function renderStroke(ctx, stroke) {
     ctx.globalAlpha = 1;
 }
 
-// ============== STROKE MANAGEMENT ==============
+// =====================================================
+// STROKE MANAGEMENT
+// =====================================================
 function startStroke(pos) {
     S.str = {
         tool: S.tool, color: S.color, size: S.size, opacity: S.opacity,
@@ -592,7 +572,7 @@ function continueStroke(pos) {
     if (!S.str) return;
     const last = S.str.pts[S.str.pts.length - 1];
     const d = Math.hypot(pos.x - last.x, pos.y - last.y);
-    if (d < 1.5) return;  // Skip titik terlalu dekat
+    if (d < 1.5) return;
     S.str.pts.push({ x: pos.x, y: pos.y });
     renderPreview();
 }
@@ -621,7 +601,9 @@ function redraw() {
     S.pages[S.pg].forEach(s => renderStroke(mx, s));
 }
 
-// ============== ERASER ==============
+// =====================================================
+// ERASER
+// =====================================================
 function eraseAt(pos) {
     const strokes = S.pages[S.pg];
     const r = S.size * 2;
@@ -638,7 +620,9 @@ function eraseAt(pos) {
     if (erased) { redraw(); save(); }
 }
 
-// ============== UNDO/REDO ==============
+// =====================================================
+// UNDO/REDO
+// =====================================================
 function undo() {
     if (!S.undo.length) return;
     const a = S.undo.pop();
@@ -671,7 +655,9 @@ function clearPage() {
     redraw(); save(); toast('🗑️ Clear');
 }
 
-// ============== PAGES ==============
+// =====================================================
+// PAGES
+// =====================================================
 function switchPage(i) {
     if (i < 0 || i >= S.pages.length) return;
     S.pg = i; redraw(); updPage(); toast('📄 Page ' + (i + 1));
@@ -679,7 +665,9 @@ function switchPage(i) {
 function addPage() { S.pages.push([]); switchPage(S.pages.length - 1); }
 function updPage() { document.getElementById('ptx').textContent = (S.pg + 1) + '/' + S.pages.length; }
 
-// ============== SAVE ==============
+// =====================================================
+// SAVE/LOAD
+// =====================================================
 function save() {
     try {
         localStorage.setItem(CFG.saveKey, JSON.stringify({
@@ -709,7 +697,9 @@ function savePNG() {
     toast('💾 Saved');
 }
 
-// ============== MEDIAPIPE INIT (OPTIMIZED) ==============
+// =====================================================
+// MEDIAPIPE INIT
+// =====================================================
 async function initTracking() {
     const video = document.getElementById('cam');
     if (!window.isSecureContext) throw new Error('Butuh HTTPS/localhost!');
@@ -723,11 +713,10 @@ async function initTracking() {
         locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
     });
     
-    // KUNCI OPTIMASI: modelComplexity 0 = 2-3x lebih cepat
     hands.setOptions({
         maxNumHands: 1,
-        modelComplexity: 0,           // <- 0 = FAST, 1 = ACCURATE (berat)
-        minDetectionConfidence: 0.5,  // <- Lebih rendah = lebih cepat detect
+        modelComplexity: 0,
+        minDetectionConfidence: 0.5,
         minTrackingConfidence: 0.5
     });
     
@@ -740,7 +729,9 @@ async function initTracking() {
     cam.start();
 }
 
-// ============== MAIN HANDLER ==============
+// =====================================================
+// MAIN HANDLER - FIXED
+// =====================================================
 function onResults(results) {
     const cursor = document.getElementById('cursor');
     const dot = document.getElementById('hd');
@@ -754,7 +745,7 @@ function onResults(results) {
         mv.textContent = '—';
         updMI('idle');
         if (S.drw) endStroke();
-        updDbg('none', 'idle', '-', 0, 0);
+        updDbg('none', 'idle', '-', '-', 0);
         return;
     }
     
@@ -764,7 +755,6 @@ function onResults(results) {
     
     const pos = processPos(lm[8]);
     
-    // Frame skipping untuk deteksi gesture (hemat CPU)
     S.skip++;
     let smoothed;
     if (S.skip >= CFG.skipFrames) {
@@ -772,7 +762,7 @@ function onResults(results) {
         const raw = detectGesture(lm);
         smoothed = smoothGesture(raw);
     } else {
-        smoothed = S.gbuf.length > 0 ? S.gbuf[S.gbuf.length - 1] : 'unknown';
+        smoothed = S.lastGest;
     }
     
     const newMode = toMode(smoothed);
@@ -780,7 +770,6 @@ function onResults(results) {
     mv.textContent = newMode.toUpperCase();
     updMI(newMode);
     
-    // Update cursor
     cursor.style.display = 'block';
     cursor.style.left = pos.x + 'px';
     cursor.style.top = pos.y + 'px';
@@ -794,9 +783,8 @@ function onResults(results) {
     
     const f = getFingers(lm);
     const fs = (f.t?'T':'') + (f.i?'I':'') + (f.m?'M':'') + (f.r?'R':'') + (f.p?'P':'');
-    const handSize = Math.hypot(lm[0].x - lm[9].x, lm[0].y - lm[9].y);
+    const thumbInfo = `ang:${dist3(lm[4], lm[5]).toFixed(3)}`;
     
-    // AKSI MODE
     if (newMode === 'draw') {
         if (!S.drw) startStroke(pos);
         else continueStroke(pos);
@@ -809,10 +797,12 @@ function onResults(results) {
         if (S.drw) endStroke();
     }
     
-    updDbg(smoothed, newMode, fs, S.vel, handSize);
+    updDbg(smoothed, newMode, fs, thumbInfo, S.vel);
 }
 
-// ============== UI ==============
+// =====================================================
+// UI FUNCTIONS
+// =====================================================
 function updMI(m) {
     const el = document.getElementById('mi');
     const ic = document.getElementById('mii');
@@ -824,13 +814,13 @@ function updMI(m) {
     else { el.classList.remove('on'); }
 }
 
-function updDbg(g, m, f, v, h) {
+function updDbg(g, m, f, t, v) {
     if (!S.dbg) return;
     document.getElementById('dg').textContent = g;
     document.getElementById('dm').textContent = m;
     document.getElementById('df').textContent = f;
+    document.getElementById('dt').textContent = t;
     document.getElementById('dv').textContent = Math.round(v) + 'px/s';
-    document.getElementById('dh').textContent = h.toFixed(3);
     document.getElementById('dd').textContent = S.drw ? 'YES' : 'no';
 }
 
@@ -853,14 +843,8 @@ function updPropUI() {
     document.getElementById('mv2').textContent = Math.round(S.smooth * 100) + '%';
 }
 
-function togCol() {
-    S.col = !S.col;
-    document.getElementById('cpan').classList.toggle('on', S.col);
-}
-function togPro() {
-    S.pro = !S.pro;
-    document.getElementById('span').style.display = S.pro ? 'block' : 'none';
-}
+function togCol() { S.col = !S.col; document.getElementById('cpan').classList.toggle('on', S.col); }
+function togPro() { S.pro = !S.pro; document.getElementById('span').style.display = S.pro ? 'block' : 'none'; }
 function togWeb() {
     const w = document.getElementById('wc');
     w.style.display = w.style.display === 'none' ? 'block' : 'none';
@@ -877,12 +861,12 @@ function toast(msg) {
     t._t = setTimeout(() => t.classList.remove('on'), 1800);
 }
 
-// ============== EVENTS ==============
+// =====================================================
+// EVENT LISTENERS
+// =====================================================
 function setupEvents() {
     document.querySelectorAll('.di[data-tool]').forEach(b => {
-        b.addEventListener('click', () => {
-            S.tool = b.dataset.tool; updToolUI(); toast('🔧 ' + S.tool);
-        });
+        b.addEventListener('click', () => { S.tool = b.dataset.tool; updToolUI(); toast('🔧 ' + S.tool); });
     });
     
     document.getElementById('cb').addEventListener('click', togCol);
@@ -894,9 +878,7 @@ function setupEvents() {
     document.getElementById('sb').addEventListener('click', savePNG);
     
     document.querySelectorAll('.cb').forEach(b => {
-        b.addEventListener('click', () => {
-            S.color = b.dataset.color; updToolUI();
-        });
+        b.addEventListener('click', () => { S.color = b.dataset.color; updToolUI(); });
     });
     
     document.addEventListener('click', e => {
@@ -966,7 +948,9 @@ function setupEvents() {
     setInterval(save, CFG.saveMs);
 }
 
-// ============== FPS ==============
+// =====================================================
+// FPS COUNTER
+// =====================================================
 function updFPS() {
     S.fr++;
     const now = performance.now();
@@ -977,7 +961,9 @@ function updFPS() {
     requestAnimationFrame(updFPS);
 }
 
-// ============== START ==============
+// =====================================================
+// START
+// =====================================================
 async function start() {
     const btn = document.getElementById('go');
     const sc = document.getElementById('start');
@@ -1003,12 +989,12 @@ async function start() {
         setupEvents();
         updToolUI(); updPropUI(); updPage(); updFPS();
         document.getElementById('tut').classList.add('on');
-        toast('✨ Ready!');
+        toast('✨ Ready! Tunjukkan tangan Anda');
     } catch (err) {
         sc.innerHTML = `
-            <div style="font-size:60px;">⚠️</div>
-            <h1 style="color:#ff4757;">Error</h1>
-            <p style="color:#ff8080;max-width:500px;margin:20px;">${err.message}</p>
+            <div style="font-size:60px">⚠️</div>
+            <h1 style="color:#ff4757">Error</h1>
+            <p style="color:#ff8080;max-width:500px;margin:20px">${err.message}</p>
             <div class="hint">
                 <strong>Solusi:</strong><br>
                 1. Jalankan via <code>http://localhost:8000</code><br>
@@ -1016,7 +1002,7 @@ async function start() {
                 3. Pastikan internet aktif<br>
                 4. Gunakan Chrome/Edge terbaru
             </div>
-            <button onclick="location.reload()" style="margin-top:20px;padding:12px 30px;background:#0ff;border:none;border-radius:25px;font-weight:600;cursor:pointer;color:#000;">🔄 Retry</button>
+            <button onclick="location.reload()" style="margin-top:20px;padding:12px 30px;background:#0ff;border:none;border-radius:25px;font-weight:600;cursor:pointer;color:#000">🔄 Retry</button>
         `;
     }
 }
